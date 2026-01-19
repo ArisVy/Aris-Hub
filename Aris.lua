@@ -8,7 +8,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local CoreGui = game:GetService("CoreGui")
 
-game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53.1 PRO",Text="Đã tải - Không có Aimbot",Duration=5})
+game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53.1 PRO",Text="Đã tải - Fix ESP & TeamCheck",Duration=5})
 
 -- CẤU HÌNH (Loại bỏ DraggableMode)
 _G.Config = {
@@ -226,7 +226,28 @@ Players.PlayerRemoving:Connect(function(p)
     end
 end)
 
--- VÒNG LẶP CHÍNH
+-- HÀM ẨN ESP & RESET HITBOX (Dùng khi chết hoặc là đồng đội)
+local function HideESPAndReset(p, s)
+    if s then
+        s.Box.Visible = false
+        s.Bill.Enabled = false
+    end
+    -- Reset Hitbox về mặc định
+    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = p.Character.HumanoidRootPart
+        if hrp.Size.X > 5 then -- Chỉ reset nếu nó đang bị to
+            hrp.Size = Vector3.new(2, 2, 1)
+            hrp.Transparency = 1
+            hrp.CanCollide = true
+        end
+    end
+    -- Xóa Chams
+    if p.Character and p.Character:FindFirstChild("ArisHL") then
+        p.Character.ArisHL:Destroy()
+    end
+end
+
+-- VÒNG LẶP CHÍNH (ĐÃ FIX LOGIC)
 RunService.Heartbeat:Connect(function()
     local rgb = GetRGB()
     for _, v in pairs(RainbowList) do
@@ -245,75 +266,83 @@ RunService.Heartbeat:Connect(function()
     
     for _, p in Players:GetPlayers() do
         if p == LocalPlayer then continue end
+        
         local char = p.Character
+        local s = ESP_Store[p]
+        
+        -- KIỂM TRA TỒN TẠI
         if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then
-            if ESP_Store[p] then 
-                ESP_Store[p].Box.Visible = false
-                ESP_Store[p].Bill.Enabled = false 
-            end
+            HideESPAndReset(p, s)
             continue
         end
-        
+
         local hrp = char.HumanoidRootPart
         local head = char:FindFirstChild("Head") or hrp
         local hum = char.Humanoid
+
+        -- CHECK MÁU (SỬA LỖI GHOST KHI CHẾT)
+        if hum.Health <= 0 then
+            HideESPAndReset(p, s)
+            continue
+        end
+
+        -- TEAM CHECK (SỬA LỖI ĐÁNH ĐỒNG ĐỘI)
+        if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then
+            HideESPAndReset(p, s)
+            continue
+        end
         
-        -- HITBOX LOGIC (ĐÃ FIX CHẾT)
-        if _G.Config.Hitbox_P and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+        -- HITBOX LOGIC (Chỉ chạy khi đã qua TeamCheck)
+        if _G.Config.Hitbox_P then
+            local isVisible = true
+            if _G.Config.SmartHitbox then
+                local rayParams = RaycastParams.new()
+                rayParams.FilterType = Enum.RaycastFilterType.Exclude
+                rayParams.FilterDescendantsInstances = {LocalPlayer.Character or game, char}
+                
+                local dir = hrp.Position - Camera.CFrame.Position
+                local ray = workspace:Raycast(Camera.CFrame.Position, dir, rayParams)
+                if ray then isVisible = false end
+            end
             
-            if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then
+            if isVisible then
+                hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                hrp.Transparency = 0.6
+                hrp.CanCollide = false
+            else
                 hrp.Size = Vector3.new(2, 2, 1)
                 hrp.Transparency = 1
                 hrp.CanCollide = true
-            else
-                local isVisible = true
-                
-                if _G.Config.SmartHitbox then
-                    local rayParams = RaycastParams.new()
-                    rayParams.FilterType = Enum.RaycastFilterType.Exclude
-                    rayParams.FilterDescendantsInstances = {LocalPlayer.Character or game, char}
-                    
-                    local ray = workspace:Raycast(Camera.CFrame.Position, hrp.Position - Camera.CFrame.Position, rayParams)
-                    if ray then isVisible = false end
-                end
-                
-                if isVisible then
-                    hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
-                    hrp.Transparency = 0.6
-                    hrp.CanCollide = false
-                else
-                    hrp.Size = Vector3.new(2, 2, 1)
-                    hrp.Transparency = 1
-                    hrp.CanCollide = true
-                end
             end
         else
-            hrp.Size = Vector3.new(2, 2, 1)
-            hrp.Transparency = 1
-            hrp.CanCollide = true
+            -- Nếu tắt Hitbox thì trả về bình thường
+            if hrp.Size.X > 5 then
+                hrp.Size = Vector3.new(2, 2, 1)
+                hrp.Transparency = 1
+                hrp.CanCollide = true
+            end
         end
 
-        -- CHAMS
+        -- CHAMS (Chỉ hiện nếu không phải đồng đội)
         if _G.Config.ESP_Chams_P then
             local hl = char:FindFirstChild("ArisHL") or Instance.new("Highlight", char)
             hl.Name = "ArisHL"
             hl.FillColor = rgb
             hl.OutlineTransparency = 0
+            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         elseif char:FindFirstChild("ArisHL") then 
             char.ArisHL:Destroy() 
         end
 
         -- ESP BOX + BILLBOARD
         if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Box_P then
-            if not ESP_Store[p] then
+            if not s then
                 local box = Instance.new("BoxHandleAdornment", ScreenGui)
-                box.Adornee = hrp
                 box.AlwaysOnTop = true
                 box.ZIndex = 10
                 box.Transparency = 0.5
                 
                 local bill = Instance.new("BillboardGui", ScreenGui)
-                bill.Adornee = head
                 bill.Size = UDim2.new(0, 200, 0, 60)
                 bill.AlwaysOnTop = true
                 
@@ -324,9 +353,13 @@ RunService.Heartbeat:Connect(function()
                 txt.TextSize = 12
                 
                 ESP_Store[p] = {Box = box, Bill = bill, Text = txt}
+                s = ESP_Store[p]
             end
             
-            local s = ESP_Store[p]
+            -- CẬP NHẬT ADORNEE LIÊN TỤC (SỬA LỖI ESP NHẦM/GHOST)
+            if s.Box.Adornee ~= hrp then s.Box.Adornee = hrp end
+            if s.Bill.Adornee ~= head then s.Bill.Adornee = head end
+            
             s.Box.Visible = _G.Config.ESP_Box_P
             s.Box.Color3 = rgb
             s.Bill.Enabled = true
@@ -337,6 +370,8 @@ RunService.Heartbeat:Connect(function()
                 (_G.Config.ESP_Health_P and "HP: "..math.floor(hum.Health) or "") .. "\n" ..
                 (_G.Config.ESP_Distance_P and "Dist: "..dist.."m" or "")
             s.Text.TextColor3 = GetHealthColor(hum.Health / hum.MaxHealth)
+        else
+            if s then s.Box.Visible = false; s.Bill.Enabled = false end
         end
     end
 end)
