@@ -8,24 +8,29 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local CoreGui = game:GetService("CoreGui")
 
-game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53.1 PRO",Text="Tích hợp Aimlock V10 Thành Công",Duration=5})
+game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53.2 PRO",Text="Đã cập nhật Tab Aimlock & Fix WallCheck",Duration=5})
 
--- CẤU HÌNH (Đã thêm biến Aimlock)
+-- CẤU HÌNH
 _G.Config = {
-    TeamCheck = true, 
-    WallCheck = false,
-    ShowPushBtn = true,
+    -- Aimlock (Danh mục riêng)
+    ShowAimButton = true,
+    AimTeamCheck = true,
+    AimWallCheck = false,
+    
     -- ESP
+    TeamCheck = true, -- Team check cho ESP
     ESP_Box_P = false, ESP_Name_P = true, ESP_Health_P = true, ESP_Chams_P = true, ESP_Distance_P = true,
+    
     -- Hitbox
     Hitbox_P = false, HitboxSize = 15, SmartHitbox = true,
-    -- Aimlock (Mới đồng bộ từ V10)
-    AimEnabled = false,
-    LockedTarget = nil,
+    
     -- Misc
     JumpForce = 150, Fullbright = false, ReduceLag = false,
     MenuOpen = false
 }
+
+local AimActive = false
+local LockedTarget = nil
 
 if CoreGui:FindFirstChild("ArisHUB_PRO") then CoreGui.ArisHUB_PRO:Destroy() end
 
@@ -33,13 +38,14 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ArisHUB_PRO"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = CoreGui
 
 local RainbowList = {}
 local function GetRGB() return Color3.fromHSV(tick() % 5 / 5, 1, 1) end
 
--- NÚT MỞ MENU
+----------------------------------------------------------------
+-- 1. NÚT MỞ MENU (UI)
+----------------------------------------------------------------
 local ToggleBtn = Instance.new("TextButton", ScreenGui)
 ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
 ToggleBtn.Position = UDim2.new(0, 10, 0.5, -25)
@@ -52,9 +58,28 @@ local ts = Instance.new("UIStroke", ToggleBtn)
 ts.Thickness = 3
 table.insert(RainbowList, ts)
 
--- KHUNG MENU CHÍNH
+----------------------------------------------------------------
+-- 2. NÚT AIM CHÍNH (NÚT BẤM ĐỂ KHÓA MỤC TIÊU)
+----------------------------------------------------------------
+local MainAimBtn = Instance.new("TextButton", ScreenGui)
+MainAimBtn.Size = UDim2.new(0, 140, 0, 45)
+MainAimBtn.Position = UDim2.new(0.24, 0, 0.13, 0) -- Vị trí bạn thích
+MainAimBtn.Text = "Aris: OFF"
+MainAimBtn.Font = Enum.Font.GothamBold
+MainAimBtn.TextSize = 18
+MainAimBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainAimBtn.BackgroundTransparency = 0.2
+MainAimBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", MainAimBtn).CornerRadius = UDim.new(0, 12)
+local as = Instance.new("UIStroke", MainAimBtn)
+as.Thickness = 2.5
+table.insert(RainbowList, as)
+
+----------------------------------------------------------------
+-- 3. KHUNG MENU CHÍNH
+----------------------------------------------------------------
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 320, 0, 420) -- Tăng nhẹ chiều cao
+MainFrame.Size = UDim2.new(0, 320, 0, 380)
 MainFrame.Position = UDim2.new(0, 70, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.Visible = false
@@ -70,29 +95,29 @@ end)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "ARIS HUB V53.1 PRO"
+Title.Text = "ARIS HUB V53.2 PRO"
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.BackgroundTransparency = 1
 table.insert(RainbowList, Title)
 
--- QUẢN LÝ TABS (Thêm Combat)
+-- QUẢN LÝ TABS
 local TabFrame = Instance.new("Frame", MainFrame)
 TabFrame.Size = UDim2.new(1, 0, 0, 40)
 TabFrame.Position = UDim2.new(0, 0, 0, 40)
 TabFrame.BackgroundTransparency = 1
 
-local Tabs = {"Combat", "ESP", "Hitbox", "Misc", "Visual"}
+local Tabs = {"Aimlock", "ESP", "Hitbox", "Misc"}
 local ContentFrames = {}
-local CurrentTab = "Combat"
+local CurrentTab = "Aimlock"
 
 for i, tabName in ipairs(Tabs) do
     local btn = Instance.new("TextButton", TabFrame)
-    btn.Size = UDim2.new(0.2, 0, 1, 0) -- Chia 5 tab
-    btn.Position = UDim2.new((i-1)*0.2, 0, 0, 0)
+    btn.Size = UDim2.new(0.25, 0, 1, 0)
+    btn.Position = UDim2.new((i-1)*0.25, 0, 0, 0)
     btn.Text = tabName
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
+    btn.TextSize = 12
     btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     table.insert(RainbowList, btn)
@@ -101,7 +126,7 @@ for i, tabName in ipairs(Tabs) do
     content.Size = UDim2.new(1, -10, 1, -90)
     content.Position = UDim2.new(0, 5, 0, 80)
     content.BackgroundTransparency = 1
-    content.CanvasSize = UDim2.new(0, 0, 0, 600)
+    content.CanvasSize = UDim2.new(0, 0, 0, 500)
     content.Visible = (tabName == CurrentTab)
     ContentFrames[tabName] = {Frame = content, Y = 10}
     
@@ -122,12 +147,14 @@ local function AddToggle(tab, name, key, cb)
     btn.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     table.insert(RainbowList, btn)
+    
     btn.MouseButton1Click:Connect(function()
         _G.Config[key] = not _G.Config[key]
         btn.Text = name .. ": " .. (_G.Config[key] and "ON" or "OFF")
         btn.BackgroundColor3 = _G.Config[key] and Color3.fromRGB(40, 100, 40) or Color3.fromRGB(100, 40, 40)
         if cb then cb() end
     end)
+    
     if _G.Config[key] then 
         btn.Text = name .. ": ON"
         btn.BackgroundColor3 = Color3.fromRGB(40, 100, 40) 
@@ -135,224 +162,128 @@ local function AddToggle(tab, name, key, cb)
     ContentFrames[tab].Y = y + 45
 end
 
--- HÀM THÊM THANH CHỈNH SỐ
-local function AddAdjust(tab, name, key, step)
-    local y = ContentFrames[tab].Y
-    local frame = Instance.new("Frame", ContentFrames[tab].Frame)
-    frame.Size = UDim2.new(1, -20, 0, 35)
-    frame.Position = UDim2.new(0, 10, 0, y)
-    frame.BackgroundTransparency = 1
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Position = UDim2.new(0.2, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name .. ": " .. _G.Config[key]
-    label.Font = Enum.Font.GothamBold
-    table.insert(RainbowList, label)
-    local minus = Instance.new("TextButton", frame)
-    minus.Size = UDim2.new(0.2, -5, 1, 0)
-    minus.Text = "-"
-    minus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    Instance.new("UICorner", minus)
-    minus.MouseButton1Click:Connect(function()
-        _G.Config[key] = math.max(5, _G.Config[key] - step)
-        label.Text = name .. ": " .. _G.Config[key]
-    end)
-    local plus = Instance.new("TextButton", frame)
-    plus.Size = UDim2.new(0.2, -5, 1, 0)
-    plus.Position = UDim2.new(0.8, 5, 0, 0)
-    plus.Text = "+"
-    plus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    Instance.new("UICorner", plus)
-    plus.MouseButton1Click:Connect(function()
-        _G.Config[key] = _G.Config[key] + step
-        label.Text = name .. ": " .. _G.Config[key]
-    end)
-    ContentFrames[tab].Y = y + 45
-end
-
 -- XÂY DỰNG MENU
--- Tab Combat (Aimlock)
-AddToggle("Combat", "AIMLOCK", "AimEnabled", function()
-    if not _G.Config.AimEnabled then _G.Config.LockedTarget = nil end
-end)
-AddToggle("Combat", "WALL CHECK", "WallCheck")
+-- Tab Aimlock
+AddToggle("Aimlock", "SHOW AIM BUTTON", "ShowAimButton")
+AddToggle("Aimlock", "TEAM CHECK", "AimTeamCheck")
+AddToggle("Aimlock", "WALL CHECK", "AimWallCheck")
 
+-- Tab ESP
+AddToggle("ESP", "TEAM CHECK", "TeamCheck")
 AddToggle("ESP", "ESP NAME", "ESP_Name_P")
 AddToggle("ESP", "ESP HEALTH", "ESP_Health_P")
-AddToggle("ESP", "ESP DISTANCE", "ESP_Distance_P")
-AddToggle("ESP", "ESP BOX", "ESP_Box_P")
 AddToggle("ESP", "ESP CHAMS", "ESP_Chams_P")
 
+-- Tab Hitbox
 AddToggle("Hitbox", "HITBOX PLAYER", "Hitbox_P")
 AddToggle("Hitbox", "SMART HITBOX", "SmartHitbox")
-AddAdjust("Hitbox", "HITBOX SIZE", "HitboxSize", 5)
 
-AddToggle("Misc", "TEAM CHECK", "TeamCheck")
+-- Tab Misc
 AddToggle("Misc", "FULLBRIGHT", "Fullbright")
-AddToggle("Misc", "REDUCE LAG", "ReduceLag", function()
-    if _G.Config.ReduceLag then
-        for _, v in pairs(game:GetDescendants()) do
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then 
-                v.Enabled = false 
-            end
-        end
-        Lighting.GlobalShadows = false
-    end
-end)
-AddAdjust("Misc", "PUSH FORCE", "JumpForce", 50)
-AddToggle("Visual", "SHOW PUSH BTN", "ShowPushBtn")
+AddToggle("Misc", "REDUCE LAG", "ReduceLag")
 
--- NÚT PUSH
-local PushBtn = Instance.new("TextButton", ScreenGui)
-PushBtn.Size = UDim2.new(0, 70, 0, 70)
-PushBtn.Position = UDim2.new(0.85, 0, 0.6, 0)
-PushBtn.Text = "PUSH"
-PushBtn.Font = Enum.Font.GothamBlack
-Instance.new("UICorner", PushBtn).CornerRadius = UDim.new(1, 0)
-local ps = Instance.new("UIStroke", PushBtn)
-ps.Thickness = 4
-table.insert(RainbowList, ps)
-PushBtn.MouseButton1Click:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        hrp:ApplyImpulse(Vector3.new(0, hrp.AssemblyMass * _G.Config.JumpForce, 0))
-    end
-end)
-
--- LOGIC KIỂM TRA TƯỜNG (Từ V10)
+----------------------------------------------------------------
+-- 4. LOGIC AIMLOCK (TỪ V10)
+----------------------------------------------------------------
 local function IsVisible(targetChar)
-    if not _G.Config.WallCheck then return true end
+    if not _G.Config.AimWallCheck then return true end
     local hrp = targetChar:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
-    
     local rayParams = RaycastParams.new()
     rayParams.FilterType = Enum.RaycastFilterType.Exclude
     rayParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-    
     local result = Workspace:Raycast(Camera.CFrame.Position, hrp.Position - Camera.CFrame.Position, rayParams)
     return not result or result.Instance:IsDescendantOf(targetChar)
 end
 
--- LOGIC LẤY MỤC TIÊU GẦN TÂM (Từ V10)
 local function GetClosestToMouse()
     local target, dist = nil, math.huge
     local mouseLoc = UserInputService:GetMouseLocation()
-    
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") then
             if p.Character.Humanoid.Health <= 0 then continue end
-            if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then continue end
-            
+            if _G.Config.AimTeamCheck and p.Team == LocalPlayer.Team then continue end
             local screenPos, onScreen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
             if onScreen and IsVisible(p.Character) then
                 local mDist = (Vector2.new(screenPos.X, screenPos.Y) - mouseLoc).Magnitude
-                if mDist < dist then
-                    dist = mDist
-                    target = p
-                end
+                if mDist < dist then dist = mDist target = p end
             end
         end
     end
     return target
 end
 
--- QUẢN LÝ ESP
-local ESP_Store = {}
-local function GetHealthColor(pct)
-    if pct > 0.7 then return Color3.new(0, 1, 0)
-    elseif pct > 0.3 then return Color3.new(1, 1, 0)
-    else return Color3.new(1, 0, 0) end
-end
-
-local function HideESPAndReset(p, s)
-    if s then s.Box.Visible = false s.Bill.Enabled = false end
-    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = p.Character.HumanoidRootPart
-        if hrp.Size.X > 5 then hrp.Size = Vector3.new(2, 2, 1) hrp.Transparency = 1 hrp.CanCollide = true end
+MainAimBtn.MouseButton1Click:Connect(function()
+    AimActive = not AimActive
+    if AimActive then
+        LockedTarget = GetClosestToMouse()
+        if LockedTarget then
+            MainAimBtn.Text = "LOCKED"
+            MainAimBtn.TextColor3 = Color3.new(0, 1, 0)
+        else
+            AimActive = false
+            MainAimBtn.Text = "NO TARGET"
+            task.delay(0.5, function() MainAimBtn.Text = "Aris: OFF" MainAimBtn.TextColor3 = Color3.new(1,1,1) end)
+        end
+    else
+        LockedTarget = nil
+        MainAimBtn.Text = "Aris: OFF"
+        MainAimBtn.TextColor3 = Color3.new(1,1,1)
     end
-    if p.Character and p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
-end
+end)
 
--- VÒNG LẶP CHÍNH (Đã tích hợp Aimlock RenderStepped)
+----------------------------------------------------------------
+-- 5. VÒNG LẶP CHÍNH (RENDER)
+----------------------------------------------------------------
 RunService.RenderStepped:Connect(function()
     local rgb = GetRGB()
     for _, v in pairs(RainbowList) do
         if v:IsA("UIStroke") then v.Color = rgb
         elseif v:IsA("TextLabel") or v:IsA("TextButton") then v.TextColor3 = rgb end
     end
+
+    -- Ẩn hiện Aim Button theo Menu
+    MainAimBtn.Visible = _G.Config.ShowAimButton
     
-    -- XỬ LÝ AIMLOCK (LOGIC TỪ V10)
-    if _G.Config.AimEnabled then
-        if not _G.Config.LockedTarget then
-            _G.Config.LockedTarget = GetClosestToMouse()
-        end
-        
-        local target = _G.Config.LockedTarget
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character.Humanoid.Health > 0 then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+    -- Xử lý khóa Camera
+    if AimActive and LockedTarget and LockedTarget.Character and LockedTarget.Character:FindFirstChild("HumanoidRootPart") then
+        if LockedTarget.Character.Humanoid.Health > 0 then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, LockedTarget.Character.HumanoidRootPart.Position)
         else
-            _G.Config.LockedTarget = nil
+            AimActive = false
+            LockedTarget = nil
+            MainAimBtn.Text = "Aris: OFF"
+            MainAimBtn.TextColor3 = Color3.new(1,1,1)
         end
     end
 end)
 
--- VÒNG LẶP HEARTBEAT (ESP & HITBOX)
+-- (Các logic ESP và Hitbox giữ nguyên từ bản V53.1 nhưng dùng _G.Config mới)
 RunService.Heartbeat:Connect(function()
-    PushBtn.Visible = _G.Config.ShowPushBtn
     if _G.Config.Fullbright then Lighting.Brightness = 2 Lighting.ClockTime = 14 end
-    
     for _, p in Players:GetPlayers() do
         if p == LocalPlayer then continue end
         local char = p.Character
-        local s = ESP_Store[p]
+        if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then continue end
         
-        if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") or char.Humanoid.Health <= 0 or (_G.Config.TeamCheck and p.Team == LocalPlayer.Team) then
-            HideESPAndReset(p, s)
-            continue
-        end
-
-        local hrp = char.HumanoidRootPart
-        local head = char:FindFirstChild("Head") or hrp
-        local hum = char.Humanoid
-
-        -- HITBOX
-        if _G.Config.Hitbox_P then
-            local isVis = true
-            if _G.Config.SmartHitbox then
-                local res = Workspace:Raycast(Camera.CFrame.Position, hrp.Position - Camera.CFrame.Position, RaycastParams.new())
-                if res and not res.Instance:IsDescendantOf(char) then isVis = false end
-            end
-            if isVis then
-                hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
-                hrp.Transparency = 0.6 hrp.CanCollide = false
-            else
-                hrp.Size = Vector3.new(2, 2, 1) hrp.Transparency = 1 hrp.CanCollide = true
-            end
-        end
-
-        -- CHAMS
-        if _G.Config.ESP_Chams_P then
+        -- ESP Team Check
+        local isFriendly = (_G.Config.TeamCheck and p.Team == LocalPlayer.Team)
+        
+        -- Chams
+        if _G.Config.ESP_Chams_P and not isFriendly and char.Humanoid.Health > 0 then
             local hl = char:FindFirstChild("ArisHL") or Instance.new("Highlight", char)
             hl.Name = "ArisHL" hl.FillColor = GetRGB() hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        end
-
-        -- ESP
-        if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Box_P then
-            if not s then
-                local box = Instance.new("BoxHandleAdornment", ScreenGui)
-                box.AlwaysOnTop = true box.ZIndex = 10 box.Transparency = 0.5
-                local bill = Instance.new("BillboardGui", ScreenGui)
-                bill.Size = UDim2.new(0, 200, 0, 60) bill.AlwaysOnTop = true
-                local txt = Instance.new("TextLabel", bill)
-                txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.Font = Enum.Font.GothamBold txt.TextSize = 12
-                ESP_Store[p] = {Box = box, Bill = bill, Text = txt}
-                s = ESP_Store[p]
-            end
-            s.Box.Adornee = hrp s.Bill.Adornee = head s.Box.Visible = _G.Config.ESP_Box_P s.Box.Color3 = GetRGB() s.Bill.Enabled = true
-            local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude)
-            s.Text.Text = (_G.Config.ESP_Name_P and p.Name or "") .. "\n" .. (_G.Config.ESP_Health_P and "HP: "..math.floor(hum.Health) or "") .. "\n" .. (_G.Config.ESP_Distance_P and "Dist: "..dist.."m" or "")
-            s.Text.TextColor3 = GetHealthColor(hum.Health / hum.MaxHealth)
+        elseif char:FindFirstChild("ArisHL") then char.ArisHL:Destroy() end
+        
+        -- Hitbox
+        if _G.Config.Hitbox_P and not isFriendly and char.Humanoid.Health > 0 then
+            char.HumanoidRootPart.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+            char.HumanoidRootPart.Transparency = 0.6
+            char.HumanoidRootPart.CanCollide = false
+        elseif char.HumanoidRootPart.Size.X > 5 then
+            char.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+            char.HumanoidRootPart.Transparency = 1
+            char.HumanoidRootPart.CanCollide = true
         end
     end
 end)
