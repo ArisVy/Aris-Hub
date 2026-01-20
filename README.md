@@ -1,8 +1,9 @@
-# Aris Hub V53
+# Aris Hub
 
-**Best free Roblox hub** with Aimbot, ESP, Hitbox Expander, Spin Push AOE & more!
+**Best free Roblox hub** with Aimbot, ESP, Hitbox Expander
 
 ## Loadstring (Recommended - Stable)
 
 ```lua
-loadstring(game:HttpGet("https://raw.githack.com/ArisV53/Aris-Hub/main/main.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ArisVy/Aris-Hub/refs/heads/main/Aris.lua"))()
+
