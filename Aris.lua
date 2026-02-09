@@ -10,20 +10,24 @@ local StarterGui = game:GetService("StarterGui")
 
 -- THÔNG BÁO
 StarterGui:SetCore("SendNotification",{
-    Title = "ARIS HUB V57.5 - CLEAN",
-    Text = "Fixed Ghost ESP + Removed Push Button",
-    Duration = 5
+    Title = "ARIS HUB V57.5 - CLEAN + WALLCHECK",
+    Text = "Added WallCheck Toggle + Hitbox Default 150 + Ghost Fixed",
+    Duration = 6
 })
 
--- CẤU HÌNH GỐC (đã xóa JumpForce & ShowPushBtn)
+-- CẤU HÌNH GỐC (cập nhật hitbox size mặc định 150)
 _G.Config = {
     TeamCheck = true,
+    WallCheck = false,           -- Mới: toggle wall check (mặc định OFF)
+    
     -- Player Visual
     ESP_Box_P = false, ESP_Name_P = true, ESP_Health_P = true, ESP_Chams_P = true, ESP_Distance_P = true,
-    Hitbox_P = false, HitboxSize = 15,
+    Hitbox_P = false, HitboxSize = 150,   -- ← thay đổi mặc định
+    
     -- NPC/Sea Event Visual
-    Hitbox_NPC = false, HitboxSize_NPC = 20,
+    Hitbox_NPC = false, HitboxSize_NPC = 150,   -- ← thay đổi mặc định
     ESP_NPC_Chams = false, ESP_NPC_Box = false,
+    
     -- Misc
     Fullbright = false, MenuOpen = false
 }
@@ -40,7 +44,49 @@ local RainbowList = {}
 local function GetRGB() return Color3.fromHSV(tick() % 5 / 5, 1, 1) end
 
 -- ==========================================
--- PHẦN 1: GIAO DIỆN (UI) - Không còn nút PUSH
+-- WALL CHECK (Line of Sight) - Tối ưu cache
+-- ==========================================
+local LastCheckTime = {}
+local LastCheckResult = {}
+
+local function CanSeeTarget(targetRoot)
+    if not targetRoot or not Camera or not LocalPlayer.Character then return false end
+    
+    local now = tick()
+    local key = tostring(targetRoot)
+    
+    if LastCheckTime[key] and now - LastCheckTime[key] < 0.18 then
+        return LastCheckResult[key] or false
+    end
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetRoot.Position - origin)
+    local distance = direction.Magnitude
+    direction = direction.Unit * (distance + 5)
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.IgnoreWater = true
+    
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    
+    local canSee = false
+    if result and result.Instance then
+        if result.Instance:IsDescendantOf(targetRoot.Parent) then
+            canSee = true
+        end
+    else
+        canSee = true  -- không trúng → coi như thấy
+    end
+    
+    LastCheckTime[key] = now
+    LastCheckResult[key] = canSee
+    return canSee
+end
+
+-- ==========================================
+-- PHẦN 1: GIAO DIỆN (UI)
 -- ==========================================
 local ToggleBtn = Instance.new("TextButton", ScreenGui)
 ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
@@ -71,7 +117,7 @@ end)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "ARIS HUB V57.5 - GHOST FIXED"
+Title.Text = "ARIS HUB V57.5 - WALLCHECK TOGGLE"
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.BackgroundTransparency = 1
@@ -149,7 +195,7 @@ local function AddAdjust(tab, name, key, step)
     m.Size = UDim2.new(0.2, -5, 1, 0)
     m.Text = "-"
     m.MouseButton1Click:Connect(function() 
-        _G.Config[key] = math.max(1, _G.Config[key]-step); 
+        _G.Config[key] = math.max(1, _G.Config[key] - step); 
         l.Text = name..": ".._G.Config[key] 
     end)
     local p = Instance.new("TextButton", f)
@@ -157,7 +203,7 @@ local function AddAdjust(tab, name, key, step)
     p.Position = UDim2.new(0.8, 5, 0, 0)
     p.Text = "+"
     p.MouseButton1Click:Connect(function() 
-        _G.Config[key] = _G.Config[key]+step; 
+        _G.Config[key] = _G.Config[key] + step; 
         l.Text = name..": ".._G.Config[key] 
     end)
     ContentFrames[tab].Y = y + 40
@@ -171,22 +217,23 @@ AddToggle("ESP", "ESP DISTANCE (P)", "ESP_Distance_P")
 AddToggle("ESP", "ESP CHAMS (P)", "ESP_Chams_P")
 
 AddToggle("Hitbox", "HITBOX PLAYER", "Hitbox_P")
-AddAdjust("Hitbox", "SIZE PLAYER", "HitboxSize", 5)
+AddAdjust("Hitbox", "SIZE PLAYER", "HitboxSize", 10)
 
 AddToggle("Hitbox", "HITBOX NPC/SEA", "Hitbox_NPC")
-AddAdjust("Hitbox", "SIZE NPC/SEA", "HitboxSize_NPC", 5)
+AddAdjust("Hitbox", "SIZE NPC/SEA", "HitboxSize_NPC", 10)
 
 AddToggle("Visual", "ESP CHAMS NPC", "ESP_NPC_Chams")
 AddToggle("Visual", "ESP BOX NPC", "ESP_NPC_Box")
 
 AddToggle("Misc", "TEAM CHECK", "TeamCheck")
+AddToggle("Misc", "WALL CHECK", "WallCheck")      -- ← NÚT MỚI
 AddToggle("Misc", "FULLBRIGHT", "Fullbright")
 
 -- ==========================================
--- PHẦN 2: LOGIC XỬ LÝ (CORE) - Fix ghost ESP
+-- PHẦN 2: LOGIC XỬ LÝ (CORE)
 -- ==========================================
 local Player_ESP_Cache = {}
-local NPC_ESP_Objects = {}  -- Lưu các adorn/highlight để dễ clean
+local NPC_Cache = {}
 
 local function ClearPlayerESP(player)
     if Player_ESP_Cache[player] then
@@ -194,7 +241,6 @@ local function ClearPlayerESP(player)
         if Player_ESP_Cache[player].Bill then Player_ESP_Cache[player].Bill:Destroy() end
         Player_ESP_Cache[player] = nil
     end
-    -- Xóa chams nếu có
     if player.Character and player.Character:FindFirstChild("Aris_HL") then
         player.Character.Aris_HL:Destroy()
     end
@@ -204,7 +250,6 @@ local function ClearNPCVisual(npc)
     if npc:FindFirstChild("ArisNPC_Box") then npc.ArisNPC_Box:Destroy() end
     if npc:FindFirstChild("ArisNPC_HL") then npc.ArisNPC_HL:Destroy() end
     
-    -- Restore hitbox
     for _, part in ipairs(npc:GetDescendants()) do
         if part:IsA("BasePart") and part:GetAttribute("ArisOriginalSize") then
             part.Size = part:GetAttribute("ArisOriginalSize")
@@ -217,7 +262,6 @@ local function ClearNPCVisual(npc)
 end
 
 -- Quét NPC & Sea Events
-local NPC_Cache = {}
 task.spawn(function()
     while true do
         local temp = {}
@@ -243,7 +287,6 @@ task.spawn(function()
             end
         end
         
-        -- Cleanup những NPC cũ không còn tồn tại
         for old_npc in pairs(NPC_Cache) do
             if not temp[old_npc] then
                 ClearNPCVisual(old_npc)
@@ -255,7 +298,6 @@ task.spawn(function()
     end
 end)
 
--- Cleanup khi player rời game
 Players.PlayerRemoving:Connect(ClearPlayerESP)
 
 RunService.RenderStepped:Connect(function()
@@ -278,14 +320,15 @@ RunService.RenderStepped:Connect(function()
         
         if not char or not hrp or char.Parent == nil or (_G.Config.TeamCheck and p.Team == LocalPlayer.Team) then
             ClearPlayerESP(p)
-            if hrp and _G.Config.Hitbox_P == false and hrp.Size.X > 5 then
+            if hrp and hrp.Size.X > 5 then
                 hrp.Size = Vector3.new(2,2,1)
                 hrp.Transparency = 1
+                hrp.CanCollide = true
             end
             continue
         end
 
-        -- Tạo mới nếu chưa có
+        -- ESP creation...
         if not Player_ESP_Cache[p] then
             local box = Instance.new("BoxHandleAdornment")
             box.AlwaysOnTop = true
@@ -327,15 +370,21 @@ RunService.RenderStepped:Connect(function()
             esp.Text.TextColor3 = Color3.fromHSV(hum.Health/hum.MaxHealth * 0.3, 1, 1)
         end
 
-        -- Hitbox player
-        if _G.Config.Hitbox_P then 
-            if hrp then
+        -- Hitbox player + WALL CHECK logic
+        if _G.Config.Hitbox_P and hrp then
+            local shouldExpand = not _G.Config.WallCheck or CanSeeTarget(hrp)
+            
+            if shouldExpand then
                 hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
                 hrp.Transparency = 0.7
                 hrp.CanCollide = false
+            else
+                hrp.Size = Vector3.new(2, 2, 1)
+                hrp.Transparency = 1
+                hrp.CanCollide = true
             end
         elseif hrp and hrp.Size.X > 5 then 
-            hrp.Size = Vector3.new(2,2,1)
+            hrp.Size = Vector3.new(2, 2, 1)
             hrp.Transparency = 1
             hrp.CanCollide = true
         end
@@ -353,7 +402,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- NPC VISUAL - Clean toggle + no ghost
+    -- NPC VISUAL + Hitbox
     for npc in pairs(NPC_Cache) do
         if not npc.Parent or not npc:FindFirstChild("Humanoid") or npc.Humanoid.Health <= 0 then 
             ClearNPCVisual(npc)
@@ -364,17 +413,26 @@ RunService.RenderStepped:Connect(function()
         local hrp = npc:FindFirstChild("HumanoidRootPart")
         if not hrp then continue end
 
-        -- Hitbox NPC/Sea
-        if _G.Config.Hitbox_NPC then
+        -- Hitbox NPC/Sea + WALL CHECK
+        if _G.Config.Hitbox_NPC and hrp then
             local size = _G.Config.HitboxSize_NPC
+            local shouldExpand = not _G.Config.WallCheck or CanSeeTarget(hrp)
+            
             local function apply(part)
                 if not part:GetAttribute("ArisOriginalSize") then
                     part:SetAttribute("ArisOriginalSize", part.Size)
                     part:SetAttribute("ArisOriginalTrans", part.Transparency)
                 end
-                part.Size = Vector3.new(size, size, size)
-                part.Transparency = 0.7
-                part.CanCollide = false
+                
+                if shouldExpand then
+                    part.Size = Vector3.new(size, size, size)
+                    part.Transparency = 0.7
+                    part.CanCollide = false
+                else
+                    part.Size = part:GetAttribute("ArisOriginalSize")
+                    part.Transparency = part:GetAttribute("ArisOriginalTrans") or 0
+                    part.CanCollide = true
+                end
             end
 
             if npc.Name:find("Leviathan") or npc.Name:find("Terror") or npc.Name:find("Sea") then
