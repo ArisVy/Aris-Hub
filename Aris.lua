@@ -262,7 +262,9 @@ local function CleanupNPC(m)
             if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end
             RestoreHRP(hrp)
         end
-    endRunService.Heartbeat:Connect(function()
+    end
+end
+RunService.Heartbeat:Connect(function()
     local rgb=GetRGB()
     for _,v in pairs(RainbowList)do
         if v:IsA("UIStroke")then v.Color=rgb
@@ -385,5 +387,3 @@ end)
 
 Players.PlayerRemoving:Connect(function(p) CleanupESP(p.Name) end)
 Workspace.ChildRemoved:Connect(function(c) CleanupNPC(c) end)
-        
-end
