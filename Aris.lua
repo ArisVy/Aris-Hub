@@ -7,7 +7,7 @@ local LocalPlayer=Players.LocalPlayer
 local Camera=workspace.CurrentCamera
 local CoreGui=game:GetService("CoreGui")
 
-game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53 PRO",Text="Đã đồng bộ Hitbox + Low HP!",Duration=6})
+game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53 PRO",Text="Đã nâng cấp ESP Box 2D & Fix NPC!",Duration=6})
 
 _G.Config={
     -- ESP
@@ -36,9 +36,7 @@ local function GetRGB()return Color3.fromHSV(tick()%5/5,1,1)end
 local function MakeDraggable(f)
     local d=false;local i,s
     f.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 then
-            d=true;i=inp.Position;s=f.Position
-        end
+        if inp.UserInputType==Enum.UserInputType.MouseButton1 then d=true;i=inp.Position;s=f.Position end
     end)
     f.InputChanged:Connect(function(inp)
         if inp.UserInputType==Enum.UserInputType.MouseMovement and d then
@@ -74,12 +72,36 @@ local ms=Instance.new("UIStroke",MainFrame)
 ms.Thickness=3
 table.insert(RainbowList,ms)
 
+-- NÚT RESET NHÂN VẬT (Double Click)
+local ResetBtn=Instance.new("TextButton",MainFrame)
+ResetBtn.Size=UDim2.new(0,36,0,36)
+ResetBtn.Position=UDim2.new(0,10,0,7)
+ResetBtn.Text="RST"
+ResetBtn.Font=Enum.Font.GothamBold
+ResetBtn.TextSize=12
+ResetBtn.BackgroundColor3=Color3.fromRGB(40,20,20)
+Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,8)
+local rsStroke=Instance.new("UIStroke",ResetBtn)
+rsStroke.Thickness=2
+table.insert(RainbowList,rsStroke)
+
+local lastClickTime = 0
+ResetBtn.MouseButton1Click:Connect(function()
+    if tick() - lastClickTime < 0.5 then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then char.Humanoid.Health = 0 end
+    end
+    lastClickTime = tick()
+end)
+
 local Title=Instance.new("TextLabel",MainFrame)
-Title.Size=UDim2.new(1,0,0,50)
+Title.Size=UDim2.new(1,-60,0,50)
+Title.Position=UDim2.new(0,55,0,0)
 Title.Text="ARIS HUB V53 PRO"
 Title.Font=Enum.Font.GothamBlack
 Title.TextSize=22
 Title.BackgroundTransparency=1
+Title.TextXAlignment=Enum.TextXAlignment.Left
 table.insert(RainbowList,Title)
 MakeDraggable(MainFrame) 
 
@@ -191,7 +213,7 @@ end
 AddToggle("ESP","ESP NAME","ESP_Name_P")
 AddToggle("ESP","ESP HEALTH","ESP_Health_P")
 AddToggle("ESP","ESP DISTANCE","ESP_Distance_P")
-AddToggle("ESP","ESP BOX 2D (VIỀN TRẮNG)","ESP_Box_P")
+AddToggle("ESP","ESP BOX 2D (BO GÓC)","ESP_Box_P")
 AddToggle("ESP","ESP CHAMS","ESP_Chams_P")
 
 AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P")
@@ -205,9 +227,9 @@ AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
 AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
 AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
-AddToggle("NPC","TEAM CHECK NPC","TeamCheck_NPC")
 AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
 AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
+
 local ESP_Store={}
 local NPC_Store={}
 local OriginalHRP_Props = {}
@@ -273,7 +295,6 @@ RunService.Heartbeat:Connect(function()
 
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-    -- Check xem có kẻ yếu máu không (Chỉ chạy khi bật CẢ Hitbox_P và LowHP_KS)
     local hasLowHPEnemy = false
     if _G.Config.Hitbox_P and _G.Config.LowHP_KS and myRoot then
         for _, p in Players:GetPlayers() do
@@ -298,10 +319,8 @@ RunService.Heartbeat:Connect(function()
         local char=p.Character
         local hrp=char and char:FindFirstChild("HumanoidRootPart")
         local hum=char and char:FindFirstChild("Humanoid")
-
         local isTeammate = (_G.Config.TeamCheck and p.Team ~= nil and p.Team == LocalPlayer.Team)
 
-        -- Nếu là đồng đội và bật TeamCheck, hệ thống bỏ qua toàn bộ logic và xoá ESP/Hitbox cũ
         if not char or not hrp or not hum or hum.Health<=0 or isTeammate then
             if hrp then RestoreHRP(hrp) end
             CleanupESP(p.Name)
@@ -311,7 +330,6 @@ RunService.Heartbeat:Connect(function()
         local hp_percent = hum.Health / hum.MaxHealth
         local dist = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
 
-        -- Hitbox Player Logic
         local enableHitbox = false
         if _G.Config.Hitbox_P then
             if _G.Config.LowHP_KS then
@@ -321,7 +339,7 @@ RunService.Heartbeat:Connect(function()
                     if dist <= 2000 then enableHitbox = true end
                 end
             else
-                enableHitbox = true -- Chế độ Hitbox bình thường
+                enableHitbox = true
             end
         end
 
@@ -349,7 +367,6 @@ RunService.Heartbeat:Connect(function()
             RestoreHRP(hrp)
         end
 
-        -- ESP & Chams Logic
         local hl = char:FindFirstChild("ArisHL")
         if _G.Config.ESP_Chams_P then
             if not hl then hl = Instance.new("Highlight", char); hl.Name = "ArisHL" end
@@ -364,25 +381,110 @@ RunService.Heartbeat:Connect(function()
 
         if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P then
             if not ESP_Store[p.Name] then
-                -- Tạo BillboardGui và Thêm viền TextStroke (Fix 1)
+                -- THIẾT KẾ ESP BOX 2D MỚI
                 local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Adornee = hrp; boxBill.Size = UDim2.new(4,0,5.5,0); boxBill.AlwaysOnTop = true
-                local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1; Instance.new("UIStroke", outF).Color = Color3.new(1,1,1)
-                local inF = Instance.new("Frame", boxBill); inF.Size = UDim2.new(1,0,1,0); inF.BackgroundTransparency = 1; local inS = Instance.new("UIStroke", inF)
+                
+                -- Viền đen dày (Bên ngoài)
+                local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1
+                Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 6)
+                local outS = Instance.new("UIStroke", outF); outS.Color = Color3.new(0,0,0); outS.Thickness = 3
+                
+                -- Viền mỏng (Bên trong)
+                local inF = Instance.new("Frame", boxBill); inF.Size = UDim2.new(1,0,1,0); inF.BackgroundTransparency = 1
+                Instance.new("UICorner", inF).CornerRadius = UDim.new(0, 6)
+                local inS = Instance.new("UIStroke", inF); inS.Thickness = 1.2
+                
                 local textB = Instance.new("BillboardGui", ScreenGui); textB.Adornee = char:FindFirstChild("Head") or hrp; textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
-                
                 local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12
-                txt.TextStrokeTransparency = 0 -- Bật viền đen
-                txt.TextStrokeColor3 = Color3.new(0, 0, 0) -- Màu đen cho viền
+                txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
                 
-                ESP_Store[p.Name]={BoxBill=boxBill, InStroke=inS, TextBill=textB, Text=txt}
+                ESP_Store[p.Name]={BoxBill=boxBill, InStroke=inS, TextBill=textB, Text=txt, OutFrame=outF, InFrame=inF}
             end
             local s=ESP_Store[p.Name]
             s.BoxBill.Enabled=_G.Config.ESP_Box_P; s.InStroke.Color=rgb
             s.Text.Text=table.concat({_G.Config.ESP_Name_P and p.Name or "", _G.Config.ESP_Health_P and ("HP: "..math.floor(hum.Health)) or "", _G.Config.ESP_Distance_P and (dist ~= math.huge) and ("Dist: "..math.floor(dist).."m") or ""}, "\n")
             s.Text.TextColor3=GetHealthColor(hp_percent)
+            s.TextBill.Enabled = (_G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P)
         else CleanupESP(p.Name) end
     end
-    -- NPC loop giữ nguyên như code trước của bạn...
+
+    -- NPC LOOP (Đã Fix Hoạt Động Cực Mượt)
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj:IsA("Model") and not Players:GetPlayerFromCharacter(obj) then
+            local hum = obj:FindFirstChild("Humanoid")
+            local hrp = obj:FindFirstChild("HumanoidRootPart")
+            if hum and hrp and hum.Health > 0 then
+                
+                -- Hitbox NPC Logic
+                if _G.Config.Hitbox_NPC then
+                    if not OriginalHRP_Props[hrp] then
+                        OriginalHRP_Props[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
+                    end
+                    hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
+                    hrp.Transparency = 0.6
+                    hrp.CanCollide = false
+                    
+                    local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
+                    if _G.Config.Hitbox_Box_NPC then
+                        if not hbBoxNPC then 
+                            hbBoxNPC = Instance.new("SelectionBox", hrp)
+                            hbBoxNPC.Name = "ArisHitboxBoxNPC"
+                            hbBoxNPC.Adornee = hrp 
+                        end
+                        hbBoxNPC.SurfaceColor3 = rgb
+                    else
+                        if hbBoxNPC then hbBoxNPC:Destroy() end
+                    end
+                else
+                    RestoreHRP(hrp)
+                    if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end
+                end
+
+                -- ESP Chams NPC
+                local hlNPC = obj:FindFirstChild("ArisHL_NPC")
+                if _G.Config.ESP_NPC_Chams then
+                    if not hlNPC then 
+                        hlNPC = Instance.new("Highlight", obj)
+                        hlNPC.Name = "ArisHL_NPC" 
+                    end
+                    hlNPC.FillColor = rgb
+                    hlNPC.Enabled = true
+                else
+                    if hlNPC then hlNPC:Destroy() end
+                end
+
+                -- ESP Name NPC
+                if _G.Config.ESP_NPC_Name then
+                    if not NPC_Store[obj] then
+                        local textB = Instance.new("BillboardGui", ScreenGui)
+                        textB.Adornee = obj:FindFirstChild("Head") or hrp
+                        textB.Size = UDim2.new(0, 200, 0, 60)
+                        textB.StudsOffset = Vector3.new(0, 3.5, 0)
+                        textB.AlwaysOnTop = true
+                        
+                        local txt = Instance.new("TextLabel", textB)
+                        txt.Size = UDim2.new(1, 0, 1, 0)
+                        txt.BackgroundTransparency = 1
+                        txt.Font = Enum.Font.GothamBold
+                        txt.TextSize = 12
+                        txt.TextStrokeTransparency = 0
+                        txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+                        
+                        NPC_Store[obj] = {Bill = textB, Text = txt}
+                    end
+                    NPC_Store[obj].Text.Text = "NPC: " .. obj.Name .. "\nHP: " .. math.floor(hum.Health)
+                    NPC_Store[obj].Text.TextColor3 = rgb
+                else
+                    if NPC_Store[obj] then
+                        NPC_Store[obj].Bill:Destroy()
+                        NPC_Store[obj] = nil
+                    end
+                end
+            else
+                CleanupNPC(obj)
+            end
+        end
+    end
 end)
 
 Players.PlayerRemoving:Connect(function(p) CleanupESP(p.Name) end)
