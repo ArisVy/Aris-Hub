@@ -7,7 +7,7 @@ local LocalPlayer=Players.LocalPlayer
 local Camera=workspace.CurrentCamera
 local CoreGui=game:GetService("CoreGui")
 
-game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53 PRO",Text="Đã nâng cấp ESP Box 2D & Fix NPC!",Duration=6})
+game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53 PRO",Text="Đã Fix Lỗi ESP & Tối Ưu NPC!",Duration=6})
 
 _G.Config={
     -- ESP
@@ -72,7 +72,6 @@ local ms=Instance.new("UIStroke",MainFrame)
 ms.Thickness=3
 table.insert(RainbowList,ms)
 
--- NÚT RESET NHÂN VẬT (Double Click)
 local ResetBtn=Instance.new("TextButton",MainFrame)
 ResetBtn.Size=UDim2.new(0,36,0,36)
 ResetBtn.Position=UDim2.new(0,10,0,7)
@@ -229,11 +228,33 @@ AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
 AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
 AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
 AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
-
 local ESP_Store={}
 local NPC_Store={}
 local OriginalHRP_Props = {}
 setmetatable(OriginalHRP_Props, {__mode = "k"})
+
+-- HỆ THỐNG CACHE NPC ĐỂ TỐI ƯU FPS VÀ TÌM ĐƯỢC MỌI NPC
+local CachedNPCs = {}
+
+local function CheckAndCacheNPC(obj)
+    if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
+        if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+            CachedNPCs[obj] = true
+        end
+    end
+end
+
+-- Quét toàn bộ map 1 lần duy nhất lúc bật script
+for _, v in ipairs(Workspace:GetDescendants()) do
+    CheckAndCacheNPC(v)
+end
+
+-- Lắng nghe NPC mới sinh ra
+Workspace.DescendantAdded:Connect(function(descendant)
+    task.delay(1, function() -- Đợi 1 giây để Model load đầy đủ bộ phận
+        if descendant.Parent then CheckAndCacheNPC(descendant) end
+    end)
+end)
 
 local function RestoreHRP(hrp)
     if hrp and OriginalHRP_Props[hrp] then
@@ -286,6 +307,14 @@ local function CleanupNPC(m)
         end
     end
 end
+
+Workspace.DescendantRemoving:Connect(function(descendant)
+    if CachedNPCs[descendant] then
+        CachedNPCs[descendant] = nil
+        CleanupNPC(descendant)
+    end
+end)
+
 RunService.Heartbeat:Connect(function()
     local rgb=GetRGB()
     for _,v in pairs(RainbowList)do
@@ -381,26 +410,28 @@ RunService.Heartbeat:Connect(function()
 
         if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P then
             if not ESP_Store[p.Name] then
-                -- THIẾT KẾ ESP BOX 2D MỚI
-                local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Adornee = hrp; boxBill.Size = UDim2.new(4,0,5.5,0); boxBill.AlwaysOnTop = true
+                local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4,0,5.5,0); boxBill.AlwaysOnTop = true
                 
-                -- Viền đen dày (Bên ngoài)
                 local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1
                 Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 6)
                 local outS = Instance.new("UIStroke", outF); outS.Color = Color3.new(0,0,0); outS.Thickness = 3
                 
-                -- Viền mỏng (Bên trong)
                 local inF = Instance.new("Frame", boxBill); inF.Size = UDim2.new(1,0,1,0); inF.BackgroundTransparency = 1
                 Instance.new("UICorner", inF).CornerRadius = UDim.new(0, 6)
                 local inS = Instance.new("UIStroke", inF); inS.Thickness = 1.2
                 
-                local textB = Instance.new("BillboardGui", ScreenGui); textB.Adornee = char:FindFirstChild("Head") or hrp; textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
+                local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
                 local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12
                 txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
                 
                 ESP_Store[p.Name]={BoxBill=boxBill, InStroke=inS, TextBill=textB, Text=txt, OutFrame=outF, InFrame=inF}
             end
             local s=ESP_Store[p.Name]
+            
+            -- ĐÃ FIX: Luôn cập nhật Adornee mới nhất đề phòng người chơi hồi sinh
+            s.BoxBill.Adornee = hrp
+            s.TextBill.Adornee = char:FindFirstChild("Head") or hrp
+            
             s.BoxBill.Enabled=_G.Config.ESP_Box_P; s.InStroke.Color=rgb
             s.Text.Text=table.concat({_G.Config.ESP_Name_P and p.Name or "", _G.Config.ESP_Health_P and ("HP: "..math.floor(hum.Health)) or "", _G.Config.ESP_Distance_P and (dist ~= math.huge) and ("Dist: "..math.floor(dist).."m") or ""}, "\n")
             s.Text.TextColor3=GetHealthColor(hp_percent)
@@ -408,84 +439,90 @@ RunService.Heartbeat:Connect(function()
         else CleanupESP(p.Name) end
     end
 
-    -- NPC LOOP (Đã Fix Hoạt Động Cực Mượt)
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        if obj:IsA("Model") and not Players:GetPlayerFromCharacter(obj) then
-            local hum = obj:FindFirstChild("Humanoid")
-            local hrp = obj:FindFirstChild("HumanoidRootPart")
-            if hum and hrp and hum.Health > 0 then
+    -- NPC LOOP BẰNG CACHE (Đã Fix Hoạt Động Trên Mọi Game)
+    for obj in pairs(CachedNPCs) do
+        if not obj.Parent then 
+            CachedNPCs[obj] = nil
+            CleanupNPC(obj)
+            continue
+        end
+
+        local hum = obj:FindFirstChild("Humanoid")
+        local hrp = obj:FindFirstChild("HumanoidRootPart")
+        
+        if hum and hrp and hum.Health > 0 then
+            
+            -- Hitbox NPC Logic
+            if _G.Config.Hitbox_NPC then
+                if not OriginalHRP_Props[hrp] then
+                    OriginalHRP_Props[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
+                end
+                hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
+                hrp.Transparency = 0.6
+                hrp.CanCollide = false
                 
-                -- Hitbox NPC Logic
-                if _G.Config.Hitbox_NPC then
-                    if not OriginalHRP_Props[hrp] then
-                        OriginalHRP_Props[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
+                local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
+                if _G.Config.Hitbox_Box_NPC then
+                    if not hbBoxNPC then 
+                        hbBoxNPC = Instance.new("SelectionBox", hrp)
+                        hbBoxNPC.Name = "ArisHitboxBoxNPC"
+                        hbBoxNPC.Adornee = hrp 
                     end
-                    hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
-                    hrp.Transparency = 0.6
-                    hrp.CanCollide = false
-                    
-                    local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
-                    if _G.Config.Hitbox_Box_NPC then
-                        if not hbBoxNPC then 
-                            hbBoxNPC = Instance.new("SelectionBox", hrp)
-                            hbBoxNPC.Name = "ArisHitboxBoxNPC"
-                            hbBoxNPC.Adornee = hrp 
-                        end
-                        hbBoxNPC.SurfaceColor3 = rgb
-                    else
-                        if hbBoxNPC then hbBoxNPC:Destroy() end
-                    end
+                    hbBoxNPC.SurfaceColor3 = rgb
                 else
-                    RestoreHRP(hrp)
-                    if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end
-                end
-
-                -- ESP Chams NPC
-                local hlNPC = obj:FindFirstChild("ArisHL_NPC")
-                if _G.Config.ESP_NPC_Chams then
-                    if not hlNPC then 
-                        hlNPC = Instance.new("Highlight", obj)
-                        hlNPC.Name = "ArisHL_NPC" 
-                    end
-                    hlNPC.FillColor = rgb
-                    hlNPC.Enabled = true
-                else
-                    if hlNPC then hlNPC:Destroy() end
-                end
-
-                -- ESP Name NPC
-                if _G.Config.ESP_NPC_Name then
-                    if not NPC_Store[obj] then
-                        local textB = Instance.new("BillboardGui", ScreenGui)
-                        textB.Adornee = obj:FindFirstChild("Head") or hrp
-                        textB.Size = UDim2.new(0, 200, 0, 60)
-                        textB.StudsOffset = Vector3.new(0, 3.5, 0)
-                        textB.AlwaysOnTop = true
-                        
-                        local txt = Instance.new("TextLabel", textB)
-                        txt.Size = UDim2.new(1, 0, 1, 0)
-                        txt.BackgroundTransparency = 1
-                        txt.Font = Enum.Font.GothamBold
-                        txt.TextSize = 12
-                        txt.TextStrokeTransparency = 0
-                        txt.TextStrokeColor3 = Color3.new(0, 0, 0)
-                        
-                        NPC_Store[obj] = {Bill = textB, Text = txt}
-                    end
-                    NPC_Store[obj].Text.Text = "NPC: " .. obj.Name .. "\nHP: " .. math.floor(hum.Health)
-                    NPC_Store[obj].Text.TextColor3 = rgb
-                else
-                    if NPC_Store[obj] then
-                        NPC_Store[obj].Bill:Destroy()
-                        NPC_Store[obj] = nil
-                    end
+                    if hbBoxNPC then hbBoxNPC:Destroy() end
                 end
             else
-                CleanupNPC(obj)
+                RestoreHRP(hrp)
+                if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end
             end
+
+            -- ESP Chams NPC
+            local hlNPC = obj:FindFirstChild("ArisHL_NPC")
+            if _G.Config.ESP_NPC_Chams then
+                if not hlNPC then 
+                    hlNPC = Instance.new("Highlight", obj)
+                    hlNPC.Name = "ArisHL_NPC" 
+                end
+                hlNPC.FillColor = rgb
+                hlNPC.Enabled = true
+            else
+                if hlNPC then hlNPC:Destroy() end
+            end
+
+            -- ESP Name NPC
+            if _G.Config.ESP_NPC_Name then
+                if not NPC_Store[obj] then
+                    local textB = Instance.new("BillboardGui", ScreenGui)
+                    textB.Size = UDim2.new(0, 200, 0, 60)
+                    textB.StudsOffset = Vector3.new(0, 3.5, 0)
+                    textB.AlwaysOnTop = true
+                    
+                    local txt = Instance.new("TextLabel", textB)
+                    txt.Size = UDim2.new(1, 0, 1, 0)
+                    txt.BackgroundTransparency = 1
+                    txt.Font = Enum.Font.GothamBold
+                    txt.TextSize = 12
+                    txt.TextStrokeTransparency = 0
+                    txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+                    
+                    NPC_Store[obj] = {Bill = textB, Text = txt}
+                end
+                
+                -- ĐÃ FIX: Luôn cập nhật Adornee cho NPC
+                NPC_Store[obj].Bill.Adornee = obj:FindFirstChild("Head") or hrp
+                NPC_Store[obj].Text.Text = "NPC: " .. obj.Name .. "\nHP: " .. math.floor(hum.Health)
+                NPC_Store[obj].Text.TextColor3 = rgb
+            else
+                if NPC_Store[obj] then
+                    NPC_Store[obj].Bill:Destroy()
+                    NPC_Store[obj] = nil
+                end
+            end
+        else
+            CleanupNPC(obj)
         end
     end
 end)
 
 Players.PlayerRemoving:Connect(function(p) CleanupESP(p.Name) end)
-Workspace.ChildRemoved:Connect(function(c) CleanupNPC(c) end)
