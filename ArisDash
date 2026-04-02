@@ -1,29 +1,36 @@
 --[[ 
-    AUTO DASH SCRIPT V4 - ULTIMATE FORCE (Camera Direction + Config Vy - Updated)
-    Default: 500 | Menu 75% X - trên cùng | Menu nhỏ x2 | Anti-spam | Nút ⚙ nhỏ + vị trí 90% trên cùng
+    AUTO DASH SCRIPT V4 - ULTIMATE FORCE (Updated for Vy)
+    Nhìn đâu dash đó | 550 | Menu có nút X + Toggle góc trên phải + Auto destroy cũ
 ]]
 
-local Players        = game:GetService("Players")
-local TweenService   = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- == 1. SCREEN GUI ==
+-- == AUTO DESTROY GUI CŨ NẾU TRÙNG TÊN ==
+local oldGui = CoreGui:FindFirstChild("GeminiDashV4") or PlayerGui:FindFirstChild("GeminiDashV4")
+if oldGui then
+    oldGui:Destroy()
+    print("Đã destroy GUI cũ để tránh trùng lặp!")
+end
+
+-- == TẠO SCREEN GUI MỚI ==
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GeminiDashV4"
 ScreenGui.ResetOnSpawn = false
-pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
-if not ScreenGui.Parent then ScreenGui.Parent = Player:WaitForChild("PlayerGui") end
+pcall(function() ScreenGui.Parent = CoreGui end)
+if not ScreenGui.Parent then ScreenGui.Parent = PlayerGui end
 
 -- == VARIABLES ==
-local dashPower = 500
+local dashPower = 550
 local buttonSize = 75
-local dashCooldown = 0.3
 
--- == 2. NÚT DASH ==
-local DashButton = Instance.new("ImageButton")
-DashButton.Parent = ScreenGui
+-- == DASH BUTTON ==
+local DashButton = Instance.new("ImageButton", ScreenGui)
 DashButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 DashButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
 DashButton.Position = UDim2.new(0.77, 0, 0.34, 0)
@@ -36,41 +43,31 @@ Stroke.Thickness = 4
 Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 local BtnText = Instance.new("TextLabel", DashButton)
-BtnText.Size = UDim2.new(1,0,1,0)
+BtnText.Size = UDim2.new(1, 0, 1, 0)
 BtnText.BackgroundTransparency = 1
 BtnText.Text = "DASH"
-BtnText.TextColor3 = Color3.new(1,1,1)
+BtnText.TextColor3 = Color3.new(1, 1, 1)
 BtnText.Font = Enum.Font.GothamBlack
 BtnText.TextSize = 16
 
--- Rainbow viền nút
 task.spawn(function()
     local h = 0
-    while true do
-        h = (h + 0.005) % 1
-        Stroke.Color = Color3.fromHSV(h, 1, 1)
-        task.wait()
+    while task.wait() do
+        h = h + 0.005
+        Stroke.Color = Color3.fromHSV(h > 1 and 0 or h, 1, 1)
     end
 end)
 
--- == 3. LOGIC DASH + ANTI-SPAM ==
+-- == LOGIC DASH ==
 local canDash = true
-local lastDashTime = 0
-
 local function PerformDash()
-    local currentTime = tick()
-    if not canDash or (currentTime - lastDashTime < dashCooldown) then return end
-
+    if not canDash then return end
+    
     local char = Player.Character
-    if not char then return end
-
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local hum  = char:FindFirstChild("Humanoid")
-    if not root or not hum or hum.Health <= 0 then return end
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
     canDash = false
-    lastDashTime = currentTime
-
     TweenService:Create(DashButton, TweenInfo.new(0.1), {Size = UDim2.new(0, buttonSize-10, 0, buttonSize-10)}):Play()
 
     local camera = workspace.CurrentCamera
@@ -84,17 +81,16 @@ local function PerformDash()
 
     task.spawn(function()
         for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") and part ~= root then
+            if part:IsA("BasePart") then
                 TweenService:Create(part, TweenInfo.new(0.2), {LocalTransparencyModifier = 0.5}):Play()
             end
         end
     end)
 
     task.wait(0.25)
-
     lv:Destroy()
     attachment:Destroy()
-
+    
     for _, part in pairs(char:GetChildren()) do
         if part:IsA("BasePart") then
             part.LocalTransparencyModifier = 0
@@ -102,137 +98,173 @@ local function PerformDash()
     end
 
     TweenService:Create(DashButton, TweenInfo.new(0.2), {Size = UDim2.new(0, buttonSize, 0, buttonSize)}):Play()
-
-    task.delay(dashCooldown - 0.25, function()
-        canDash = true
-    end)
+    canDash = true
 end
 
 DashButton.MouseButton1Click:Connect(PerformDash)
 DashButton.TouchTap:Connect(PerformDash)
 
--- == 4. MENU SETTINGS (nhỏ x2) ==
-local MenuFrame = Instance.new("Frame")
-MenuFrame.Parent = ScreenGui
-MenuFrame.Size = UDim2.new(0, 120, 0, 120)
-MenuFrame.Position = UDim2.new(0.75, -60, 0.05, 0)
-MenuFrame.AnchorPoint = Vector2.new(1, 0)
+-- == SETTINGS MENU ==
+local MenuFrame = Instance.new("Frame", ScreenGui)
+MenuFrame.Size = UDim2.new(0, 180, 0, 180)
+MenuFrame.Position = UDim2.new(0.5, -90, 0.5, -90)
 MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MenuFrame.Visible = false
-Instance.new("UICorner", MenuFrame)
+Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 8)
 
-local function CreateSlider(name, min, max, default, posY, callback)
-    local Label = Instance.new("TextLabel")
-    Label.Parent = MenuFrame
-    Label.Size = UDim2.new(1, -10, 0, 18)
-    Label.Position = UDim2.new(0, 5, 0, posY)
+-- Nút X đóng menu
+local CloseButton = Instance.new("TextButton", MenuFrame)
+CloseButton.Size = UDim2.new(0, 24, 0, 24)
+CloseButton.Position = UDim2.new(1, -28, 0, 4)
+CloseButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.new(1,1,1)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 16
+CloseButton.ZIndex = 10
+Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 6)
+
+CloseButton.MouseEnter:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}):Play()
+end)
+CloseButton.MouseLeave:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(220, 60, 60)}):Play()
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    MenuFrame.Visible = false
+end)
+
+-- == NÚT TOGGLE MENU - ĐẶT Ở GÓC TRÊN PHẢI ==
+local Toggle = Instance.new("TextButton", ScreenGui)
+Toggle.Size = UDim2.new(0, 40, 0, 40)
+Toggle.Position = UDim2.new(0.95, -20, 0.05, 0)  -- Góc trên phải
+Toggle.AnchorPoint = Vector2.new(1, 0)
+Toggle.Text = "⚙"
+Toggle.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Toggle.TextColor3 = Color3.new(1,1,1)
+Toggle.Font = Enum.Font.GothamBold
+Toggle.TextSize = 20
+Instance.new("UICorner", Toggle).CornerRadius = UDim.new(1,0)
+
+Toggle.MouseButton1Click:Connect(function()
+    MenuFrame.Visible = not MenuFrame.Visible
+end)
+
+-- == LƯU VỊ TRÍ BẰNG getgenv() ==
+if not getgenv().GeminiDash_Positions then
+    getgenv().GeminiDash_Positions = {
+        TogglePos = Toggle.Position,
+        MenuPos = MenuFrame.Position
+    }
+end
+
+-- Load vị trí cũ nếu có
+Toggle.Position = getgenv().GeminiDash_Positions.TogglePos
+MenuFrame.Position = getgenv().GeminiDash_Positions.MenuPos
+
+-- Kéo thả Toggle
+local draggingToggle, dragStartToggle, startPosToggle
+Toggle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingToggle = true
+        dragStartToggle = input.Position
+        startPosToggle = Toggle.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                draggingToggle = false
+                getgenv().GeminiDash_Positions.TogglePos = Toggle.Position  -- Lưu lại
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStartToggle
+        Toggle.Position = UDim2.new(startPosToggle.X.Scale, startPosToggle.X.Offset + delta.X, startPosToggle.Y.Scale, startPosToggle.Y.Offset + delta.Y)
+    end
+end)
+
+-- Kéo thả MenuFrame
+local draggingMenu, dragStartMenu, startPosMenu
+MenuFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingMenu = true
+        dragStartMenu = input.Position
+        startPosMenu = MenuFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                draggingMenu = false
+                getgenv().GeminiDash_Positions.MenuPos = MenuFrame.Position  -- Lưu lại
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingMenu and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStartMenu
+        MenuFrame.Position = UDim2.new(startPosMenu.X.Scale, startPosMenu.X.Offset + delta.X, startPosMenu.Y.Scale, startPosMenu.Y.Offset + delta.Y)
+    end
+end)
+
+-- == SLIDERS (giữ nguyên) ==
+local function CreateSlider(name, min, max, default, posYScale, callback)
+    local Label = Instance.new("TextLabel", MenuFrame)
+    Label.Size = UDim2.new(1, -20, 0, 18)
+    Label.Position = UDim2.new(0, 10, 0, posYScale)
     Label.Text = name .. ": " .. default
-    Label.TextColor3 = Color3.new(0.8,0.8,0.8)
+    Label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
     Label.BackgroundTransparency = 1
     Label.Font = Enum.Font.Gotham
-    Label.TextScaled = true
+    Label.TextSize = 14
 
-    local SliderBack = Instance.new("Frame")
-    SliderBack.Parent = MenuFrame
+    local SliderBack = Instance.new("Frame", MenuFrame)
     SliderBack.Size = UDim2.new(0.85, 0, 0, 5)
-    SliderBack.Position = UDim2.new(0.075, 0, 0, posY + 20)
-    SliderBack.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    Instance.new("UICorner", SliderBack)
+    SliderBack.Position = UDim2.new(0.075, 0, 0, posYScale + 20)
+    SliderBack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    Instance.new("UICorner", SliderBack).CornerRadius = UDim.new(1,0)
 
-    local SliderFill = Instance.new("Frame")
-    SliderFill.Parent = SliderBack
-    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    SliderFill.BackgroundColor3 = Color3.fromRGB(255,0,100)
-    Instance.new("UICorner", SliderFill)
-
-    task.spawn(function()
-        local h = 0
-        while true do
-            h = (h + 0.008) % 1
-            SliderFill.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-            task.wait()
-        end
-    end)
-
+    local SliderFill = Instance.new("Frame", SliderBack)
+    SliderFill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 80, 120)
+    Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1,0)
+    
     local function Update(input)
         local per = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
         SliderFill.Size = UDim2.new(per, 0, 1, 0)
-        local val = min + (max - min) * per
+        local val = min + (max-min)*per
         val = (max <= 1) and math.floor(val*100)/100 or math.floor(val)
         Label.Text = name .. ": " .. val
         callback(val)
     end
 
-    local dragging = false
-    SliderBack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            Update(input)
+    local drag = false
+    SliderBack.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true
+            Update(i)
         end
     end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            Update(input)
+    UserInputService.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            Update(i)
         end
     end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = false
         end
     end)
 end
 
-CreateSlider("Sức mạnh", 100, 800, dashPower, 10, function(v) dashPower = v end)
-CreateSlider("Vị trí X", 0, 1, 0.77, 45, function(v)
+CreateSlider("Sức mạnh lướt", 100, 1000, dashPower, 35, function(v) dashPower = v end)
+CreateSlider("Vị trí X nút", 0, 1, 0.77, 85, function(v)
     DashButton.Position = UDim2.new(v, 0, DashButton.Position.Y.Scale, DashButton.Position.Y.Offset)
 end)
-CreateSlider("Vị trí Y", 0, 1, 0.34, 80, function(v)
+CreateSlider("Vị trí Y nút", 0, 1, 0.34, 135, function(v)
     DashButton.Position = UDim2.new(DashButton.Position.X.Scale, DashButton.Position.X.Offset, v, 0)
 end)
 
--- == 5. NÚT MỞ MENU (nhỏ + vị trí mới: 90% trên cùng) ==
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Parent = ScreenGui
-ToggleButton.Size = UDim2.new(0, 28, 0, 28)  -- Kích thước nhỏ
-ToggleButton.Position = UDim2.new(0.90, -14, 0.05, 0)  -- 90% X, sát trên cùng, offset nhẹ để vừa góc
-ToggleButton.AnchorPoint = Vector2.new(1, 0)  -- Neo phải-trên để nằm gọn góc
-ToggleButton.Text = "⚙"
-ToggleButton.BackgroundColor3 = Color3.fromRGB(30,30,30)
-ToggleButton.TextColor3 = Color3.new(1,1,1)
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 18
-Instance.new("UICorner", ToggleButton)
-
-ToggleButton.MouseButton1Click:Connect(function()
-    MenuFrame.Visible = not MenuFrame.Visible
-end)
-
--- Kéo thả nút ⚙ (vẫn giữ để chỉnh tay nếu cần)
-local dragging, dragStart, startPos
-ToggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = ToggleButton.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        ToggleButton.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
-print("Gemini Dash V4 - Nút ⚙ di chuyển 90% trên cùng Loaded!")
+print("Gemini Dash V4 Loaded! Toggle ở góc trên phải + Auto destroy cũ")
