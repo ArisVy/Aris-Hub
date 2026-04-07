@@ -1,0 +1,136 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local onenabledshotho = false
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.CoreGui
+
+-- Khung chính (Viên thuốc)
+local buttonFrame = Instance.new("Frame")
+buttonFrame.Size = UDim2.new(0, 160, 0, 60)
+buttonFrame.Position = UDim2.new(0.1, 0, 0.7, 0)
+buttonFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+buttonFrame.BorderSizePixel = 0
+buttonFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0) -- Bo tròn tối đa thành viên thuốc
+corner.Parent = buttonFrame
+
+-- 🔹 Nền Cầu Vồng (Chỉ hiện khi bật)
+local rainbowBG = Instance.new("Frame")
+rainbowBG.Size = UDim2.new(1, 0, 1, 0)
+rainbowBG.BackgroundTransparency = 0
+rainbowBG.Visible = false
+rainbowBG.Parent = buttonFrame
+
+local bgCorner = Instance.new("UICorner")
+bgCorner.CornerRadius = UDim.new(1, 0)
+bgCorner.Parent = rainbowBG
+
+local bgGradient = Instance.new("UIGradient")
+bgGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5, 1, 1)),
+    ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1))
+})
+bgGradient.Parent = rainbowBG
+
+-- 🔹 Chữ Aris Hub (Nằm giữa)
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.8, 0, 0.6, 0)
+title.Position = UDim2.new(0.5, 0, 0.5, 0)
+title.AnchorPoint = Vector2.new(0.5, 0.5) -- Đưa tâm chữ vào giữa khung
+title.BackgroundTransparency = 1
+title.Text = "Aris Hub"
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.ZIndex = 5
+title.Parent = buttonFrame
+
+-- 🔹 Hiệu ứng cầu vồng cho chữ (Luôn chạy)
+local txtGradient = Instance.new("UIGradient")
+txtGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5, 1, 1)),
+    ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1))
+})
+txtGradient.Parent = title
+
+local titleStroke = Instance.new("UIStroke")
+titleStroke.Thickness = 2
+titleStroke.Color = Color3.new(0, 0, 0) -- Viền đen cố định
+titleStroke.Parent = title
+
+-- 🔹 Nút bấm
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, 0, 1, 0)
+button.BackgroundTransparency = 1
+button.Text = ""
+button.ZIndex = 10
+button.Parent = buttonFrame
+
+-- 🔹 Vòng lặp tạo hiệu ứng cầu vồng chuyển động
+RunService.RenderStepped:Connect(function()
+    local rot = (tick() * 100) % 360 -- Tốc độ quay màu
+    txtGradient.Rotation = rot
+    bgGradient.Rotation = rot
+end)
+
+-- Logic Toggle
+button.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    onenabledshotho = not onenabledshotho
+    
+    -- Đổi trạng thái nền
+    rainbowBG.Visible = onenabledshotho
+    buttonFrame.BackgroundColor3 = onenabledshotho and Color3.new(1,1,1) or Color3.new(0,0,0)
+
+    if onenabledshotho then
+        task.spawn(function()
+            while onenabledshotho do
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health / humanoid.MaxHealth <= 0.2 then
+                    onenabledshotho = false
+                    rainbowBG.Visible = false
+                    buttonFrame.BackgroundColor3 = Color3.new(0,0,0)
+                    break
+                end
+                
+                local pos = hrp.Position
+                hrp.CFrame = CFrame.new(pos.X, pos.Y - 999999999, pos.Z) -- Giữ nguyên logic hạ thấp tọa độ của bạn
+                task.wait(0.01)
+            end
+        end)
+    end
+end)
+
+-- Hệ thống kéo thả (Drag)
+local dragging, dragInput, dragStart, startPos
+button.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = buttonFrame.Position
+    end
+end)
+button.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        buttonFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
