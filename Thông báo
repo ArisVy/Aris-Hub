@@ -1,0 +1,10 @@
+-- [[ SCRIPT HIỆN THÔNG BÁO CUSTOM ]] --
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Thông báo"; 
+    Text = "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"; 
+    Icon = "rbxassetid://70452141871893"; -- ID ảnh của bạn đã được cập nhật
+    Duration = 5; -- Thời gian hiển thị
+})
+
+-- [[ Dán script khác của bạn ở dưới này nếu muốn chạy đè ]] --
