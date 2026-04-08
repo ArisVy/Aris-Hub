@@ -5,6 +5,80 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local onenabledshotho = false
 
+-- Chèn vào dòng 7:
+local function ThongBao(noiDung)
+    local TweenService = game:GetService("TweenService")
+    local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    
+    if PlayerGui:FindFirstChild("ArisNotify") then
+        PlayerGui.ArisNotify:Destroy()
+    end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ArisNotify"
+    gui.Parent = PlayerGui
+    gui.ResetOnSpawn = false
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 280, 0, 70)
+    frame.Position = UDim2.new(1, 20, 0.7, 0) 
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.Parent = gui
+
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 8)
+    frameCorner.Parent = frame
+
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, 50, 0, 50)
+    icon.Position = UDim2.new(0, 10, 0.5, -25)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://125329301331069"
+    icon.Parent = frame
+
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 25)
+    iconCorner.Parent = icon
+
+    local title = Instance.new("TextLabel")
+    title.Text = "Thông báo"
+    title.Size = UDim2.new(1, -80, 0, 20)
+    title.Position = UDim2.new(0, 70, 0.2, 0)
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 16
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = frame
+
+    local desc = Instance.new("TextLabel")
+    desc.Text = noiDung or "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"
+    desc.Size = UDim2.new(1, -80, 0, 30)
+    desc.Position = UDim2.new(0, 70, 0.5, 0)
+    desc.TextColor3 = Color3.fromRGB(220, 220, 220)
+    desc.Font = Enum.Font.SourceSans
+    desc.TextSize = 14
+    desc.BackgroundTransparency = 1
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    desc.Parent = frame
+
+    local targetPos = UDim2.new(1, -300, 0.7, 0)
+    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = targetPos}):Play()
+
+    task.delay(5, function()
+        if frame then
+            local tweenOut = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 0.7, 0)})
+            tweenOut:Play()
+            tweenOut.Completed:Connect(function() gui:Destroy() end)
+        end
+    end)
+end
+
+-- Sau khi chèn xong hàm trên, bạn chỉ cần gọi lệnh này để hiện thông báo:
+ThongBao("Đã tải script Aris Hub thành công!")
+
 -- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false
