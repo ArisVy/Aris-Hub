@@ -1,10 +1,80 @@
--- [[ SCRIPT HIỆN THÔNG BÁO CUSTOM ]] --
+local TweenService = game:GetService("TweenService")
+local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Thông báo"; 
-    Text = "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"; 
-    Icon = "rbxassetid://70452141871893"; -- ID ảnh của bạn đã được cập nhật
-    Duration = 5; -- Thời gian hiển thị
-})
+-- Xóa thông báo cũ nếu đang chạy lại script
+if PlayerGui:FindFirstChild("RobloxCustomNotify") then
+    PlayerGui.RobloxCustomNotify:Destroy()
+end
 
--- [[ Dán script khác của bạn ở dưới này nếu muốn chạy đè ]] --
+local gui = Instance.new("ScreenGui")
+gui.Name = "RobloxCustomNotify"
+gui.Parent = PlayerGui
+gui.ResetOnSpawn = false
+
+-- Khung nền (Giống Notification mặc định)
+local frame = Instance.new("Frame")
+frame.Name = "NotifyFrame"
+frame.Size = UDim2.new(0, 280, 0, 70)
+-- Position: 0.7 ở đây là độ cao (càng nhỏ càng cao lên trên)
+frame.Position = UDim2.new(1, 20, 0.7, 0) 
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0.2 -- Độ trong suốt nhẹ
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.Parent = frame
+
+-- Ảnh đại diện (Bo cong 25px như yêu cầu)
+local icon = Instance.new("ImageLabel")
+icon.Name = "Icon"
+icon.Size = UDim2.new(0, 50, 0, 50)
+icon.Position = UDim2.new(0, 10, 0.5, -25) -- Giữa trái
+icon.BackgroundTransparency = 1
+icon.Image = "rbxassetid://125329301331069"
+icon.Parent = frame
+
+local iconCorner = Instance.new("UICorner")
+iconCorner.CornerRadius = UDim.new(0, 25) -- Bo tròn 25px
+iconCorner.Parent = icon
+
+-- Tiêu đề (Thông báo)
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Text = "Thông báo"
+title.Size = UDim2.new(1, -80, 0, 20)
+title.Position = UDim2.new(0, 70, 0.2, 0)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 16
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+-- Nội dung (Thông tin liên hệ)
+local desc = Instance.new("TextLabel")
+desc.Name = "Description"
+desc.Text = "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"
+desc.Size = UDim2.new(1, -80, 0, 30)
+desc.Position = UDim2.new(0, 70, 0.5, 0)
+desc.TextColor3 = Color3.fromRGB(220, 220, 220)
+desc.Font = Enum.Font.SourceSans
+desc.TextSize = 14
+desc.BackgroundTransparency = 1
+desc.TextXAlignment = Enum.TextXAlignment.Left
+desc.Parent = frame
+
+-- Hiệu ứng trượt vào (Slide In)
+local targetPos = UDim2.new(1, -300, 0.7, 0)
+local tweenIn = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = targetPos})
+tweenIn:Play()
+
+-- Tự động biến mất sau 5 giây
+task.delay(5, function()
+    local tweenOut = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 0.7, 0)})
+    tweenOut:Play()
+    tweenOut.Completed:Connect(function()
+        gui:Destroy()
+    end)
+end)
