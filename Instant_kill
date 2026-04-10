@@ -298,3 +298,333 @@ task.delay(5, function()
         gui:Destroy()
     end)
 end)
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+-- Xóa bản cũ nếu có
+if CoreGui:FindFirstChild("ArisMenuMobile") then CoreGui.ArisMenuMobile:Destroy() end
+if CoreGui:FindFirstChild("ArisToggleGui") then CoreGui.ArisToggleGui:Destroy() end
+
+---------------------------------------
+-- 1. TẠO MENU CHÍNH
+---------------------------------------
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ArisMenuMobile"
+screenGui.Parent = CoreGui
+screenGui.Enabled = false
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0.75, 0, 0.75, 0)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 40)
+uiCorner.Parent = mainFrame
+
+-- Viền Gradient Menu chính
+local menuStroke = Instance.new("UIStroke")
+menuStroke.Thickness = 4
+menuStroke.Color = Color3.new(1, 1, 1)
+menuStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+menuStroke.Parent = mainFrame
+
+local menuGradient = Instance.new("UIGradient")
+menuGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+})
+menuGradient.Parent = menuStroke
+
+---------------------------------------
+-- Biến ngôn ngữ
+---------------------------------------
+local isEnglish = false
+
+local texts = {
+    vi = {
+        title = "ĐỌC TÔI TRƯỚC KHI SỬ DỤNG",
+        readMe = "READ ME",
+        close = "X",
+        destroy = "DESTROY",
+        langBtn = "EN"
+    },
+    en = {
+        title = "READ ME BEFORE USING",
+        readMe = "READ ME",
+        close = "X",
+        destroy = "DESTROY",
+        langBtn = "VI"
+    }
+}
+
+---------------------------------------
+-- 2. TẠO CÁC PHẦN GIAO DIỆN
+---------------------------------------
+
+-- Tiêu đề
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.9, 0, 0.08, 0)
+title.Position = UDim2.new(0.05, 0, 0.04, 0)
+title.BackgroundTransparency = 1
+title.Text = texts.vi.title
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = mainFrame
+
+-- Nút READ ME ngoài màn hình
+local toggleGui = Instance.new("ScreenGui")
+toggleGui.Name = "ArisToggleGui"
+toggleGui.Parent = CoreGui
+
+local pillButton = Instance.new("Frame")
+pillButton.Size = UDim2.new(0, 120, 0, 45)
+pillButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+pillButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+pillButton.Active = true
+pillButton.Draggable = true
+pillButton.Parent = toggleGui
+
+Instance.new("UICorner", pillButton).CornerRadius = UDim.new(1, 0)
+
+local pillStroke = Instance.new("UIStroke")
+pillStroke.Thickness = 3
+pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+pillStroke.Parent = pillButton
+
+local pillGradient = Instance.new("UIGradient")
+pillGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+})
+pillGradient.Parent = pillStroke
+
+local btnText = Instance.new("TextButton")
+btnText.Size = UDim2.new(1,0,1,0)
+btnText.BackgroundTransparency = 1
+btnText.Text = texts.vi.readMe
+btnText.TextColor3 = Color3.fromRGB(255,255,255)
+btnText.Font = Enum.Font.GothamBold
+btnText.TextSize = 16
+btnText.Parent = pillButton
+
+-- ==================== SCROLLING FRAME (CUỘN MENU) ====================
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(0.9, 0, 0.65, 0)
+scrollFrame.Position = UDim2.new(0.05, 0, 0.22, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 60, 60)
+scrollFrame.Parent = mainFrame
+
+local scrollCorner = Instance.new("UICorner")
+scrollCorner.CornerRadius = UDim.new(0, 25)
+scrollCorner.Parent = scrollFrame
+
+-- Viền gradient đồng bộ cho thanh cuộn
+local scrollStroke = Instance.new("UIStroke")
+scrollStroke.Thickness = 3
+scrollStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+scrollStroke.Parent = scrollFrame
+
+local scrollGradient = Instance.new("UIGradient")
+scrollGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+})
+scrollGradient.Parent = scrollStroke
+
+-- Nội dung chữ bên trong
+local content = Instance.new("TextLabel")
+content.Size = UDim2.new(1, -30, 0, 520)
+content.Position = UDim2.new(0, 15, 0, 15)
+content.BackgroundTransparency = 1
+content.TextWrapped = true
+content.TextXAlignment = Enum.TextXAlignment.Left
+content.TextYAlignment = Enum.TextYAlignment.Top
+content.Font = Enum.Font.GothamSemibold
+content.TextSize = 19
+content.TextColor3 = Color3.fromRGB(255, 255, 255)
+content.RichText = true
+content.Parent = scrollFrame
+
+-- Viên thuốc nhỏ DESTROY góc phải dưới
+local smallPill = Instance.new("Frame")
+smallPill.Size = UDim2.new(0, 90, 0, 35)
+smallPill.Position = UDim2.new(0.96, 0, 0.92, 0)
+smallPill.AnchorPoint = Vector2.new(1, 1)
+smallPill.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+smallPill.Parent = mainFrame
+
+Instance.new("UICorner", smallPill).CornerRadius = UDim.new(1, 0)
+
+local smallStroke = Instance.new("UIStroke")
+smallStroke.Thickness = 2.5
+smallStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+smallStroke.Parent = smallPill
+
+local smallGradient = Instance.new("UIGradient")
+smallGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+})
+smallGradient.Parent = smallStroke
+
+local smallText = Instance.new("TextButton")
+smallText.Size = UDim2.new(1,0,1,0)
+smallText.BackgroundTransparency = 1
+smallText.Text = texts.vi.destroy
+smallText.TextColor3 = Color3.fromRGB(255,255,255)
+smallText.Font = Enum.Font.GothamBold
+smallText.TextSize = 13
+smallText.Parent = smallPill
+
+-- Nút ngôn ngữ góc trên trái
+local langButton = Instance.new("Frame")
+langButton.Size = UDim2.new(0, 60, 0, 40)
+langButton.Position = UDim2.new(0.03, 0, 0.03, 0)
+langButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+langButton.Parent = mainFrame
+
+Instance.new("UICorner", langButton).CornerRadius = UDim.new(0, 20)
+
+local langStroke = Instance.new("UIStroke")
+langStroke.Thickness = 3
+langStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+langStroke.Parent = langButton
+
+local langGradient = Instance.new("UIGradient")
+langGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+})
+langGradient.Parent = langStroke
+
+local langText = Instance.new("TextButton")
+langText.Size = UDim2.new(1,0,1,0)
+langText.BackgroundTransparency = 1
+langText.Text = texts.vi.langBtn
+langText.TextColor3 = Color3.fromRGB(255,255,255)
+langText.Font = Enum.Font.GothamBold
+langText.TextSize = 15
+langText.Parent = langButton
+
+-- Nút X
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 35, 0, 35)
+closeBtn.Position = UDim2.new(0.97, 0, 0.03, 0)
+closeBtn.AnchorPoint = Vector2.new(1, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+closeBtn.Text = texts.vi.close
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 20
+closeBtn.Parent = mainFrame
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0)
+
+---------------------------------------
+-- 3. HÀM CẬP NHẬT NỘI DUNG
+---------------------------------------
+local function updateContent()
+    local supportTitle = "★ Sword , Fruit support:"
+    local noteTitle = isEnglish and "★ NOTE" or "★ LƯU Ý"
+    
+    local noteContent = isEnglish and 
+        "# When you hit an enemy, turn it on immediately\n\n" ..
+        "¿ For Spikey Trident and Buddha: Hold until the enemy is defeated\n" ..
+        "¿ For Saishi: Turn on and off immediately"
+        or 
+        "# Khi đánh dính vào kẻ địch thì bật ngay\n\n" ..
+        "¿ Đối với Spikey Trident và Budha: giữ đến khi kẻ địch bị hạ\n" ..
+        "¿ Đối với Saishi: Bật và tắt ngay lập tức"
+
+    content.Text = supportTitle .. "\n\n" ..
+                   "- F Budha\n" ..
+                   "- Z Saishi\n" ..
+                   "- Z spikey Trident\n\n\n" ..
+                   noteTitle .. "\n\n" .. noteContent
+end
+
+local function updateLanguage()
+    if isEnglish then
+        title.Text = texts.en.title
+        btnText.Text = texts.en.readMe
+        smallText.Text = texts.en.destroy
+        langText.Text = texts.en.langBtn
+    else
+        title.Text = texts.vi.title
+        btnText.Text = texts.vi.readMe
+        smallText.Text = texts.vi.destroy
+        langText.Text = texts.vi.langBtn
+    end
+    updateContent()
+end
+
+---------------------------------------
+-- 4. LOGIC & HIỆU ỨNG
+---------------------------------------
+-- Xoay gradient
+RunService.RenderStepped:Connect(function()
+    local rot = (tick() * 180) % 360
+    pillGradient.Rotation = rot
+    menuGradient.Rotation = rot
+    smallGradient.Rotation = rot
+    langGradient.Rotation = rot
+    scrollGradient.Rotation = rot
+end)
+
+-- Mở menu
+btnText.MouseButton1Click:Connect(function()
+    if not screenGui.Enabled then
+        screenGui.Enabled = true
+        pillButton.Visible = false
+        mainFrame.Size = UDim2.new(0, 0, 0, 0)
+        TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0.75, 0, 0.75, 0)
+        }):Play()
+    end
+end)
+
+-- Thu gọn menu
+closeBtn.MouseButton1Click:Connect(function()
+    local tw = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0)
+    })
+    tw:Play()
+    tw.Completed:Connect(function()
+        screenGui.Enabled = false
+        pillButton.Visible = true
+    end)
+end)
+
+-- Destroy menu
+smallText.MouseButton1Click:Connect(function()
+    local tw = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0)
+    })
+    tw:Play()
+    tw.Completed:Connect(function()
+        screenGui:Destroy()
+        toggleGui:Destroy()
+    end)
+end)
+
+-- Chuyển ngôn ngữ
+langText.MouseButton1Click:Connect(function()
+    isEnglish = not isEnglish
+    updateLanguage()
+end)
+
+-- Khởi tạo
+updateLanguage()
