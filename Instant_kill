@@ -542,11 +542,11 @@ local function updateContent()
     
     local noteContent = isEnglish and 
         "# When you hit an enemy, turn it on immediately\n\n" ..
-        "¿ For Spikey Trident and Buddha: Hold until the enemy is defeated\n" ..
+        "¿ For < Z > Spikey Trident, < F > Teti and Buddha: Hold until the enemy is defeated\n" ..
         "¿ For Saishi: Turn on and off immediately"
         or 
         "# Khi đánh dính vào kẻ địch thì bật ngay\n\n" ..
-        "¿ Đối với Spikey Trident và Budha: giữ đến khi kẻ địch bị hạ\n" ..
+        "¿ Đối với <F> Spikey Trident , <F> Yeti và Budha: giữ đến khi kẻ địch bị hạ\n" ..
         "¿ Đối với Saishi: Bật và tắt ngay lập tức"
 
     content.Text = supportTitle .. "\n\n" ..
