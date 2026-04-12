@@ -546,11 +546,11 @@ local function updateContent()
         "¿ For Saishi: Turn on and off immediately"
         or 
         "# Khi đánh dính vào kẻ địch thì bật ngay\n\n" ..
-        "¿ Đối với <F> Spikey Trident , <F> Yeti và Budha: giữ đến khi kẻ địch bị hạ\n" ..
+        "¿ Đối với <Z> Spikey Trident , <F> Yeti và Budha: giữ đến khi kẻ địch bị hạ\n" ..
         "¿ Đối với Saishi: Bật và tắt ngay lập tức"
 
     content.Text = supportTitle .. "\n\n" ..
-                   "- F Budha\n" ..
+                   "- F Budha,Yeti\n" ..
                    "- Z Saishi\n" ..
                    "- Z spikey Trident\n\n\n" ..
                    noteTitle .. "\n\n" .. noteContent
