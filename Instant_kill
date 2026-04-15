@@ -1,4 +1,4 @@
-local Players = game:GetService("Players") -- Đã sửa lỗi viết hoa chữ 'Local'
+local Players = game:GetService("Players") 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
@@ -42,16 +42,16 @@ local function ThongBao(noiDung)
     iconCorner.CornerRadius = UDim.new(0, 25)
     iconCorner.Parent = icon
 
-    local title = Instance.new("TextLabel")
-    title.Text = "Thông báo"
-    title.Size = UDim2.new(1, -80, 0, 20)
-    title.Position = UDim2.new(0, 70, 0.2, 0)
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.SourceSansBold
-    title.TextSize = 16
-    title.BackgroundTransparency = 1
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = frame
+    local notifyTitle = Instance.new("TextLabel")
+    notifyTitle.Text = "Thông báo"
+    notifyTitle.Size = UDim2.new(1, -80, 0, 20)
+    notifyTitle.Position = UDim2.new(0, 70, 0.2, 0)
+    notifyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    notifyTitle.Font = Enum.Font.SourceSansBold
+    notifyTitle.TextSize = 16
+    notifyTitle.BackgroundTransparency = 1
+    notifyTitle.TextXAlignment = Enum.TextXAlignment.Left
+    notifyTitle.Parent = frame
 
     local desc = Instance.new("TextLabel")
     desc.Text = noiDung or "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"
@@ -116,16 +116,16 @@ bgGradient.Color = ColorSequence.new({
 bgGradient.Parent = rainbowBG
 
 -- 🔹 Chữ Aris Hub (Nằm giữa)
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0.8, 0, 0.6, 0)
-title.Position = UDim2.new(0.5, 0, 0.5, 0)
-title.AnchorPoint = Vector2.new(0.5, 0.5) -- Đưa tâm chữ vào giữa khung
-title.BackgroundTransparency = 1
-title.Text = "Aris Hub"
-title.Font = Enum.Font.GothamBold
-title.TextScaled = true
-title.ZIndex = 5
-title.Parent = buttonFrame
+local mainTitle = Instance.new("TextLabel")
+mainTitle.Size = UDim2.new(0.8, 0, 0.6, 0)
+mainTitle.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainTitle.AnchorPoint = Vector2.new(0.5, 0.5) -- Đưa tâm chữ vào giữa khung
+mainTitle.BackgroundTransparency = 1
+mainTitle.Text = "Aris Hub"
+mainTitle.Font = Enum.Font.GothamBold
+mainTitle.TextScaled = true
+mainTitle.ZIndex = 5
+mainTitle.Parent = buttonFrame
 
 -- 🔹 Hiệu ứng cầu vồng cho chữ (Luôn chạy)
 local txtGradient = Instance.new("UIGradient")
@@ -134,12 +134,12 @@ txtGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5, 1, 1)),
     ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1))
 })
-txtGradient.Parent = title
+txtGradient.Parent = mainTitle
 
 local titleStroke = Instance.new("UIStroke")
 titleStroke.Thickness = 2
 titleStroke.Color = Color3.new(0, 0, 0) -- Viền đen cố định
-titleStroke.Parent = title
+titleStroke.Parent = mainTitle
 
 -- 🔹 Nút bấm
 local button = Instance.new("TextButton")
@@ -217,7 +217,9 @@ UserInputService.InputChanged:Connect(function(input)
         buttonFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
+
 loadstring(game:HttpGet("https://raw.githubusercontent.com/ArisVy/Aris-Hub/refs/heads/main/Notification"))()
+
 local TweenService = game:GetService("TweenService")
 local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
@@ -226,79 +228,78 @@ if PlayerGui:FindFirstChild("RobloxCustomNotify") then
     PlayerGui.RobloxCustomNotify:Destroy()
 end
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "RobloxCustomNotify"
-gui.Parent = PlayerGui
-gui.ResetOnSpawn = false
+local customGui = Instance.new("ScreenGui")
+customGui.Name = "RobloxCustomNotify"
+customGui.Parent = PlayerGui
+customGui.ResetOnSpawn = false
 
 -- Khung nền (Giống Notification mặc định)
-local frame = Instance.new("Frame")
-frame.Name = "NotifyFrame"
-frame.Size = UDim2.new(0, 280, 0, 70)
+local notifyFrame = Instance.new("Frame")
+notifyFrame.Name = "NotifyFrame"
+notifyFrame.Size = UDim2.new(0, 280, 0, 70)
 -- Position: 0.7 ở đây là độ cao (càng nhỏ càng cao lên trên)
-frame.Position = UDim2.new(1, 20, 0.7, 0) 
-frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-frame.BackgroundTransparency = 0.2 -- Độ trong suốt nhẹ
-frame.BorderSizePixel = 0
-frame.Parent = gui
+notifyFrame.Position = UDim2.new(1, 20, 0.7, 0) 
+notifyFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+notifyFrame.BackgroundTransparency = 0.2 -- Độ trong suốt nhẹ
+notifyFrame.BorderSizePixel = 0
+notifyFrame.Parent = customGui
 
-local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 8)
-frameCorner.Parent = frame
+local notifyFrameCorner = Instance.new("UICorner")
+notifyFrameCorner.CornerRadius = UDim.new(0, 8)
+notifyFrameCorner.Parent = notifyFrame
 
 -- Ảnh đại diện (Bo cong 25px như yêu cầu)
-local icon = Instance.new("ImageLabel")
-icon.Name = "Icon"
-icon.Size = UDim2.new(0, 50, 0, 50)
-icon.Position = UDim2.new(0, 10, 0.5, -25) -- Giữa trái
-icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://125329301331069"
-icon.Parent = frame
+local notifyIcon = Instance.new("ImageLabel")
+notifyIcon.Name = "Icon"
+notifyIcon.Size = UDim2.new(0, 50, 0, 50)
+notifyIcon.Position = UDim2.new(0, 10, 0.5, -25) -- Giữa trái
+notifyIcon.BackgroundTransparency = 1
+notifyIcon.Image = "rbxassetid://125329301331069"
+notifyIcon.Parent = notifyFrame
 
-local iconCorner = Instance.new("UICorner")
-iconCorner.CornerRadius = UDim.new(0, 25) -- Bo tròn 25px
-iconCorner.Parent = icon
+local notifyIconCorner = Instance.new("UICorner")
+notifyIconCorner.CornerRadius = UDim.new(0, 25) -- Bo tròn 25px
+notifyIconCorner.Parent = notifyIcon
 
 -- Tiêu đề (Thông báo)
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Text = "Thông báo"
-title.Size = UDim2.new(1, -80, 0, 20)
-title.Position = UDim2.new(0, 70, 0.2, 0)
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 16
-title.BackgroundTransparency = 1
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = frame
+local customTitle = Instance.new("TextLabel")
+customTitle.Name = "Title"
+customTitle.Text = "Thông báo"
+customTitle.Size = UDim2.new(1, -80, 0, 20)
+customTitle.Position = UDim2.new(0, 70, 0.2, 0)
+customTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+customTitle.Font = Enum.Font.SourceSansBold
+customTitle.TextSize = 16
+customTitle.BackgroundTransparency = 1
+customTitle.TextXAlignment = Enum.TextXAlignment.Left
+customTitle.Parent = notifyFrame
 
 -- Nội dung (Thông tin liên hệ)
-local desc = Instance.new("TextLabel")
-desc.Name = "Description"
-desc.Text = "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"
-desc.Size = UDim2.new(1, -80, 0, 30)
-desc.Position = UDim2.new(0, 70, 0.5, 0)
-desc.TextColor3 = Color3.fromRGB(220, 220, 220)
-desc.Font = Enum.Font.SourceSans
-desc.TextSize = 14
-desc.BackgroundTransparency = 1
-desc.TextXAlignment = Enum.TextXAlignment.Left
-desc.Parent = frame
+local customDesc = Instance.new("TextLabel")
+customDesc.Name = "Description"
+customDesc.Text = "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"
+customDesc.Size = UDim2.new(1, -80, 0, 30)
+customDesc.Position = UDim2.new(0, 70, 0.5, 0)
+customDesc.TextColor3 = Color3.fromRGB(220, 220, 220)
+customDesc.Font = Enum.Font.SourceSans
+customDesc.TextSize = 14
+customDesc.BackgroundTransparency = 1
+customDesc.TextXAlignment = Enum.TextXAlignment.Left
+customDesc.Parent = notifyFrame
 
 -- Hiệu ứng trượt vào (Slide In)
-local targetPos = UDim2.new(1, -300, 0.7, 0)
-local tweenIn = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = targetPos})
+local targetPosCustom = UDim2.new(1, -300, 0.7, 0)
+local tweenIn = TweenService:Create(notifyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = targetPosCustom})
 tweenIn:Play()
 
 -- Tự động biến mất sau 5 giây
 task.delay(5, function()
-    local tweenOut = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 0.7, 0)})
+    local tweenOut = TweenService:Create(notifyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 0.7, 0)})
     tweenOut:Play()
     tweenOut.Completed:Connect(function()
-        gui:Destroy()
+        customGui:Destroy()
     end)
 end)
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
@@ -309,10 +310,10 @@ if CoreGui:FindFirstChild("ArisToggleGui") then CoreGui.ArisToggleGui:Destroy() 
 ---------------------------------------
 -- 1. TẠO MENU CHÍNH
 ---------------------------------------
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ArisMenuMobile"
-screenGui.Parent = CoreGui
-screenGui.Enabled = false
+local screenGuiMenu = Instance.new("ScreenGui")
+screenGuiMenu.Name = "ArisMenuMobile"
+screenGuiMenu.Parent = CoreGui
+screenGuiMenu.Enabled = false
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0.75, 0, 0.75, 0)
@@ -320,7 +321,7 @@ mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
+mainFrame.Parent = screenGuiMenu
 
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 40)
@@ -368,15 +369,15 @@ local texts = {
 ---------------------------------------
 
 -- Tiêu đề
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0.9, 0, 0.08, 0)
-title.Position = UDim2.new(0.05, 0, 0.04, 0)
-title.BackgroundTransparency = 1
-title.Text = texts.vi.title
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextScaled = true
-title.Parent = mainFrame
+local menuTitle = Instance.new("TextLabel")
+menuTitle.Size = UDim2.new(0.9, 0, 0.08, 0)
+menuTitle.Position = UDim2.new(0.05, 0, 0.04, 0)
+menuTitle.BackgroundTransparency = 1
+menuTitle.Text = texts.vi.title
+menuTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+menuTitle.Font = Enum.Font.GothamBold
+menuTitle.TextScaled = true
+menuTitle.Parent = mainFrame
 
 -- Nút READ ME ngoài màn hình
 local toggleGui = Instance.new("ScreenGui")
@@ -445,7 +446,7 @@ scrollGradient.Parent = scrollStroke
 
 -- Nội dung chữ bên trong
 local content = Instance.new("TextLabel")
-content.Size = UDim2.new(1, -30, 0, 520)
+content.Size = UDim2.new(1, -30, 0, 680) -- Mở rộng kích thước dọc để hiện hết cảnh báo
 content.Position = UDim2.new(0, 15, 0, 15)
 content.BackgroundTransparency = 1
 content.TextWrapped = true
@@ -537,6 +538,12 @@ Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0)
 -- 3. HÀM CẬP NHẬT NỘI DUNG
 ---------------------------------------
 local function updateContent()
+    -- Thêm đoạn hướng dẫn ở dòng đầu tiên
+    local introText = isEnglish and 
+        "Nhấn nút \"VI\" để chuyển sang tiếng Việt.\n» Press DESTROY to hide \"Read me\"\n\n" 
+        or 
+        "Press the \"EN\" button to switch to English.\n» Bấm DESTROY để ẩn \"Read me\"\n\n"
+
     local supportTitle = "★ Sword , Fruit support:"
     local noteTitle = isEnglish and "★ NOTE" or "★ LƯU Ý"
     
@@ -549,21 +556,30 @@ local function updateContent()
         "¿ Đối với <Z> Spikey Trident , <F> Yeti và Budha: giữ đến khi kẻ địch bị hạ\n" ..
         "¿ Đối với Saishi: Bật và tắt ngay lập tức"
 
-    content.Text = supportTitle .. "\n\n" ..
+    -- Thêm cảnh báo ở dòng cuối cùng
+    local warningText = isEnglish and
+        "⚠️ When using, your HP will decrease by a percentage. This is completely normal and cannot be prevented (it is a mandatory side effect) ⚠️"
+        or
+        "⚠️ Khi sử dụng Hp của bạn sẽ bị mất theo tỉ lệ % , đó là chuyện rất bình thường và không thể ngăn nó lại ( đó là tác dụng phụ bắt buộc ) ⚠️"
+
+    -- Nối tất cả lại với nhau
+    content.Text = introText .. 
+                   supportTitle .. "\n\n" ..
                    "- F Budha,Yeti\n" ..
                    "- Z Saishi\n" ..
                    "- Z spikey Trident\n\n\n" ..
-                   noteTitle .. "\n\n" .. noteContent
+                   noteTitle .. "\n\n" .. noteContent .. "\n\n\n" .. 
+                   warningText
 end
 
 local function updateLanguage()
     if isEnglish then
-        title.Text = texts.en.title
+        menuTitle.Text = texts.en.title
         btnText.Text = texts.en.readMe
         smallText.Text = texts.en.destroy
         langText.Text = texts.en.langBtn
     else
-        title.Text = texts.vi.title
+        menuTitle.Text = texts.vi.title
         btnText.Text = texts.vi.readMe
         smallText.Text = texts.vi.destroy
         langText.Text = texts.vi.langBtn
@@ -586,8 +602,8 @@ end)
 
 -- Mở menu
 btnText.MouseButton1Click:Connect(function()
-    if not screenGui.Enabled then
-        screenGui.Enabled = true
+    if not screenGuiMenu.Enabled then
+        screenGuiMenu.Enabled = true
         pillButton.Visible = false
         mainFrame.Size = UDim2.new(0, 0, 0, 0)
         TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
@@ -603,7 +619,7 @@ closeBtn.MouseButton1Click:Connect(function()
     })
     tw:Play()
     tw.Completed:Connect(function()
-        screenGui.Enabled = false
+        screenGuiMenu.Enabled = false
         pillButton.Visible = true
     end)
 end)
@@ -615,7 +631,7 @@ smallText.MouseButton1Click:Connect(function()
     })
     tw:Play()
     tw.Completed:Connect(function()
-        screenGui:Destroy()
+        screenGuiMenu:Destroy()
         toggleGui:Destroy()
     end)
 end)
@@ -628,3 +644,64 @@ end)
 
 -- Khởi tạo
 updateLanguage()
+
+-- =========================================
+-- HIỆU ỨNG CHỮ CẢNH BÁO GIỮA MÀN HÌNH (Hiện 3s rồi mờ dần)
+-- =========================================
+local TweenService = game:GetService("TweenService")
+
+if CoreGui:FindFirstChild("ArisFloatingWarning") then 
+    CoreGui.ArisFloatingWarning:Destroy() 
+end
+
+local warningGui = Instance.new("ScreenGui")
+warningGui.Name = "ArisFloatingWarning"
+warningGui.Parent = CoreGui
+warningGui.ResetOnSpawn = false
+
+local floatingText = Instance.new("TextLabel")
+floatingText.Size = UDim2.new(0, 600, 0, 60)
+floatingText.Position = UDim2.new(0.5, 0, 0.25, 0)
+floatingText.AnchorPoint = Vector2.new(0.5, 0.5)
+floatingText.BackgroundTransparency = 1
+floatingText.Font = Enum.Font.GothamBold
+floatingText.TextSize = 22
+floatingText.Text = "Mở \"READ ME\" để xem tác dụng và tác dụng phụ\nOpen \"READ ME\" to view effects and side effects"
+floatingText.Parent = warningGui
+
+local textStroke = Instance.new("UIStroke")
+textStroke.Thickness = 1.5
+textStroke.Color = Color3.fromRGB(255, 255, 255)
+textStroke.Parent = floatingText
+
+local floatGradient = Instance.new("UIGradient")
+floatGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+})
+floatGradient.Parent = floatingText
+
+-- Vòng lặp cho vệt màu chạy qua lại
+local renderConnection
+renderConnection = RunService.RenderStepped:Connect(function()
+    floatGradient.Offset = Vector2.new((math.sin(tick() * 2) / 2), 0)
+end)
+
+-- Hiệu ứng chờ 3 giây rồi mờ dần từ từ
+task.delay(3, function()
+    -- Thời gian mờ dần là 1.5 giây (có thể chỉnh số 1.5 này nhanh/chậm tùy ý)
+    local fadeInfo = TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    
+    local tweenText = TweenService:Create(floatingText, fadeInfo, {TextTransparency = 1})
+    local tweenStroke = TweenService:Create(textStroke, fadeInfo, {Transparency = 1})
+    
+    tweenText:Play()
+    tweenStroke:Play()
+    
+    -- Xóa GUI và ngắt vòng lặp màu khi đã mờ hẳn
+    tweenText.Completed:Connect(function()
+        if renderConnection then renderConnection:Disconnect() end
+        warningGui:Destroy()
+    end)
+end)
