@@ -6,6 +6,350 @@ local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 
 if not player then return end
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- ==========================================
+-- HỆ THỐNG THÔNG BÁO
+-- ==========================================
+local function ThongBao(noiDung)
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    
+    if PlayerGui:FindFirstChild("ArisNotify") then
+        PlayerGui.ArisNotify:Destroy()
+    end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ArisNotify"
+    gui.Parent = PlayerGui
+    gui.ResetOnSpawn = false
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 280, 0, 70)
+    frame.Position = UDim2.new(1, 20, 0.7, 0) 
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.Parent = gui
+
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 8)
+    frameCorner.Parent = frame
+
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, 50, 0, 50)
+    icon.Position = UDim2.new(0, 10, 0.5, -25)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://125329301331069"
+    icon.Parent = frame
+
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 25)
+    iconCorner.Parent = icon
+
+    local title = Instance.new("TextLabel")
+    title.Text = "Thông báo"
+    title.Size = UDim2.new(1, -80, 0, 20)
+    title.Position = UDim2.new(0, 70, 0.2, 0)
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 16
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = frame
+
+    local desc = Instance.new("TextLabel")
+    desc.Text = noiDung or "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"
+    desc.Size = UDim2.new(1, -80, 0, 30)
+    desc.Position = UDim2.new(0, 70, 0.5, 0)
+    desc.TextColor3 = Color3.fromRGB(220, 220, 220)
+    desc.Font = Enum.Font.SourceSans
+    desc.TextSize = 14
+    desc.BackgroundTransparency = 1
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    desc.Parent = frame
+
+    local targetPos = UDim2.new(1, -300, 0.7, 0)
+    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = targetPos}):Play()
+
+    task.delay(5, function()
+        if frame then
+            local tweenOut = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 0.7, 0)})
+            tweenOut:Play()
+            tweenOut.Completed:Connect(function() gui:Destroy() end)
+        end
+    end)
+end
+
+ThongBao("Đã tải script Aris Hub thành công!")
+-- ==========================================
+-- MENU & GUI CHÍNH
+-- ==========================================
+
+if CoreGui:FindFirstChild("ArisMenuMobile") then CoreGui.ArisMenuMobile:Destroy() end
+if CoreGui:FindFirstChild("ArisToggleGui") then CoreGui.ArisToggleGui:Destroy() end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ArisMenuMobile"
+screenGui.Parent = CoreGui
+screenGui.Enabled = false
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0.75, 0, 0.75, 0)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 40)
+
+local menuStroke = Instance.new("UIStroke")
+menuStroke.Thickness = 4
+menuStroke.Color = Color3.new(1, 1, 1)
+menuStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+menuStroke.Parent = mainFrame
+
+local menuGradient = Instance.new("UIGradient")
+menuGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+})
+menuGradient.Parent = menuStroke
+
+local isEnglish = false
+
+local texts = {
+    vi = { title = "ĐỌC TÔI TRƯỚC KHI SỬ DỤNG", readMe = "READ ME", close = "X", destroy = "DESTROY", langBtn = "EN" },
+    en = { title = "READ ME BEFORE USING", readMe = "READ ME", close = "X", destroy = "DESTROY", langBtn = "VI" }
+}
+
+local menuTitle = Instance.new("TextLabel")
+menuTitle.Size = UDim2.new(0.9, 0, 0.08, 0)
+menuTitle.Position = UDim2.new(0.05, 0, 0.04, 0)
+menuTitle.BackgroundTransparency = 1
+menuTitle.Text = texts.vi.title
+menuTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+menuTitle.Font = Enum.Font.GothamBold
+menuTitle.TextScaled = true
+menuTitle.Parent = mainFrame
+
+local toggleGui = Instance.new("ScreenGui")
+toggleGui.Name = "ArisToggleGui"
+toggleGui.Parent = CoreGui
+
+local pillButton = Instance.new("Frame")
+pillButton.Size = UDim2.new(0, 120, 0, 45)
+pillButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+pillButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+pillButton.Active = true
+pillButton.Draggable = true
+pillButton.Parent = toggleGui
+
+Instance.new("UICorner", pillButton).CornerRadius = UDim.new(1, 0)
+
+local pillStroke = Instance.new("UIStroke")
+pillStroke.Thickness = 3
+pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+pillStroke.Parent = pillButton
+
+local pillGradient = Instance.new("UIGradient")
+pillGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+})
+pillGradient.Parent = pillStroke
+
+local btnText = Instance.new("TextButton")
+btnText.Size = UDim2.new(1,0,1,0)
+btnText.BackgroundTransparency = 1
+btnText.Text = texts.vi.readMe
+btnText.TextColor3 = Color3.fromRGB(255,255,255)
+btnText.Font = Enum.Font.GothamBold
+btnText.TextSize = 16
+btnText.Parent = pillButton
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(0.9, 0, 0.65, 0)
+scrollFrame.Position = UDim2.new(0.05, 0, 0.22, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 60, 60)
+scrollFrame.Parent = mainFrame
+
+Instance.new("UICorner", scrollFrame).CornerRadius = UDim.new(0, 25)
+
+local scrollStroke = Instance.new("UIStroke")
+scrollStroke.Thickness = 3
+scrollStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+scrollStroke.Parent = scrollFrame
+
+local scrollGradient = Instance.new("UIGradient")
+scrollGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+})
+scrollGradient.Parent = scrollStroke
+
+local content = Instance.new("TextLabel")
+content.Size = UDim2.new(1, -30, 0, 520)
+content.Position = UDim2.new(0, 15, 0, 15)
+content.BackgroundTransparency = 1
+content.TextWrapped = true
+content.TextXAlignment = Enum.TextXAlignment.Left
+content.TextYAlignment = Enum.TextYAlignment.Top
+content.Font = Enum.Font.GothamSemibold
+content.TextSize = 19
+content.TextColor3 = Color3.fromRGB(255, 255, 255)
+content.RichText = true
+content.Parent = scrollFrame
+
+local smallPill = Instance.new("Frame")
+smallPill.Size = UDim2.new(0, 90, 0, 35)
+smallPill.Position = UDim2.new(0.96, 0, 0.92, 0)
+smallPill.AnchorPoint = Vector2.new(1, 1)
+smallPill.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+smallPill.Parent = mainFrame
+
+Instance.new("UICorner", smallPill).CornerRadius = UDim.new(1, 0)
+
+local smallStroke = Instance.new("UIStroke")
+smallStroke.Thickness = 2.5
+smallStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+smallStroke.Parent = smallPill
+
+local smallGradient = Instance.new("UIGradient")
+smallGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+})
+smallGradient.Parent = smallStroke
+
+local smallText = Instance.new("TextButton")
+smallText.Size = UDim2.new(1,0,1,0)
+smallText.BackgroundTransparency = 1
+smallText.Text = texts.vi.destroy
+smallText.TextColor3 = Color3.fromRGB(255,255,255)
+smallText.Font = Enum.Font.GothamBold
+smallText.TextSize = 13
+smallText.Parent = smallPill
+
+local langButton = Instance.new("Frame")
+langButton.Size = UDim2.new(0, 60, 0, 40)
+langButton.Position = UDim2.new(0.03, 0, 0.03, 0)
+langButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+langButton.Parent = mainFrame
+Instance.new("UICorner", langButton).CornerRadius = UDim.new(0, 20)
+
+local langStroke = Instance.new("UIStroke")
+langStroke.Thickness = 3
+langStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+langStroke.Parent = langButton
+
+local langGradient = Instance.new("UIGradient")
+langGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+})
+langGradient.Parent = langStroke
+
+local langText = Instance.new("TextButton")
+langText.Size = UDim2.new(1,0,1,0)
+langText.BackgroundTransparency = 1
+langText.Text = texts.vi.langBtn
+langText.TextColor3 = Color3.fromRGB(255,255,255)
+langText.Font = Enum.Font.GothamBold
+langText.TextSize = 15
+langText.Parent = langButton
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 35, 0, 35)
+closeBtn.Position = UDim2.new(0.97, 0, 0.03, 0)
+closeBtn.AnchorPoint = Vector2.new(1, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+closeBtn.Text = texts.vi.close
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 20
+closeBtn.Parent = mainFrame
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0)
+
+-- ==========================================
+-- UPDATE CONTENT (ĐÃ SỬA ĐỔI)
+-- ==========================================
+local function updateContent()
+    local instruction = isEnglish and 
+        "Press the DESTROY button to remove ReadMe, press the VI button to switch languages.\n\n" 
+        or 
+        "Nhấn nút DESTROY để xoá ReadMe, nhấn nút EN để chuyển đổi ngôn ngữ.\n\n"
+
+    local desyncTitle = isEnglish and "# How does Desync work?" or "# Desync hoạt động như thế nào?"
+    
+    local desyncContent = isEnglish and 
+        "» On your screen: You still move normally, run, jump, attack, and use skills freely. And your attacks still have real effects (hitting others, dealing damage...).\n\n" ..
+        "» On others' screens: They only see your body standing still in one place, not moving, like you are AFK (away from keyboard)."
+        or 
+        "» Trên màn hình của bạn: Bạn vẫn di chuyển bình thường, chạy nhảy, đánh đấm, dùng chiêu thoải mái. Và đòn đánh của bạn vẫn có tác dụng thật (trúng người khác, gây sát thương…).\n\n" ..
+        "» Trên màn hình của người khác: Họ chỉ thấy body (thân xác) của bạn đứng yên một chỗ, không nhúc nhích, giống như bạn đang AFK (ngồi không)."
+
+    content.Text = instruction .. desyncTitle .. "\n\n" .. desyncContent
+end
+
+local function updateLanguage()
+    local set = isEnglish and texts.en or texts.vi
+    menuTitle.Text = set.title
+    btnText.Text = set.readMe
+    smallText.Text = set.destroy
+    langText.Text = set.langBtn
+    updateContent()
+end
+
+RunService.RenderStepped:Connect(function()
+    local fastRot = (tick() * 180) % 360
+    pillGradient.Rotation = fastRot
+    menuGradient.Rotation = fastRot
+    smallGradient.Rotation = fastRot
+    langGradient.Rotation = fastRot
+    scrollGradient.Rotation = fastRot
+end)
+
+btnText.MouseButton1Click:Connect(function()
+    if not screenGui.Enabled then
+        screenGui.Enabled = true
+        pillButton.Visible = false
+        mainFrame.Size = UDim2.new(0, 0, 0, 0)
+        TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0.75, 0, 0.75, 0)}):Play()
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    local tw = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
+    tw:Play()
+    tw.Completed:Connect(function() screenGui.Enabled = false pillButton.Visible = true end)
+end)
+
+smallText.MouseButton1Click:Connect(function()
+    local tw = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
+    tw:Play()
+    tw.Completed:Connect(function() screenGui:Destroy() toggleGui:Destroy() end)
+end)
+
+langText.MouseButton1Click:Connect(function()
+    isEnglish = not isEnglish
+    updateLanguage()
+end)
+
+updateLanguage()
 
 -- Global Variables (GENV)
 local GENV = getgenv()
