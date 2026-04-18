@@ -87,7 +87,7 @@ screenGui.Parent = game.CoreGui
 -- Khung chính (Viên thuốc)
 local buttonFrame = Instance.new("Frame")
 buttonFrame.Size = UDim2.new(0, 160, 0, 60)
-buttonFrame.Position = UDim2.new(0.1, 0, 0.7, 0)
+buttonFrame.Position = UDim2.new(0.1, 0, 0.1, 0) -- Đã đưa nút Aris Hub lên trên
 buttonFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 buttonFrame.BorderSizePixel = 0
 buttonFrame.Parent = screenGui
@@ -300,6 +300,7 @@ task.delay(5, function()
         customGui:Destroy()
     end)
 end)
+
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
@@ -386,7 +387,7 @@ toggleGui.Parent = CoreGui
 
 local pillButton = Instance.new("Frame")
 pillButton.Size = UDim2.new(0, 120, 0, 45)
-pillButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+pillButton.Position = UDim2.new(0.1, 0, 0.7, 0) -- Đã đưa nút READ ME xuống dưới
 pillButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 pillButton.Active = true
 pillButton.Draggable = true
