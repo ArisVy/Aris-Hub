@@ -6,11 +6,6 @@ local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 
 if not player then return end
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-
 local LocalPlayer = Players.LocalPlayer
 
 -- ==========================================
@@ -29,7 +24,7 @@ local function ThongBao(noiDung)
     gui.ResetOnSpawn = false
 
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 280, 0, 70)
+    frame.Size = UDim2.new(0, 280, 0, 85) -- Tăng chiều cao để chứa đủ 3 dòng text
     frame.Position = UDim2.new(1, 20, 0.7, 0) 
     frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     frame.BackgroundTransparency = 0.2
@@ -54,7 +49,7 @@ local function ThongBao(noiDung)
     local title = Instance.new("TextLabel")
     title.Text = "Thông báo"
     title.Size = UDim2.new(1, -80, 0, 20)
-    title.Position = UDim2.new(0, 70, 0.2, 0)
+    title.Position = UDim2.new(0, 70, 0.1, 0)
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 16
@@ -63,9 +58,9 @@ local function ThongBao(noiDung)
     title.Parent = frame
 
     local desc = Instance.new("TextLabel")
-    desc.Text = noiDung or "Discord: Aris_vy\nFacebook: Trọng Vỹ'z"
-    desc.Size = UDim2.new(1, -80, 0, 30)
-    desc.Position = UDim2.new(0, 70, 0.5, 0)
+    desc.Text = noiDung or "Discord: Aris_Vy\nFacebook: Trọng Vỹ'z"
+    desc.Size = UDim2.new(1, -80, 0, 45)
+    desc.Position = UDim2.new(0, 70, 0.35, 0)
     desc.TextColor3 = Color3.fromRGB(220, 220, 220)
     desc.Font = Enum.Font.SourceSans
     desc.TextSize = 14
@@ -85,7 +80,9 @@ local function ThongBao(noiDung)
     end)
 end
 
-ThongBao("Đã tải script Aris Hub thành công!")
+-- Thêm thông báo Discord & Facebook ngay khi tải xong
+ThongBao("Đã tải script Aris Hub thành công!\nDiscord: Aris_Vy\nFacebook: Trọng Vỹ'z")
+
 -- ==========================================
 -- MENU & GUI CHÍNH
 -- ==========================================
@@ -200,7 +197,7 @@ scrollGradient.Color = ColorSequence.new({
 scrollGradient.Parent = scrollStroke
 
 local content = Instance.new("TextLabel")
-content.Size = UDim2.new(1, -30, 0, 520)
+content.Size = UDim2.new(1, -30, 0, 900) -- Tăng size content để chữ không bị che
 content.Position = UDim2.new(0, 15, 0, 15)
 content.BackgroundTransparency = 1
 content.TextWrapped = true
@@ -293,13 +290,24 @@ local function updateContent()
         or 
         "Press the EN button to switch to English\nẤn DESTROY để ẩn readme\n\n"
 
+    -- Đã thêm nội dung cảnh báo về Ghost ở đây
+    local ghostWarning = isEnglish and
+        "⚠️ [GHOST MODE INFO]\n" ..
+        "» When enabling || Ghost [👁️] ||, your hitbox will be kept on your real body (the body you are using for PvP). It can be countered by silent aimbot scripts.\n\n" ..
+        "» When enabling || Ghost [👻] ||, your hitbox will be kept on your fake body (the blue cube area when you enable desync). Everyone can attack that fake body without needing to attack your real body, and all your skills will be cast from the fake body's location (the blue cube area).\n\n"
+        or
+        "⚠️ [THÔNG TIN GHOST MODE]\n" ..
+        "» Khi bật || Ghost [👁️] ||, hitbox của bạn sẽ được giữ trên cơ thể thật (cơ thể bạn đang sử dụng để pvp), nó sẽ bị khắc chế bởi script silent aimbot.\n\n" ..
+        "» Khi bật || Ghost [👻] ||, hitbox của bạn sẽ giữ trên cơ thể giả (vùng khối vuông xanh dương khi bạn bật desync), mọi người có thể tấn công vào body đó mà không cần tấn công cơ thể bạn ở vị trí thật và mọi skill của bạn sử dụng sẽ tác động ở vị trí body fake (vùng khối vuông xanh dương khi bạn bật desync).\n\n"
+
     local warning = isEnglish and
         "⚠️ Some games have patched Desync, so you might get \"Disconnected\", but don't worry, it cannot \"BAN\" you.\n\n"
         or
         "⚠️ 1 số game đã vá Desync nên bạn có thể sẽ bị \"Disconnect\" nhưng đừng lo, nó không thể \"BAN\" bạn đâu.\n\n"
 
     local desyncTitle = isEnglish and 
-        "# How does Desync work?" or "# Desync hoạt động như thế nào?"
+        "# How does Desync work?"
+        or "# Desync hoạt động như thế nào?"
         
     local desyncContent = isEnglish and 
         "» On your screen: You still move normally, run, jump, attack, and use skills freely. And your attacks still have real effects (hitting others, dealing damage...).\n\n" ..
@@ -307,8 +315,8 @@ local function updateContent()
         or 
         "» Trên màn hình của bạn: Bạn vẫn di chuyển bình thường, chạy nhảy, đánh đấm, dùng chiêu thoải mái. Và đòn đánh của bạn vẫn có tác dụng thật (trúng người khác, gây sát thương…).\n\n" ..
         "» Trên màn hình của người khác: Họ chỉ thấy body (thân xác) của bạn đứng yên một chỗ, không nhúc nhích, giống như bạn đang AFK (ngồi không)."
-        
-    content.Text = instruction .. warning .. desyncTitle .. "\n\n" .. desyncContent
+
+    content.Text = instruction .. ghostWarning .. warning .. desyncTitle .. "\n\n" .. desyncContent
 end
 
 local function updateLanguage()
@@ -377,7 +385,7 @@ local replicatesignal = getgenv().replicatesignal or function(...) return ... en
 local function ToggleDesync(state)
     pcall(function()
         if raknet and type(raknet.desync) == "function" then
-            raknet.desync(state)
+             raknet.desync(state)
         end
     end)
 end
