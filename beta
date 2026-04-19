@@ -9,7 +9,7 @@ local CoreGui=game:GetService("CoreGui")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO",
-    Text="Cập Nhật Nền Gradient Đen/Đỏ/Xanh & Viền Bo Cong Mạnh!",
+    Text="Menu Viền Cong Mạnh, Gradient Nền Nút & Chữ Chạy Xoay Vòng!",
     Duration=8
 })
 
@@ -34,12 +34,13 @@ ScreenGui.IgnoreGuiInset=true
 ScreenGui.DisplayOrder=99999
 ScreenGui.Parent=CoreGui
 
-local TextList={}
 local UIGradientList={}
+local TextGradientList={}
+local BtnGradientList={}
 
 local function GetRGB()return Color3.fromHSV(tick()%5/5,1,1)end
 
--- Hàm tạo Gradient Đỏ Đen chạy liên tục cho viền
+-- Tạo Viền Đỏ - Đen xoay
 local function CreateRedBlackGradient(parent)
     local grad = Instance.new("UIGradient")
     grad.Color = ColorSequence.new({
@@ -51,34 +52,46 @@ local function CreateRedBlackGradient(parent)
     table.insert(UIGradientList, grad)
 end
 
--- Rút gọn việc tạo viền cho nút
 local function CreateBorder(parent)
     local stroke = Instance.new("UIStroke", parent)
-    stroke.Thickness = 1.5
+    stroke.Thickness = 1.8
     stroke.Color = Color3.new(1, 1, 1)
     CreateRedBlackGradient(stroke)
 end
 
--- HÀM ÁP DỤNG MÀU GRADIENT ĐEN-ĐỎ / ĐEN-XANH CHO NỀN NÚT CHỨC NĂNG
+-- Tạo Text Gradient Hồng - Xanh xoay
+local function CreateTextGradient(parent)
+    parent.TextColor3 = Color3.new(1, 1, 1)
+    local grad = Instance.new("UIGradient", parent)
+    grad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 150)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 200, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 150))
+    })
+    table.insert(TextGradientList, grad)
+end
+
+-- Hàm Gradient nền cho Nút: Đen 40%, Xanh/Đỏ 60%
 local function ApplyToggleGradient(parent, isOn)
     local grad = parent:FindFirstChild("ToggleGrad")
     if not grad then
         grad = Instance.new("UIGradient", parent)
         grad.Name = "ToggleGrad"
+        table.insert(BtnGradientList, grad)
     end
     if isOn then
-        -- 60% Đen, 40% Xanh Dương
+        -- 40% Đen, 60% Xanh
         grad.Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 15)),
-            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(15, 15, 15)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 130, 255))
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(15, 15, 15)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 150, 255))
         })
     else
-        -- 60% Đen, 40% Đỏ
+        -- 40% Đen, 60% Đỏ
         grad.Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 15)),
-            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(15, 15, 15)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 30, 30))
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(15, 15, 15)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 40, 40))
         })
     end
 end
@@ -109,7 +122,7 @@ ToggleBtn.Image="rbxassetid://125329301331069"
 ToggleBtn.BackgroundColor3=Color3.fromRGB(30,30,30)
 ToggleBtn.ClipsDescendants=true
 ToggleBtn.Visible=_G.Config.Show_ToggleBtn
-Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,16) -- Bo góc mạnh hơn
+Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,20)
 local ts=Instance.new("UIStroke",ToggleBtn)
 ts.Thickness=3
 ts.Color=Color3.new(1,1,1)
@@ -129,22 +142,22 @@ MainFrame.Size=UDim2.new(0,400,0,310)
 MainFrame.Position=UDim2.new(0,70,0.2,0)
 MainFrame.BackgroundColor3=Color3.fromRGB(20,20,20)
 MainFrame.Visible=false
-Instance.new("UICorner",MainFrame).CornerRadius=UDim.new(0,16) -- Bo góc mạnh hơn
+Instance.new("UICorner",MainFrame).CornerRadius=UDim.new(0,20) -- Bo cong cực mạnh
 local ms=Instance.new("UIStroke",MainFrame)
 ms.Thickness=3
 ms.Color=Color3.new(1,1,1)
 CreateRedBlackGradient(ms)
 
 local ResetBtn=Instance.new("TextButton",MainFrame)
-ResetBtn.Size=UDim2.new(0,32,0,32)
-ResetBtn.Position=UDim2.new(0,10,0,7)
+ResetBtn.Size=UDim2.new(0,36,0,32)
+ResetBtn.Position=UDim2.new(0,12,0,7)
 ResetBtn.Text="RST"
 ResetBtn.Font=Enum.Font.GothamBold
-ResetBtn.TextSize=12
+ResetBtn.TextSize=13
 ResetBtn.BackgroundColor3=Color3.fromRGB(40,20,20)
-Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,16) -- Đồng bộ bo cong
+Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,16)
 CreateBorder(ResetBtn)
-table.insert(TextList, ResetBtn)
+CreateTextGradient(ResetBtn)
 
 ResetBtn.MouseButton1Click:Connect(function()
     task.spawn(function()
@@ -162,14 +175,14 @@ ResetBtn.MouseButton1Click:Connect(function()
 end)
 
 local Title=Instance.new("TextLabel",MainFrame)
-Title.Size=UDim2.new(1,-60,0,45)
-Title.Position=UDim2.new(0,55,0,0)
+Title.Size=UDim2.new(1,-70,0,45)
+Title.Position=UDim2.new(0,60,0,0)
 Title.Text="ARIS HUB V53 PRO"
 Title.Font=Enum.Font.GothamBlack
 Title.TextSize=20
 Title.BackgroundTransparency=1
 Title.TextXAlignment=Enum.TextXAlignment.Left
-table.insert(TextList, Title)
+CreateTextGradient(Title)
 MakeDraggable(MainFrame) 
 
 ToggleBtn.MouseButton1Click:Connect(function()
@@ -178,33 +191,40 @@ ToggleBtn.MouseButton1Click:Connect(function()
 end)
 
 local TabFrame=Instance.new("Frame",MainFrame)
-TabFrame.Size=UDim2.new(1,0,0,35)
-TabFrame.Position=UDim2.new(0,0,0,45)
+TabFrame.Size=UDim2.new(1,-10,0,35)
+TabFrame.Position=UDim2.new(0,5,0,45)
 TabFrame.BackgroundTransparency=1
 
 local Tabs={"ESP","Hitbox","Misc","NPC"}
 local ContentFrames={}
 
+local tabListLayout = Instance.new("UIListLayout", TabFrame)
+tabListLayout.FillDirection = Enum.FillDirection.Horizontal
+tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabListLayout.Padding = UDim.new(0, 6)
+tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
 for i,tab in ipairs(Tabs)do
     local btn=Instance.new("TextButton",TabFrame)
-    btn.Size=UDim2.new(1/#Tabs,0,1,0)
-    btn.Position=UDim2.new((i-1)*(1/#Tabs),0,0,0)
+    btn.Size=UDim2.new(0.25, -6, 1, 0)
     btn.Text=tab
     btn.Font=Enum.Font.GothamBold
-    btn.TextSize=14
+    btn.TextSize=13
     btn.BackgroundColor3=Color3.fromRGB(30,30,30)
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,16) -- Đồng bộ bo cong
-    table.insert(TextList, btn)
+    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,16)
+    CreateBorder(btn)
+    CreateTextGradient(btn)
 
     local content=Instance.new("ScrollingFrame",MainFrame)
-    content.Size=UDim2.new(1,-20,1,-95)
-    content.Position=UDim2.new(0,10,0,85)
+    content.Size=UDim2.new(1,-10,1,-95)
+    content.Position=UDim2.new(0,5,0,85)
     content.BackgroundTransparency=1
-    content.ScrollBarThickness=6
+    content.ScrollBarThickness=5
     content.Visible=false
+    content.BorderSizePixel=0
 
     local list=Instance.new("UIListLayout",content)
-    list.Padding=UDim.new(0,6)
+    list.Padding=UDim.new(0,8)
     list.SortOrder=Enum.SortOrder.LayoutOrder
 
     list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -213,7 +233,6 @@ for i,tab in ipairs(Tabs)do
 
     local pad=Instance.new("UIPadding",content)
     pad.PaddingLeft=UDim.new(0,5)
-    pad.PaddingRight=UDim.new(0,5)
     pad.PaddingTop=UDim.new(0,5)
 
     ContentFrames[tab]={Frame=content}
@@ -229,18 +248,17 @@ ContentFrames["ESP"].Frame.Visible=true
 local function AddToggle(tab,name,key,cb)
     local content=ContentFrames[tab].Frame
     local btn=Instance.new("TextButton",content)
-    btn.Size=UDim2.new(1,0,0,36)
+    btn.Size=UDim2.new(1,-16,0,36) -- Thu gọn chiều ngang tránh tràn thanh cuộn
     btn.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
     btn.Font=Enum.Font.GothamBold
     btn.TextSize=14
     
-    -- Áp dụng nền Trắng để UIGradient hoạt động đúng
     btn.BackgroundColor3=Color3.new(1,1,1)
     ApplyToggleGradient(btn, _G.Config[key])
     
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,16) -- Bo góc mạnh hơn
+    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,20) -- Viền tròn
     CreateBorder(btn)
-    table.insert(TextList, btn)
+    CreateTextGradient(btn)
     
     btn.MouseButton1Click:Connect(function()
         _G.Config[key]=not _G.Config[key]
@@ -253,26 +271,29 @@ end
 local function AddAdjust(tab,name,key,step)
     local content=ContentFrames[tab].Frame
     local frame=Instance.new("Frame",content)
-    frame.Size=UDim2.new(1,0,0,36)
+    frame.Size=UDim2.new(1,-16,0,36)
     frame.BackgroundTransparency=1
 
     local label=Instance.new("TextLabel",frame)
-    label.Size=UDim2.new(0.6,0,1,0)
+    label.Size=UDim2.new(0.55,0,1,0)
     label.Position=UDim2.new(0.2,0,0,0)
     label.BackgroundTransparency=1
     label.Text=name..": ".._G.Config[key]
     label.Font=Enum.Font.GothamBold
     label.TextSize=14
-    table.insert(TextList, label)
+    CreateTextGradient(label)
 
     local minus=Instance.new("TextButton",frame)
     minus.Size=UDim2.new(0.2,-5,1,0)
     minus.Text="-"
+    minus.Font=Enum.Font.GothamBold
+    minus.TextSize=18
     minus.BackgroundColor3=Color3.new(1,1,1)
-    ApplyToggleGradient(minus, false) -- Mặc định dùng tông Đen-Đỏ
-    Instance.new("UICorner",minus).CornerRadius=UDim.new(0,16)
+    ApplyToggleGradient(minus, false)
+    Instance.new("UICorner",minus).CornerRadius=UDim.new(0,20)
     CreateBorder(minus)
-    table.insert(TextList, minus)
+    CreateTextGradient(minus)
+    
     minus.MouseButton1Click:Connect(function()
         _G.Config[key]=math.max(step,_G.Config[key]-step)
         label.Text=name..": ".._G.Config[key]
@@ -282,11 +303,14 @@ local function AddAdjust(tab,name,key,step)
     plus.Size=UDim2.new(0.2,-5,1,0)
     plus.Position=UDim2.new(0.8,5,0,0)
     plus.Text="+"
+    plus.Font=Enum.Font.GothamBold
+    plus.TextSize=16
     plus.BackgroundColor3=Color3.new(1,1,1)
     ApplyToggleGradient(plus, false)
-    Instance.new("UICorner",plus).CornerRadius=UDim.new(0,16)
+    Instance.new("UICorner",plus).CornerRadius=UDim.new(0,20)
     CreateBorder(plus)
-    table.insert(TextList, plus)
+    CreateTextGradient(plus)
+    
     plus.MouseButton1Click:Connect(function()
         _G.Config[key]=_G.Config[key]+step
         label.Text=name..": ".._G.Config[key]
@@ -304,11 +328,7 @@ AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
 AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
--- TÍNH NĂNG ẨN/HIỆN NÚT ẢNH MỞ MENU
-AddToggle("Misc","HIỆN NÚT ẢNH MỞ MENU","Show_ToggleBtn", function(val)
-    ToggleBtn.Visible = val
-end)
-
+AddToggle("Misc","HIỆN NÚT ẢNH MỞ MENU","Show_ToggleBtn", function(val) ToggleBtn.Visible = val end)
 AddToggle("Misc","TEAM CHECK (ESP + HB)","TeamCheck")
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 
@@ -316,30 +336,30 @@ AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 local MiscContent = ContentFrames["Misc"].Frame
 
 local WSContainer = Instance.new("Frame", MiscContent)
-WSContainer.Size = UDim2.new(1, 0, 0, 105)
+WSContainer.Size = UDim2.new(1, 0, 0, 115)
 WSContainer.BackgroundTransparency = 1
 
 local WSToggle = Instance.new("TextButton", WSContainer)
-WSToggle.Size = UDim2.new(1, 0, 0, 36)
+WSToggle.Size = UDim2.new(1, -16, 0, 36)
 WSToggle.Text = "WALKSPEED: OFF"
 WSToggle.BackgroundColor3 = Color3.new(1,1,1)
 ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled)
 WSToggle.Font = Enum.Font.GothamBold
 WSToggle.TextSize = 14
 CreateBorder(WSToggle)
-table.insert(TextList, WSToggle)
-Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 16) -- Bo góc mạnh
+CreateTextGradient(WSToggle)
+Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20)
 
 local WSSliderBg = Instance.new("Frame", WSContainer)
-WSSliderBg.Size = UDim2.new(1, 0, 0, 25)
-WSSliderBg.Position = UDim2.new(0, 0, 0, 45)
+WSSliderBg.Size = UDim2.new(1, -16, 0, 25)
+WSSliderBg.Position = UDim2.new(0, 0, 0, 48)
 WSSliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 16)
+Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 20)
 
 local WSSliderFill = Instance.new("Frame", WSSliderBg)
 WSSliderFill.Size = UDim2.new((_G.Config.WalkSpeed - 16) / (250 - 16), 0, 1, 0)
-WSSliderFill.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 16)
+WSSliderFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 20)
 
 local WSValLabel = Instance.new("TextLabel", WSSliderBg)
 WSValLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -347,39 +367,32 @@ WSValLabel.BackgroundTransparency = 1
 WSValLabel.Text = "Speed: " .. _G.Config.WalkSpeed
 WSValLabel.Font = Enum.Font.GothamBold
 WSValLabel.TextSize = 12
-table.insert(TextList, WSValLabel)
+CreateTextGradient(WSValLabel)
 
 local WSBtnFrame = Instance.new("Frame", WSContainer)
-WSBtnFrame.Size = UDim2.new(1, 0, 0, 28)
-WSBtnFrame.Position = UDim2.new(0, 0, 0, 75)
+WSBtnFrame.Size = UDim2.new(1, -16, 0, 32)
+WSBtnFrame.Position = UDim2.new(0, 0, 0, 82)
 WSBtnFrame.BackgroundTransparency = 1
 
-local btnW = 0.235
-local gap = 0.02
+local btnW = 0.22
+local gap = 0.04
 local function formatWSBtn(btn)
     btn.BackgroundColor3 = Color3.new(1,1,1)
     ApplyToggleGradient(btn, false)
     btn.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
     CreateBorder(btn)
-    table.insert(TextList, btn)
+    CreateTextGradient(btn)
 end
 
 local m10 = Instance.new("TextButton", WSBtnFrame)
-m10.Size = UDim2.new(btnW, 0, 1, 0); m10.Text = "-10"
-formatWSBtn(m10)
-
+m10.Size = UDim2.new(btnW, 0, 1, 0); m10.Text = "-10"; formatWSBtn(m10)
 local m5 = Instance.new("TextButton", WSBtnFrame)
-m5.Size = UDim2.new(btnW, 0, 1, 0); m5.Position = UDim2.new(btnW + gap, 0, 0, 0); m5.Text = "-5"
-formatWSBtn(m5)
-
+m5.Size = UDim2.new(btnW, 0, 1, 0); m5.Position = UDim2.new(btnW + gap, 0, 0, 0); m5.Text = "-5"; formatWSBtn(m5)
 local p5 = Instance.new("TextButton", WSBtnFrame)
-p5.Size = UDim2.new(btnW, 0, 1, 0); p5.Position = UDim2.new((btnW + gap) * 2, 0, 0, 0); p5.Text = "+5"
-formatWSBtn(p5)
-
+p5.Size = UDim2.new(btnW, 0, 1, 0); p5.Position = UDim2.new((btnW + gap) * 2, 0, 0, 0); p5.Text = "+5"; formatWSBtn(p5)
 local p10 = Instance.new("TextButton", WSBtnFrame)
-p10.Size = UDim2.new(btnW, 0, 1, 0); p10.Position = UDim2.new((btnW + gap) * 3, 0, 0, 0); p10.Text = "+10"
-formatWSBtn(p10)
+p10.Size = UDim2.new(btnW, 0, 1, 0); p10.Position = UDim2.new((btnW + gap) * 3, 0, 0, 0); p10.Text = "+10"; formatWSBtn(p10)
 
 local function UpdateWS(val)
     _G.Config.WalkSpeed = math.clamp(val, 16, 250)
@@ -401,14 +414,10 @@ end)
 
 local draggingWS = false
 WSSliderBg.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingWS = true
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = true end
 end)
 WSSliderBg.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingWS = false
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = false end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if draggingWS and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
@@ -422,9 +431,9 @@ AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
 AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
 AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
 AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
+
 local ESP_Store={}
 local NPC_Store={}
-
 local CachedNPCs = {}
 
 local function CheckAndCacheNPC(obj)
@@ -435,14 +444,9 @@ local function CheckAndCacheNPC(obj)
     end
 end
 
-for _, v in ipairs(Workspace:GetDescendants()) do
-    CheckAndCacheNPC(v)
-end
-
+for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
 Workspace.DescendantAdded:Connect(function(descendant)
-    task.delay(1, function() 
-        if descendant.Parent then CheckAndCacheNPC(descendant) end
-    end)
+    task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end)
 end)
 
 local function RestoreHRP(hrp)
@@ -481,9 +485,7 @@ end
 
 local function CleanupNPC(m)
     if NPC_Store[m]then
-        pcall(function()
-            if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end
-        end)
+        pcall(function() if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end end)
         NPC_Store[m]=nil
     end
     if m then
@@ -497,39 +499,29 @@ local function CleanupNPC(m)
 end
 
 Workspace.DescendantRemoving:Connect(function(descendant)
-    if CachedNPCs[descendant] then
-        CachedNPCs[descendant] = nil
-        CleanupNPC(descendant)
-    end
+    if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end
 end)
 
 RunService.RenderStepped:Connect(function()
     if _G.Config.WalkSpeedEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = _G.Config.WalkSpeed
-        end
+        if hum then hum.WalkSpeed = _G.Config.WalkSpeed end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     local rgb=GetRGB() 
     
-    local pink = Color3.fromRGB(255, 0, 150) 
-    local blue = Color3.fromRGB(0, 200, 255) 
-    for _,v in pairs(TextList) do
-        local yOffset = v.AbsolutePosition.Y
-        local timePos = (math.sin(tick() * 3 + yOffset / 50) + 1) / 2
-        v.TextColor3 = pink:lerp(blue, timePos)
-    end
+    -- Xoay Vòng Gradient: Chữ, Nền Nút, Viền
+    local tick150 = (tick() * 150) % 360
+    local tick100 = (tick() * -100) % 360
+    local tick80 = (tick() * 80) % 360
 
-    local rot = (tick() * 150) % 360
-    for _, grad in ipairs(UIGradientList) do
-        grad.Rotation = rot
-    end
+    for _, grad in ipairs(UIGradientList) do grad.Rotation = tick150 end
+    for _, grad in ipairs(TextGradientList) do grad.Rotation = tick100 end
+    for _, grad in ipairs(BtnGradientList) do grad.Rotation = tick80 end
 
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-
     local hasLowHPEnemy = false
     if _G.Config.Hitbox_P and _G.Config.LowHP_KS and myRoot then
         for _, p in Players:GetPlayers() do
@@ -540,14 +532,12 @@ RunService.Heartbeat:Connect(function()
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if char and hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - myRoot.Position).Magnitude
-                if dist <= 2000 and (hum.Health / hum.MaxHealth) <= 0.3 then
-                    hasLowHPEnemy = true
-                    break
-                end
+                if dist <= 2000 and (hum.Health / hum.MaxHealth) <= 0.3 then hasLowHPEnemy = true; break end
             end
         end
     end
 
+    -- PLAYER LOOP
     for _,p in Players:GetPlayers()do
         if p==LocalPlayer then continue end
         local char=p.Character
@@ -563,8 +553,8 @@ RunService.Heartbeat:Connect(function()
 
         local hp_percent = hum.Health / hum.MaxHealth
         local dist = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
-
         local enableHitbox = false
+        
         if _G.Config.Hitbox_P then
             if _G.Config.LowHP_KS then
                 if hasLowHPEnemy then
@@ -572,9 +562,7 @@ RunService.Heartbeat:Connect(function()
                 else
                     if dist <= 2000 then enableHitbox = true end
                 end
-            else
-                enableHitbox = true
-            end
+            else enableHitbox = true end
         end
 
         if enableHitbox then
@@ -598,12 +586,8 @@ RunService.Heartbeat:Connect(function()
                 hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
                 hrp.Transparency = 0.6
                 hrp.CanCollide = false
-            else
-                RestoreHRP(hrp)
-            end
-        else
-            RestoreHRP(hrp)
-        end
+            else RestoreHRP(hrp) end
+        else RestoreHRP(hrp) end
 
         local hl = char:FindFirstChild("ArisHL")
         if _G.Config.ESP_Chams_P then
@@ -615,37 +599,28 @@ RunService.Heartbeat:Connect(function()
         if enableHitbox and _G.Config.Hitbox_Box then
             if not hbBox then 
                 hbBox = Instance.new("SelectionBox", hrp)
-                hbBox.Name = "ArisHitboxBox"
-                hbBox.Adornee = hrp 
+                hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp 
             end
             hbBox.SurfaceColor3 = rgb
-        else 
-            if hbBox then hbBox:Destroy() end 
-        end
+        else if hbBox then hbBox:Destroy() end end
 
         if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P then
             if not ESP_Store[p.Name] then
                 local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4,0,5.5,0); boxBill.AlwaysOnTop = true
-                
                 local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1
                 Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 6)
                 local outS = Instance.new("UIStroke", outF); outS.Color = Color3.new(0,0,0); outS.Thickness = 3
-                
                 local inF = Instance.new("Frame", boxBill); inF.Size = UDim2.new(1,0,1,0); inF.BackgroundTransparency = 1
                 Instance.new("UICorner", inF).CornerRadius = UDim.new(0, 6)
                 local inS = Instance.new("UIStroke", inF); inS.Thickness = 1.2
-                
                 local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
                 local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12
                 txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
-                
                 ESP_Store[p.Name]={BoxBill=boxBill, InStroke=inS, TextBill=textB, Text=txt, OutFrame=outF, InFrame=inF}
             end
             local s=ESP_Store[p.Name]
-            
             s.BoxBill.Adornee = hrp
             s.TextBill.Adornee = char:FindFirstChild("Head") or hrp
-            
             s.BoxBill.Enabled=_G.Config.ESP_Box_P; s.InStroke.Color=rgb
             s.Text.Text=table.concat({_G.Config.ESP_Name_P and p.Name or "", _G.Config.ESP_Health_P and ("HP: "..math.floor(hum.Health)) or "", _G.Config.ESP_Distance_P and (dist ~= math.huge) and ("Dist: "..math.floor(dist).."m") or ""}, "\n")
             s.Text.TextColor3=GetHealthColor(hp_percent)
@@ -653,18 +628,14 @@ RunService.Heartbeat:Connect(function()
         else CleanupESP(p.Name) end
     end
 
+    -- NPC LOOP
     for obj in pairs(CachedNPCs) do
-        if not obj.Parent then 
-            CachedNPCs[obj] = nil
-            CleanupNPC(obj)
-            continue
-        end
+        if not obj.Parent then CachedNPCs[obj] = nil; CleanupNPC(obj); continue end
 
         local hum = obj:FindFirstChild("Humanoid")
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         
         if hum and hrp and hum.Health > 0 then
-            
             if _G.Config.Hitbox_NPC then
                 if not hrp:GetAttribute("ArisOrigSizeX") then
                     hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
@@ -676,64 +647,37 @@ RunService.Heartbeat:Connect(function()
                 hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
                 hrp.Transparency = 0.6
                 hrp.CanCollide = false
-            else
-                RestoreHRP(hrp)
-            end
+            else RestoreHRP(hrp) end
 
             local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
             if _G.Config.Hitbox_NPC and _G.Config.Hitbox_Box_NPC then
                 if not hbBoxNPC then 
                     hbBoxNPC = Instance.new("SelectionBox", hrp)
-                    hbBoxNPC.Name = "ArisHitboxBoxNPC"
-                    hbBoxNPC.Adornee = hrp 
+                    hbBoxNPC.Name = "ArisHitboxBoxNPC"; hbBoxNPC.Adornee = hrp 
                 end
                 hbBoxNPC.SurfaceColor3 = rgb
-            else
-                if hbBoxNPC then hbBoxNPC:Destroy() end
-            end
+            else if hbBoxNPC then hbBoxNPC:Destroy() end end
 
             local hlNPC = obj:FindFirstChild("ArisHL_NPC")
             if _G.Config.ESP_NPC_Chams then
-                if not hlNPC then 
-                    hlNPC = Instance.new("Highlight", obj)
-                    hlNPC.Name = "ArisHL_NPC" 
-                end
-                hlNPC.FillColor = rgb
-                hlNPC.Enabled = true
-            else
-                if hlNPC then hlNPC:Destroy() end
-            end
+                if not hlNPC then hlNPC = Instance.new("Highlight", obj); hlNPC.Name = "ArisHL_NPC" end
+                hlNPC.FillColor = rgb; hlNPC.Enabled = true
+            else if hlNPC then hlNPC:Destroy() end end
 
             if _G.Config.ESP_NPC_Name then
                 if not NPC_Store[obj] then
-                    local textB = Instance.new("BillboardGui", ScreenGui)
-                    textB.Size = UDim2.new(0, 200, 0, 60)
-                    textB.StudsOffset = Vector3.new(0, 3.5, 0)
-                    textB.AlwaysOnTop = true
-                    
-                    local txt = Instance.new("TextLabel", textB)
-                    txt.Size = UDim2.new(1, 0, 1, 0)
-                    txt.BackgroundTransparency = 1
-                    txt.Font = Enum.Font.GothamBold
-                    txt.TextSize = 12
-                    txt.TextStrokeTransparency = 0
-                    txt.TextStrokeColor3 = Color3.new(0, 0, 0)
-                    
+                    local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0, 200, 0, 60); textB.StudsOffset = Vector3.new(0, 3.5, 0); textB.AlwaysOnTop = true
+                    local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12
+                    txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
                     NPC_Store[obj] = {Bill = textB, Text = txt}
                 end
-                
                 NPC_Store[obj].Bill.Adornee = obj:FindFirstChild("Head") or hrp
                 NPC_Store[obj].Text.Text = "NPC: " .. obj.Name .. "\nHP: " .. math.floor(hum.Health)
                 NPC_Store[obj].Text.TextColor3 = rgb
             else
-                if NPC_Store[obj] then
-                    NPC_Store[obj].Bill:Destroy()
-                    NPC_Store[obj] = nil
-                end
+                if NPC_Store[obj] then NPC_Store[obj].Bill:Destroy(); NPC_Store[obj] = nil end
             end
-        else
-            CleanupNPC(obj)
-        end
+        else CleanupNPC(obj) end
     end
 end)
 
