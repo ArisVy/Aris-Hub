@@ -9,7 +9,7 @@ local CoreGui=game:GetService("CoreGui")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO",
-    Text="Menu Viền Cong Mạnh, Gradient Nền Nút & Chữ Chạy Xoay Vòng!",
+    Text="Chữ Xanh-Hồng Gradient & Fix Trôi NPC Hitbox!",
     Duration=8
 })
 
@@ -59,14 +59,14 @@ local function CreateBorder(parent)
     CreateRedBlackGradient(stroke)
 end
 
--- Tạo Text Gradient Hồng - Xanh xoay
+-- Tạo Text Gradient Xanh Dương - Hồng xoay
 local function CreateTextGradient(parent)
     parent.TextColor3 = Color3.new(1, 1, 1)
     local grad = Instance.new("UIGradient", parent)
     grad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 150)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 200, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 150))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 150, 255)),   -- Xanh dương
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 0, 150)), -- Hồng
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 150, 255))    -- Xanh dương
     })
     table.insert(TextGradientList, grad)
 end
@@ -80,7 +80,7 @@ local function ApplyToggleGradient(parent, isOn)
         table.insert(BtnGradientList, grad)
     end
     if isOn then
-        -- 40% Đen, 60% Xanh
+        -- 40% Đen, 60% Xanh Dương
         grad.Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 15)),
             ColorSequenceKeypoint.new(0.4, Color3.fromRGB(15, 15, 15)),
@@ -248,7 +248,7 @@ ContentFrames["ESP"].Frame.Visible=true
 local function AddToggle(tab,name,key,cb)
     local content=ContentFrames[tab].Frame
     local btn=Instance.new("TextButton",content)
-    btn.Size=UDim2.new(1,-16,0,36) -- Thu gọn chiều ngang tránh tràn thanh cuộn
+    btn.Size=UDim2.new(1,-16,0,36)
     btn.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
     btn.Font=Enum.Font.GothamBold
     btn.TextSize=14
@@ -256,7 +256,7 @@ local function AddToggle(tab,name,key,cb)
     btn.BackgroundColor3=Color3.new(1,1,1)
     ApplyToggleGradient(btn, _G.Config[key])
     
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,20) -- Viền tròn
+    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,20)
     CreateBorder(btn)
     CreateTextGradient(btn)
     
@@ -449,11 +449,15 @@ Workspace.DescendantAdded:Connect(function(descendant)
     task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end)
 end)
 
+-- Hàm Khôi Phục HRP (Bao gồm Massless)
 local function RestoreHRP(hrp)
     if hrp and hrp:GetAttribute("ArisOrigSizeX") then
         hrp.Size = Vector3.new(hrp:GetAttribute("ArisOrigSizeX"), hrp:GetAttribute("ArisOrigSizeY"), hrp:GetAttribute("ArisOrigSizeZ"))
         hrp.Transparency = hrp:GetAttribute("ArisOrigTrans")
         hrp.CanCollide = hrp:GetAttribute("ArisOrigCollide")
+        if hrp:GetAttribute("ArisOrigMassless") ~= nil then
+            hrp.Massless = hrp:GetAttribute("ArisOrigMassless")
+        end
     end
 end
 
@@ -576,16 +580,19 @@ RunService.Heartbeat:Connect(function()
             end
 
             if valid then
+                -- THÊM MASSLESS VÀO THUỘC TÍNH ĐỂ FIX TRÔI
                 if not hrp:GetAttribute("ArisOrigSizeX") then
                     hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
                     hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
                     hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
                     hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
                     hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
+                    hrp:SetAttribute("ArisOrigMassless", hrp.Massless)
                 end
                 hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
                 hrp.Transparency = 0.6
                 hrp.CanCollide = false
+                hrp.Massless = true -- Giữ người chơi không bị đẩy
             else RestoreHRP(hrp) end
         else RestoreHRP(hrp) end
 
@@ -643,10 +650,12 @@ RunService.Heartbeat:Connect(function()
                     hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
                     hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
                     hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
+                    hrp:SetAttribute("ArisOrigMassless", hrp.Massless) -- LƯU GỐC
                 end
                 hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
                 hrp.Transparency = 0.6
                 hrp.CanCollide = false
+                hrp.Massless = true -- FIX LỖI NPC TRÔI (Vô trọng lượng Hitbox)
             else RestoreHRP(hrp) end
 
             local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
