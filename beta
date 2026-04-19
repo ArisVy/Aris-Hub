@@ -9,7 +9,7 @@ local CoreGui=game:GetService("CoreGui")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO",
-    Text="Menu Tối Ưu, Thêm Viền Nút, Fix Hitbox Box 3D!\nPhím tắt mở Menu: Right Ctrl",
+    Text="Cập Nhật Nền Gradient Đen/Đỏ/Xanh & Viền Bo Cong Mạnh!",
     Duration=8
 })
 
@@ -59,6 +59,30 @@ local function CreateBorder(parent)
     CreateRedBlackGradient(stroke)
 end
 
+-- HÀM ÁP DỤNG MÀU GRADIENT ĐEN-ĐỎ / ĐEN-XANH CHO NỀN NÚT CHỨC NĂNG
+local function ApplyToggleGradient(parent, isOn)
+    local grad = parent:FindFirstChild("ToggleGrad")
+    if not grad then
+        grad = Instance.new("UIGradient", parent)
+        grad.Name = "ToggleGrad"
+    end
+    if isOn then
+        -- 60% Đen, 40% Xanh Dương
+        grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 15)),
+            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(15, 15, 15)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 130, 255))
+        })
+    else
+        -- 60% Đen, 40% Đỏ
+        grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 15)),
+            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(15, 15, 15)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 30, 30))
+        })
+    end
+end
+
 local function MakeDraggable(f)
     local d=false;local i,s
     f.InputBegan:Connect(function(inp)
@@ -85,14 +109,13 @@ ToggleBtn.Image="rbxassetid://125329301331069"
 ToggleBtn.BackgroundColor3=Color3.fromRGB(30,30,30)
 ToggleBtn.ClipsDescendants=true
 ToggleBtn.Visible=_G.Config.Show_ToggleBtn
-Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,12)
+Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,16) -- Bo góc mạnh hơn
 local ts=Instance.new("UIStroke",ToggleBtn)
 ts.Thickness=3
 ts.Color=Color3.new(1,1,1)
 CreateRedBlackGradient(ts)
 MakeDraggable(ToggleBtn)
 
--- Phím tắt bật/tắt Menu bằng phím Right Control
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
         _G.Config.MenuOpen = not _G.Config.MenuOpen
@@ -106,7 +129,7 @@ MainFrame.Size=UDim2.new(0,400,0,310)
 MainFrame.Position=UDim2.new(0,70,0.2,0)
 MainFrame.BackgroundColor3=Color3.fromRGB(20,20,20)
 MainFrame.Visible=false
-Instance.new("UICorner",MainFrame).CornerRadius=UDim.new(0,12)
+Instance.new("UICorner",MainFrame).CornerRadius=UDim.new(0,16) -- Bo góc mạnh hơn
 local ms=Instance.new("UIStroke",MainFrame)
 ms.Thickness=3
 ms.Color=Color3.new(1,1,1)
@@ -119,11 +142,10 @@ ResetBtn.Text="RST"
 ResetBtn.Font=Enum.Font.GothamBold
 ResetBtn.TextSize=12
 ResetBtn.BackgroundColor3=Color3.fromRGB(40,20,20)
-Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,8)
+Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,16) -- Đồng bộ bo cong
 CreateBorder(ResetBtn)
 table.insert(TextList, ResetBtn)
 
--- Lặp liên tục cho đến khi máu bằng 0
 ResetBtn.MouseButton1Click:Connect(function()
     task.spawn(function()
         local char = LocalPlayer.Character
@@ -170,8 +192,8 @@ for i,tab in ipairs(Tabs)do
     btn.Text=tab
     btn.Font=Enum.Font.GothamBold
     btn.TextSize=14
-    btn.BackgroundColor3=Color3.fromRGB(40,40,40)
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
+    btn.BackgroundColor3=Color3.fromRGB(30,30,30)
+    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,16) -- Đồng bộ bo cong
     table.insert(TextList, btn)
 
     local content=Instance.new("ScrollingFrame",MainFrame)
@@ -185,7 +207,6 @@ for i,tab in ipairs(Tabs)do
     list.Padding=UDim.new(0,6)
     list.SortOrder=Enum.SortOrder.LayoutOrder
 
-    -- Tự động điều chỉnh kích thước cuộn
     list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         content.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 15)
     end)
@@ -210,17 +231,21 @@ local function AddToggle(tab,name,key,cb)
     local btn=Instance.new("TextButton",content)
     btn.Size=UDim2.new(1,0,0,36)
     btn.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
-    btn.BackgroundColor3=_G.Config[key]and Color3.fromRGB(40,100,40)or Color3.fromRGB(100,40,40)
     btn.Font=Enum.Font.GothamBold
     btn.TextSize=14
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
+    
+    -- Áp dụng nền Trắng để UIGradient hoạt động đúng
+    btn.BackgroundColor3=Color3.new(1,1,1)
+    ApplyToggleGradient(btn, _G.Config[key])
+    
+    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,16) -- Bo góc mạnh hơn
     CreateBorder(btn)
     table.insert(TextList, btn)
     
     btn.MouseButton1Click:Connect(function()
         _G.Config[key]=not _G.Config[key]
         btn.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
-        btn.BackgroundColor3=_G.Config[key]and Color3.fromRGB(40,100,40)or Color3.fromRGB(100,40,40)
+        ApplyToggleGradient(btn, _G.Config[key])
         if cb then cb(_G.Config[key])end
     end)
 end
@@ -243,8 +268,9 @@ local function AddAdjust(tab,name,key,step)
     local minus=Instance.new("TextButton",frame)
     minus.Size=UDim2.new(0.2,-5,1,0)
     minus.Text="-"
-    minus.BackgroundColor3=Color3.fromRGB(60,60,60)
-    Instance.new("UICorner",minus)
+    minus.BackgroundColor3=Color3.new(1,1,1)
+    ApplyToggleGradient(minus, false) -- Mặc định dùng tông Đen-Đỏ
+    Instance.new("UICorner",minus).CornerRadius=UDim.new(0,16)
     CreateBorder(minus)
     table.insert(TextList, minus)
     minus.MouseButton1Click:Connect(function()
@@ -256,8 +282,9 @@ local function AddAdjust(tab,name,key,step)
     plus.Size=UDim2.new(0.2,-5,1,0)
     plus.Position=UDim2.new(0.8,5,0,0)
     plus.Text="+"
-    plus.BackgroundColor3=Color3.fromRGB(60,60,60)
-    Instance.new("UICorner",plus)
+    plus.BackgroundColor3=Color3.new(1,1,1)
+    ApplyToggleGradient(plus, false)
+    Instance.new("UICorner",plus).CornerRadius=UDim.new(0,16)
     CreateBorder(plus)
     table.insert(TextList, plus)
     plus.MouseButton1Click:Connect(function()
@@ -295,23 +322,24 @@ WSContainer.BackgroundTransparency = 1
 local WSToggle = Instance.new("TextButton", WSContainer)
 WSToggle.Size = UDim2.new(1, 0, 0, 36)
 WSToggle.Text = "WALKSPEED: OFF"
-WSToggle.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
+WSToggle.BackgroundColor3 = Color3.new(1,1,1)
+ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled)
 WSToggle.Font = Enum.Font.GothamBold
 WSToggle.TextSize = 14
 CreateBorder(WSToggle)
 table.insert(TextList, WSToggle)
-Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 16) -- Bo góc mạnh
 
 local WSSliderBg = Instance.new("Frame", WSContainer)
 WSSliderBg.Size = UDim2.new(1, 0, 0, 25)
 WSSliderBg.Position = UDim2.new(0, 0, 0, 45)
 WSSliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 16)
 
 local WSSliderFill = Instance.new("Frame", WSSliderBg)
 WSSliderFill.Size = UDim2.new((_G.Config.WalkSpeed - 16) / (250 - 16), 0, 1, 0)
 WSSliderFill.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 16)
 
 local WSValLabel = Instance.new("TextLabel", WSSliderBg)
 WSValLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -328,44 +356,30 @@ WSBtnFrame.BackgroundTransparency = 1
 
 local btnW = 0.235
 local gap = 0.02
+local function formatWSBtn(btn)
+    btn.BackgroundColor3 = Color3.new(1,1,1)
+    ApplyToggleGradient(btn, false)
+    btn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16)
+    CreateBorder(btn)
+    table.insert(TextList, btn)
+end
+
 local m10 = Instance.new("TextButton", WSBtnFrame)
-m10.Size = UDim2.new(btnW, 0, 1, 0)
-m10.Text = "-10"
-m10.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-m10.Font = Enum.Font.GothamBold
-Instance.new("UICorner", m10).CornerRadius = UDim.new(0, 6)
-CreateBorder(m10)
-table.insert(TextList, m10)
+m10.Size = UDim2.new(btnW, 0, 1, 0); m10.Text = "-10"
+formatWSBtn(m10)
 
 local m5 = Instance.new("TextButton", WSBtnFrame)
-m5.Size = UDim2.new(btnW, 0, 1, 0)
-m5.Position = UDim2.new(btnW + gap, 0, 0, 0)
-m5.Text = "-5"
-m5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-m5.Font = Enum.Font.GothamBold
-Instance.new("UICorner", m5).CornerRadius = UDim.new(0, 6)
-CreateBorder(m5)
-table.insert(TextList, m5)
+m5.Size = UDim2.new(btnW, 0, 1, 0); m5.Position = UDim2.new(btnW + gap, 0, 0, 0); m5.Text = "-5"
+formatWSBtn(m5)
 
 local p5 = Instance.new("TextButton", WSBtnFrame)
-p5.Size = UDim2.new(btnW, 0, 1, 0)
-p5.Position = UDim2.new((btnW + gap) * 2, 0, 0, 0)
-p5.Text = "+5"
-p5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-p5.Font = Enum.Font.GothamBold
-Instance.new("UICorner", p5).CornerRadius = UDim.new(0, 6)
-CreateBorder(p5)
-table.insert(TextList, p5)
+p5.Size = UDim2.new(btnW, 0, 1, 0); p5.Position = UDim2.new((btnW + gap) * 2, 0, 0, 0); p5.Text = "+5"
+formatWSBtn(p5)
 
 local p10 = Instance.new("TextButton", WSBtnFrame)
-p10.Size = UDim2.new(btnW, 0, 1, 0)
-p10.Position = UDim2.new((btnW + gap) * 3, 0, 0, 0)
-p10.Text = "+10"
-p10.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-p10.Font = Enum.Font.GothamBold
-Instance.new("UICorner", p10).CornerRadius = UDim.new(0, 6)
-CreateBorder(p10)
-table.insert(TextList, p10)
+p10.Size = UDim2.new(btnW, 0, 1, 0); p10.Position = UDim2.new((btnW + gap) * 3, 0, 0, 0); p10.Text = "+10"
+formatWSBtn(p10)
 
 local function UpdateWS(val)
     _G.Config.WalkSpeed = math.clamp(val, 16, 250)
@@ -382,7 +396,7 @@ p10.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed + 10) end)
 WSToggle.MouseButton1Click:Connect(function()
     _G.Config.WalkSpeedEnabled = not _G.Config.WalkSpeedEnabled
     WSToggle.Text = "WALKSPEED: " .. (_G.Config.WalkSpeedEnabled and "ON" or "OFF")
-    WSToggle.BackgroundColor3 = _G.Config.WalkSpeedEnabled and Color3.fromRGB(40, 100, 40) or Color3.fromRGB(100, 40, 40)
+    ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled)
 end)
 
 local draggingWS = false
@@ -402,7 +416,6 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateWS(16 + relX * (250 - 16))
     end
 end)
-
 
 AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
 AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
@@ -432,7 +445,6 @@ Workspace.DescendantAdded:Connect(function(descendant)
     end)
 end)
 
--- Sử dụng Attribute thay vì Table để tránh rò rỉ bộ nhớ hoặc lỗi khi re-execute script
 local function RestoreHRP(hrp)
     if hrp and hrp:GetAttribute("ArisOrigSizeX") then
         hrp.Size = Vector3.new(hrp:GetAttribute("ArisOrigSizeX"), hrp:GetAttribute("ArisOrigSizeY"), hrp:GetAttribute("ArisOrigSizeZ"))
@@ -503,7 +515,6 @@ end)
 RunService.Heartbeat:Connect(function()
     local rgb=GetRGB() 
     
-    -- MÀU CHỮ VIBRANT (Hồng/Xanh lam cường độ cao để chữ đậm và nổi hơn)
     local pink = Color3.fromRGB(255, 0, 150) 
     local blue = Color3.fromRGB(0, 200, 255) 
     for _,v in pairs(TextList) do
@@ -537,7 +548,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
 
-    -- PLAYER LOOP
     for _,p in Players:GetPlayers()do
         if p==LocalPlayer then continue end
         local char=p.Character
@@ -578,7 +588,6 @@ RunService.Heartbeat:Connect(function()
             end
 
             if valid then
-                -- Backup attributes nếu chưa có
                 if not hrp:GetAttribute("ArisOrigSizeX") then
                     hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
                     hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
@@ -602,7 +611,6 @@ RunService.Heartbeat:Connect(function()
             hl.FillColor = rgb; hl.Enabled = true
         else if hl then hl:Destroy() end end
 
-        -- FIX HITBOX 3D BOX (Box chỉ bật khi Hitbox đang được kích hoạt)
         local hbBox = hrp:FindFirstChild("ArisHitboxBox")
         if enableHitbox and _G.Config.Hitbox_Box then
             if not hbBox then 
@@ -645,7 +653,6 @@ RunService.Heartbeat:Connect(function()
         else CleanupESP(p.Name) end
     end
 
-    -- NPC LOOP
     for obj in pairs(CachedNPCs) do
         if not obj.Parent then 
             CachedNPCs[obj] = nil
@@ -673,7 +680,6 @@ RunService.Heartbeat:Connect(function()
                 RestoreHRP(hrp)
             end
 
-            -- FIX HITBOX 3D BOX NPC (Đồng bộ tương tự Player)
             local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
             if _G.Config.Hitbox_NPC and _G.Config.Hitbox_Box_NPC then
                 if not hbBoxNPC then 
