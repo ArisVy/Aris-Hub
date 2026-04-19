@@ -7,7 +7,7 @@ local LocalPlayer=Players.LocalPlayer
 local Camera=workspace.CurrentCamera
 local CoreGui=game:GetService("CoreGui")
 
-game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53 PRO",Text="Đã Fix Lỗi ESP & Tối Ưu NPC! Thêm WalkSpeed",Duration=6})
+game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53 PRO",Text="Menu Nhỏ Gọn & Text Gradient Hồng-Xanh Dương!",Duration=6})
 
 _G.Config={
     -- ESP
@@ -30,7 +30,7 @@ ScreenGui.IgnoreGuiInset=true
 ScreenGui.DisplayOrder=99999
 ScreenGui.Parent=CoreGui
 
-local RainbowList={}
+local TextList={}
 local UIGradientList={}
 
 local function GetRGB()return Color3.fromHSV(tick()%5/5,1,1)end
@@ -40,7 +40,7 @@ local function CreateRedBlackGradient(parent)
     local grad = Instance.new("UIGradient")
     grad.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(20, 0, 0)), -- Đen/Đỏ siêu sẫm
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(20, 0, 0)), 
         ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
     })
     grad.Parent = parent
@@ -65,7 +65,7 @@ local function MakeDraggable(f)
     end)
 end
 
--- Đổi ToggleBtn thành ImageButton với ảnh yêu cầu
+-- Nút Toggle Menu
 local ToggleBtn=Instance.new("ImageButton",ScreenGui)
 ToggleBtn.Size=UDim2.new(0,50,0,50)
 ToggleBtn.Position=UDim2.new(0,10,0.5,-25)
@@ -79,8 +79,9 @@ ts.Color=Color3.new(1,1,1)
 CreateRedBlackGradient(ts)
 MakeDraggable(ToggleBtn)
 
+-- Main Menu (Đã thu gọn kích thước)
 local MainFrame=Instance.new("Frame",ScreenGui)
-MainFrame.Size=UDim2.new(0,420,0,420)
+MainFrame.Size=UDim2.new(0,400,0,310) -- Resize từ 420x420 xuống 400x310
 MainFrame.Position=UDim2.new(0,70,0.2,0)
 MainFrame.BackgroundColor3=Color3.fromRGB(20,20,20)
 MainFrame.Visible=false
@@ -91,7 +92,7 @@ ms.Color=Color3.new(1,1,1)
 CreateRedBlackGradient(ms)
 
 local ResetBtn=Instance.new("TextButton",MainFrame)
-ResetBtn.Size=UDim2.new(0,36,0,36)
+ResetBtn.Size=UDim2.new(0,32,0,32)
 ResetBtn.Position=UDim2.new(0,10,0,7)
 ResetBtn.Text="RST"
 ResetBtn.Font=Enum.Font.GothamBold
@@ -102,6 +103,7 @@ local rsStroke=Instance.new("UIStroke",ResetBtn)
 rsStroke.Thickness=2
 rsStroke.Color=Color3.new(1,1,1)
 CreateRedBlackGradient(rsStroke)
+table.insert(TextList, ResetBtn)
 
 local lastClickTime = 0
 ResetBtn.MouseButton1Click:Connect(function()
@@ -113,14 +115,14 @@ ResetBtn.MouseButton1Click:Connect(function()
 end)
 
 local Title=Instance.new("TextLabel",MainFrame)
-Title.Size=UDim2.new(1,-60,0,50)
+Title.Size=UDim2.new(1,-60,0,45)
 Title.Position=UDim2.new(0,55,0,0)
 Title.Text="ARIS HUB V53 PRO"
 Title.Font=Enum.Font.GothamBlack
-Title.TextSize=22
+Title.TextSize=20
 Title.BackgroundTransparency=1
 Title.TextXAlignment=Enum.TextXAlignment.Left
-table.insert(RainbowList,Title)
+table.insert(TextList, Title)
 MakeDraggable(MainFrame) 
 
 ToggleBtn.MouseButton1Click:Connect(function()
@@ -129,8 +131,8 @@ ToggleBtn.MouseButton1Click:Connect(function()
 end)
 
 local TabFrame=Instance.new("Frame",MainFrame)
-TabFrame.Size=UDim2.new(1,0,0,40)
-TabFrame.Position=UDim2.new(0,0,0,50)
+TabFrame.Size=UDim2.new(1,0,0,35)
+TabFrame.Position=UDim2.new(0,0,0,45)
 TabFrame.BackgroundTransparency=1
 
 local Tabs={"ESP","Hitbox","Misc","NPC"}
@@ -142,20 +144,20 @@ for i,tab in ipairs(Tabs)do
     btn.Position=UDim2.new((i-1)*(1/#Tabs),0,0,0)
     btn.Text=tab
     btn.Font=Enum.Font.GothamBold
-    btn.TextSize=15
+    btn.TextSize=14
     btn.BackgroundColor3=Color3.fromRGB(40,40,40)
     Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
-    table.insert(RainbowList,btn)
+    table.insert(TextList, btn)
 
     local content=Instance.new("ScrollingFrame",MainFrame)
-    content.Size=UDim2.new(1,-20,1,-100)
-    content.Position=UDim2.new(0,10,0,95)
+    content.Size=UDim2.new(1,-20,1,-95)
+    content.Position=UDim2.new(0,10,0,85)
     content.BackgroundTransparency=1
     content.ScrollBarThickness=6
     content.Visible=false
 
     local list=Instance.new("UIListLayout",content)
-    list.Padding=UDim.new(0,8)
+    list.Padding=UDim.new(0,6)
     list.SortOrder=Enum.SortOrder.LayoutOrder
 
     local pad=Instance.new("UIPadding",content)
@@ -176,13 +178,13 @@ ContentFrames["ESP"].Frame.Visible=true
 local function AddToggle(tab,name,key,cb)
     local content=ContentFrames[tab].Frame
     local btn=Instance.new("TextButton",content)
-    btn.Size=UDim2.new(1,0,0,38)
+    btn.Size=UDim2.new(1,0,0,36)
     btn.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
     btn.BackgroundColor3=_G.Config[key]and Color3.fromRGB(40,100,40)or Color3.fromRGB(100,40,40)
     btn.Font=Enum.Font.GothamBold
     btn.TextSize=14
     Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
-    table.insert(RainbowList,btn)
+    table.insert(TextList, btn)
     btn.MouseButton1Click:Connect(function()
         _G.Config[key]=not _G.Config[key]
         btn.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
@@ -194,7 +196,7 @@ end
 local function AddAdjust(tab,name,key,step)
     local content=ContentFrames[tab].Frame
     local frame=Instance.new("Frame",content)
-    frame.Size=UDim2.new(1,0,0,38)
+    frame.Size=UDim2.new(1,0,0,36)
     frame.BackgroundTransparency=1
 
     local label=Instance.new("TextLabel",frame)
@@ -204,13 +206,14 @@ local function AddAdjust(tab,name,key,step)
     label.Text=name..": ".._G.Config[key]
     label.Font=Enum.Font.GothamBold
     label.TextSize=14
-    table.insert(RainbowList,label)
+    table.insert(TextList, label)
 
     local minus=Instance.new("TextButton",frame)
     minus.Size=UDim2.new(0.2,-5,1,0)
     minus.Text="-"
     minus.BackgroundColor3=Color3.fromRGB(60,60,60)
     Instance.new("UICorner",minus)
+    table.insert(TextList, minus)
     minus.MouseButton1Click:Connect(function()
         _G.Config[key]=math.max(step,_G.Config[key]-step)
         label.Text=name..": ".._G.Config[key]
@@ -222,6 +225,7 @@ local function AddAdjust(tab,name,key,step)
     plus.Text="+"
     plus.BackgroundColor3=Color3.fromRGB(60,60,60)
     Instance.new("UICorner",plus)
+    table.insert(TextList, plus)
     plus.MouseButton1Click:Connect(function()
         _G.Config[key]=_G.Config[key]+step
         label.Text=name..": ".._G.Config[key]
@@ -242,7 +246,7 @@ AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 AddToggle("Misc","TEAM CHECK (ESP + HB)","TeamCheck")
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 
--- BẮT ĐẦU TÍCH HỢP UI WALKSPEED VÀO MỤC MISC
+-- UI WALKSPEED MỤC MISC
 local MiscContent = ContentFrames["Misc"].Frame
 
 local WSContainer = Instance.new("Frame", MiscContent)
@@ -250,12 +254,12 @@ WSContainer.Size = UDim2.new(1, 0, 0, 105)
 WSContainer.BackgroundTransparency = 1
 
 local WSToggle = Instance.new("TextButton", WSContainer)
-WSToggle.Size = UDim2.new(1, 0, 0, 38)
+WSToggle.Size = UDim2.new(1, 0, 0, 36)
 WSToggle.Text = "WALKSPEED: OFF"
 WSToggle.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
 WSToggle.Font = Enum.Font.GothamBold
 WSToggle.TextSize = 14
-table.insert(RainbowList, WSToggle)
+table.insert(TextList, WSToggle)
 Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 8)
 
 local WSSliderBg = Instance.new("Frame", WSContainer)
@@ -275,7 +279,7 @@ WSValLabel.BackgroundTransparency = 1
 WSValLabel.Text = "Speed: " .. _G.Config.WalkSpeed
 WSValLabel.Font = Enum.Font.GothamBold
 WSValLabel.TextSize = 12
-WSValLabel.TextColor3 = Color3.new(1, 1, 1)
+table.insert(TextList, WSValLabel)
 
 local WSBtnFrame = Instance.new("Frame", WSContainer)
 WSBtnFrame.Size = UDim2.new(1, 0, 0, 28)
@@ -289,8 +293,8 @@ m10.Size = UDim2.new(btnW, 0, 1, 0)
 m10.Text = "-10"
 m10.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 m10.Font = Enum.Font.GothamBold
-m10.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", m10).CornerRadius = UDim.new(0, 6)
+table.insert(TextList, m10)
 
 local m5 = Instance.new("TextButton", WSBtnFrame)
 m5.Size = UDim2.new(btnW, 0, 1, 0)
@@ -298,8 +302,8 @@ m5.Position = UDim2.new(btnW + gap, 0, 0, 0)
 m5.Text = "-5"
 m5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 m5.Font = Enum.Font.GothamBold
-m5.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", m5).CornerRadius = UDim.new(0, 6)
+table.insert(TextList, m5)
 
 local p5 = Instance.new("TextButton", WSBtnFrame)
 p5.Size = UDim2.new(btnW, 0, 1, 0)
@@ -307,8 +311,8 @@ p5.Position = UDim2.new((btnW + gap) * 2, 0, 0, 0)
 p5.Text = "+5"
 p5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 p5.Font = Enum.Font.GothamBold
-p5.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", p5).CornerRadius = UDim.new(0, 6)
+table.insert(TextList, p5)
 
 local p10 = Instance.new("TextButton", WSBtnFrame)
 p10.Size = UDim2.new(btnW, 0, 1, 0)
@@ -316,8 +320,8 @@ p10.Position = UDim2.new((btnW + gap) * 3, 0, 0, 0)
 p10.Text = "+10"
 p10.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 p10.Font = Enum.Font.GothamBold
-p10.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", p10).CornerRadius = UDim.new(0, 6)
+table.insert(TextList, p10)
 
 local function UpdateWS(val)
     _G.Config.WalkSpeed = math.clamp(val, 16, 250)
@@ -354,7 +358,6 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateWS(16 + relX * (250 - 16))
     end
 end)
--- KẾT THÚC TÍCH HỢP UI WALKSPEED
 
 
 AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
@@ -446,7 +449,7 @@ Workspace.DescendantRemoving:Connect(function(descendant)
     end
 end)
 
--- Loop Áp Dụng Chạy WalkSpeed Liên Tục Cho Người Chơi (Giống Logic RenderStepped Cũ)
+-- WalkSpeed Loop
 RunService.RenderStepped:Connect(function()
     if _G.Config.WalkSpeedEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -457,10 +460,16 @@ RunService.RenderStepped:Connect(function()
 end)
 
 RunService.Heartbeat:Connect(function()
-    local rgb=GetRGB()
-    for _,v in pairs(RainbowList)do
-        if v:IsA("UIStroke")then v.Color=rgb
-        elseif v:IsA("TextLabel")or v:IsA("TextButton")then v.TextColor3=rgb end
+    local rgb=GetRGB() -- RGB giữ lại dành riêng cho Box ESP và Chams
+    
+    -- TEXT GRADIENT HỒNG - XANH DƯƠNG CHẠY LƯỚT SÓNG
+    local pink = Color3.fromRGB(255, 105, 180)
+    local blue = Color3.fromRGB(0, 191, 255)
+    for _,v in pairs(TextList) do
+        -- Lấy tọa độ Y của text để tạo hiệu ứng chuyển màu nhịp nhàng như sóng nước
+        local yOffset = v.AbsolutePosition.Y
+        local timePos = (math.sin(tick() * 3 + yOffset / 50) + 1) / 2
+        v.TextColor3 = pink:lerp(blue, timePos)
     end
 
     -- Xoay UIGradient để tạo hiệu ứng chạy viền đỏ đen liên tục
@@ -598,7 +607,6 @@ RunService.Heartbeat:Connect(function()
         
         if hum and hrp and hum.Health > 0 then
             
-            -- Hitbox NPC Logic
             if _G.Config.Hitbox_NPC then
                 if not OriginalHRP_Props[hrp] then
                     OriginalHRP_Props[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
@@ -623,7 +631,6 @@ RunService.Heartbeat:Connect(function()
                 if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end
             end
 
-            -- ESP Chams NPC
             local hlNPC = obj:FindFirstChild("ArisHL_NPC")
             if _G.Config.ESP_NPC_Chams then
                 if not hlNPC then 
@@ -636,7 +643,6 @@ RunService.Heartbeat:Connect(function()
                 if hlNPC then hlNPC:Destroy() end
             end
 
-            -- ESP Name NPC
             if _G.Config.ESP_NPC_Name then
                 if not NPC_Store[obj] then
                     local textB = Instance.new("BillboardGui", ScreenGui)
