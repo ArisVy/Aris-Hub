@@ -7,7 +7,11 @@ local LocalPlayer=Players.LocalPlayer
 local Camera=workspace.CurrentCamera
 local CoreGui=game:GetService("CoreGui")
 
-game:GetService("StarterGui"):SetCore("SendNotification",{Title="ARIS HUB V53 PRO",Text="Menu Nhỏ Gọn & Text Gradient Hồng-Xanh Dương!",Duration=6})
+game:GetService("StarterGui"):SetCore("SendNotification",{
+    Title="ARIS HUB V53 PRO",
+    Text="Menu Tối Ưu, Thêm Viền Nút, Fix Hitbox Box 3D!\nPhím tắt mở Menu: Right Ctrl",
+    Duration=8
+})
 
 _G.Config={
     -- ESP
@@ -15,7 +19,7 @@ _G.Config={
     -- Hitbox
     Hitbox_P=false, HitboxSize=150, Hitbox_WallCheck=false, Hitbox_Box=false,
     -- Misc
-    TeamCheck=true, LowHP_KS=false, WalkSpeed=90, WalkSpeedEnabled=false,
+    TeamCheck=true, LowHP_KS=false, WalkSpeed=90, WalkSpeedEnabled=false, Show_ToggleBtn=true,
     -- NPC
     Hitbox_NPC=false, HitboxSize_NPC=20, Hitbox_Box_NPC=false, ESP_NPC_Name=false, ESP_NPC_Chams=false, TeamCheck_NPC=false,
     MenuOpen=false
@@ -47,6 +51,14 @@ local function CreateRedBlackGradient(parent)
     table.insert(UIGradientList, grad)
 end
 
+-- Rút gọn việc tạo viền cho nút
+local function CreateBorder(parent)
+    local stroke = Instance.new("UIStroke", parent)
+    stroke.Thickness = 1.5
+    stroke.Color = Color3.new(1, 1, 1)
+    CreateRedBlackGradient(stroke)
+end
+
 local function MakeDraggable(f)
     local d=false;local i,s
     f.InputBegan:Connect(function(inp)
@@ -72,6 +84,7 @@ ToggleBtn.Position=UDim2.new(0,10,0.5,-25)
 ToggleBtn.Image="rbxassetid://125329301331069"
 ToggleBtn.BackgroundColor3=Color3.fromRGB(30,30,30)
 ToggleBtn.ClipsDescendants=true
+ToggleBtn.Visible=_G.Config.Show_ToggleBtn
 Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,12)
 local ts=Instance.new("UIStroke",ToggleBtn)
 ts.Thickness=3
@@ -79,9 +92,17 @@ ts.Color=Color3.new(1,1,1)
 CreateRedBlackGradient(ts)
 MakeDraggable(ToggleBtn)
 
--- Main Menu (Đã thu gọn kích thước)
+-- Phím tắt bật/tắt Menu bằng phím Right Control
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
+        _G.Config.MenuOpen = not _G.Config.MenuOpen
+        MainFrame.Visible = _G.Config.MenuOpen
+    end
+end)
+
+-- Main Menu
 local MainFrame=Instance.new("Frame",ScreenGui)
-MainFrame.Size=UDim2.new(0,400,0,310) -- Resize từ 420x420 xuống 400x310
+MainFrame.Size=UDim2.new(0,400,0,310) 
 MainFrame.Position=UDim2.new(0,70,0.2,0)
 MainFrame.BackgroundColor3=Color3.fromRGB(20,20,20)
 MainFrame.Visible=false
@@ -99,19 +120,23 @@ ResetBtn.Font=Enum.Font.GothamBold
 ResetBtn.TextSize=12
 ResetBtn.BackgroundColor3=Color3.fromRGB(40,20,20)
 Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,8)
-local rsStroke=Instance.new("UIStroke",ResetBtn)
-rsStroke.Thickness=2
-rsStroke.Color=Color3.new(1,1,1)
-CreateRedBlackGradient(rsStroke)
+CreateBorder(ResetBtn)
 table.insert(TextList, ResetBtn)
 
-local lastClickTime = 0
+-- Lặp liên tục cho đến khi máu bằng 0
 ResetBtn.MouseButton1Click:Connect(function()
-    if tick() - lastClickTime < 0.5 then
+    task.spawn(function()
         local char = LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then char.Humanoid.Health = 0 end
-    end
-    lastClickTime = tick()
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                while hum.Health > 0 and char.Parent do
+                    hum.Health = 0
+                    task.wait(0.1)
+                end
+            end
+        end
+    end)
 end)
 
 local Title=Instance.new("TextLabel",MainFrame)
@@ -160,6 +185,11 @@ for i,tab in ipairs(Tabs)do
     list.Padding=UDim.new(0,6)
     list.SortOrder=Enum.SortOrder.LayoutOrder
 
+    -- Tự động điều chỉnh kích thước cuộn
+    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        content.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 15)
+    end)
+
     local pad=Instance.new("UIPadding",content)
     pad.PaddingLeft=UDim.new(0,5)
     pad.PaddingRight=UDim.new(0,5)
@@ -184,7 +214,9 @@ local function AddToggle(tab,name,key,cb)
     btn.Font=Enum.Font.GothamBold
     btn.TextSize=14
     Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
+    CreateBorder(btn)
     table.insert(TextList, btn)
+    
     btn.MouseButton1Click:Connect(function()
         _G.Config[key]=not _G.Config[key]
         btn.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
@@ -213,6 +245,7 @@ local function AddAdjust(tab,name,key,step)
     minus.Text="-"
     minus.BackgroundColor3=Color3.fromRGB(60,60,60)
     Instance.new("UICorner",minus)
+    CreateBorder(minus)
     table.insert(TextList, minus)
     minus.MouseButton1Click:Connect(function()
         _G.Config[key]=math.max(step,_G.Config[key]-step)
@@ -225,6 +258,7 @@ local function AddAdjust(tab,name,key,step)
     plus.Text="+"
     plus.BackgroundColor3=Color3.fromRGB(60,60,60)
     Instance.new("UICorner",plus)
+    CreateBorder(plus)
     table.insert(TextList, plus)
     plus.MouseButton1Click:Connect(function()
         _G.Config[key]=_G.Config[key]+step
@@ -243,6 +277,11 @@ AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
 AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
+-- TÍNH NĂNG ẨN/HIỆN NÚT ẢNH MỞ MENU
+AddToggle("Misc","HIỆN NÚT ẢNH MỞ MENU","Show_ToggleBtn", function(val)
+    ToggleBtn.Visible = val
+end)
+
 AddToggle("Misc","TEAM CHECK (ESP + HB)","TeamCheck")
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 
@@ -259,6 +298,7 @@ WSToggle.Text = "WALKSPEED: OFF"
 WSToggle.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
 WSToggle.Font = Enum.Font.GothamBold
 WSToggle.TextSize = 14
+CreateBorder(WSToggle)
 table.insert(TextList, WSToggle)
 Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 8)
 
@@ -294,6 +334,7 @@ m10.Text = "-10"
 m10.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 m10.Font = Enum.Font.GothamBold
 Instance.new("UICorner", m10).CornerRadius = UDim.new(0, 6)
+CreateBorder(m10)
 table.insert(TextList, m10)
 
 local m5 = Instance.new("TextButton", WSBtnFrame)
@@ -303,6 +344,7 @@ m5.Text = "-5"
 m5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 m5.Font = Enum.Font.GothamBold
 Instance.new("UICorner", m5).CornerRadius = UDim.new(0, 6)
+CreateBorder(m5)
 table.insert(TextList, m5)
 
 local p5 = Instance.new("TextButton", WSBtnFrame)
@@ -312,6 +354,7 @@ p5.Text = "+5"
 p5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 p5.Font = Enum.Font.GothamBold
 Instance.new("UICorner", p5).CornerRadius = UDim.new(0, 6)
+CreateBorder(p5)
 table.insert(TextList, p5)
 
 local p10 = Instance.new("TextButton", WSBtnFrame)
@@ -321,6 +364,7 @@ p10.Text = "+10"
 p10.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 p10.Font = Enum.Font.GothamBold
 Instance.new("UICorner", p10).CornerRadius = UDim.new(0, 6)
+CreateBorder(p10)
 table.insert(TextList, p10)
 
 local function UpdateWS(val)
@@ -367,8 +411,6 @@ AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
 AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
 local ESP_Store={}
 local NPC_Store={}
-local OriginalHRP_Props = {}
-setmetatable(OriginalHRP_Props, {__mode = "k"})
 
 local CachedNPCs = {}
 
@@ -390,12 +432,12 @@ Workspace.DescendantAdded:Connect(function(descendant)
     end)
 end)
 
+-- Sử dụng Attribute thay vì Table để tránh rò rỉ bộ nhớ hoặc lỗi khi re-execute script
 local function RestoreHRP(hrp)
-    if hrp and OriginalHRP_Props[hrp] then
-        hrp.Size = OriginalHRP_Props[hrp].Size
-        hrp.Transparency = OriginalHRP_Props[hrp].Transparency
-        hrp.CanCollide = OriginalHRP_Props[hrp].CanCollide
-        OriginalHRP_Props[hrp] = nil
+    if hrp and hrp:GetAttribute("ArisOrigSizeX") then
+        hrp.Size = Vector3.new(hrp:GetAttribute("ArisOrigSizeX"), hrp:GetAttribute("ArisOrigSizeY"), hrp:GetAttribute("ArisOrigSizeZ"))
+        hrp.Transparency = hrp:GetAttribute("ArisOrigTrans")
+        hrp.CanCollide = hrp:GetAttribute("ArisOrigCollide")
     end
 end
 
@@ -449,7 +491,6 @@ Workspace.DescendantRemoving:Connect(function(descendant)
     end
 end)
 
--- WalkSpeed Loop
 RunService.RenderStepped:Connect(function()
     if _G.Config.WalkSpeedEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -460,19 +501,17 @@ RunService.RenderStepped:Connect(function()
 end)
 
 RunService.Heartbeat:Connect(function()
-    local rgb=GetRGB() -- RGB giữ lại dành riêng cho Box ESP và Chams
+    local rgb=GetRGB() 
     
-    -- TEXT GRADIENT HỒNG - XANH DƯƠNG CHẠY LƯỚT SÓNG
-    local pink = Color3.fromRGB(255, 105, 180)
-    local blue = Color3.fromRGB(0, 191, 255)
+    -- MÀU CHỮ VIBRANT (Hồng/Xanh lam cường độ cao để chữ đậm và nổi hơn)
+    local pink = Color3.fromRGB(255, 0, 150) 
+    local blue = Color3.fromRGB(0, 200, 255) 
     for _,v in pairs(TextList) do
-        -- Lấy tọa độ Y của text để tạo hiệu ứng chuyển màu nhịp nhàng như sóng nước
         local yOffset = v.AbsolutePosition.Y
         local timePos = (math.sin(tick() * 3 + yOffset / 50) + 1) / 2
         v.TextColor3 = pink:lerp(blue, timePos)
     end
 
-    -- Xoay UIGradient để tạo hiệu ứng chạy viền đỏ đen liên tục
     local rot = (tick() * 150) % 360
     for _, grad in ipairs(UIGradientList) do
         grad.Rotation = rot
@@ -539,8 +578,13 @@ RunService.Heartbeat:Connect(function()
             end
 
             if valid then
-                if not OriginalHRP_Props[hrp] then
-                    OriginalHRP_Props[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
+                -- Backup attributes nếu chưa có
+                if not hrp:GetAttribute("ArisOrigSizeX") then
+                    hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
+                    hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
+                    hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
+                    hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
+                    hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
                 end
                 hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
                 hrp.Transparency = 0.6
@@ -558,11 +602,18 @@ RunService.Heartbeat:Connect(function()
             hl.FillColor = rgb; hl.Enabled = true
         else if hl then hl:Destroy() end end
 
+        -- FIX HITBOX 3D BOX (Box chỉ bật khi Hitbox đang được kích hoạt)
         local hbBox = hrp:FindFirstChild("ArisHitboxBox")
-        if _G.Config.Hitbox_Box then
-            if not hbBox then hbBox = Instance.new("SelectionBox", hrp); hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp end
+        if enableHitbox and _G.Config.Hitbox_Box then
+            if not hbBox then 
+                hbBox = Instance.new("SelectionBox", hrp)
+                hbBox.Name = "ArisHitboxBox"
+                hbBox.Adornee = hrp 
+            end
             hbBox.SurfaceColor3 = rgb
-        else if hbBox then hbBox:Destroy() end end
+        else 
+            if hbBox then hbBox:Destroy() end 
+        end
 
         if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P then
             if not ESP_Store[p.Name] then
@@ -608,27 +659,31 @@ RunService.Heartbeat:Connect(function()
         if hum and hrp and hum.Health > 0 then
             
             if _G.Config.Hitbox_NPC then
-                if not OriginalHRP_Props[hrp] then
-                    OriginalHRP_Props[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
+                if not hrp:GetAttribute("ArisOrigSizeX") then
+                    hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
+                    hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
+                    hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
+                    hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
+                    hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
                 end
                 hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
                 hrp.Transparency = 0.6
                 hrp.CanCollide = false
-                
-                local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
-                if _G.Config.Hitbox_Box_NPC then
-                    if not hbBoxNPC then 
-                        hbBoxNPC = Instance.new("SelectionBox", hrp)
-                        hbBoxNPC.Name = "ArisHitboxBoxNPC"
-                        hbBoxNPC.Adornee = hrp 
-                    end
-                    hbBoxNPC.SurfaceColor3 = rgb
-                else
-                    if hbBoxNPC then hbBoxNPC:Destroy() end
-                end
             else
                 RestoreHRP(hrp)
-                if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end
+            end
+
+            -- FIX HITBOX 3D BOX NPC (Đồng bộ tương tự Player)
+            local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
+            if _G.Config.Hitbox_NPC and _G.Config.Hitbox_Box_NPC then
+                if not hbBoxNPC then 
+                    hbBoxNPC = Instance.new("SelectionBox", hrp)
+                    hbBoxNPC.Name = "ArisHitboxBoxNPC"
+                    hbBoxNPC.Adornee = hrp 
+                end
+                hbBoxNPC.SurfaceColor3 = rgb
+            else
+                if hbBoxNPC then hbBoxNPC:Destroy() end
             end
 
             local hlNPC = obj:FindFirstChild("ArisHL_NPC")
