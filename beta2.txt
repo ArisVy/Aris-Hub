@@ -9,7 +9,7 @@ local CoreGui=game:GetService("CoreGui")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO",
-    Text="Nền Cyan-Tím-Hồng Liên Tục & Viền Chữ Thanh Mảnh!",
+    Text="Thuật Toán Dòng Chảy Vô Hạn Siêu Mượt - Chữ Nét Hơn!",
     Duration=8
 })
 
@@ -37,50 +37,81 @@ local BtnGradientList={}
 local function GetRGB()return Color3.fromHSV(tick()%5/5,1,1)end
 
 -- ==========================================
--- HỆ THỐNG GRADIENT CHẠY LIÊN TỤC
+-- HỆ THỐNG DÒNG CHẢY MÀU VÔ HẠN (KHÔNG BAO GIỜ BỊ KHỰNG)
 -- ==========================================
 
--- Viền Đỏ - Đen
-local function CreateRedBlackGradient(parent)
-    local grad = Instance.new("UIGradient")
-    grad.Rotation = 90
-    grad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 15, 15)), 
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
-    })
-    grad.Parent = parent
-    table.insert(UIGradientList, grad)
+-- Bảng màu chuẩn (Đã thiết lập vòng lặp điểm cuối giống điểm đầu để nối đuôi mượt mà)
+local Palettes = {
+    On = {
+        Color3.fromRGB(0, 240, 255),   -- Cyan sáng
+        Color3.fromRGB(130, 100, 255), -- Tím mộng mơ
+        Color3.fromRGB(255, 150, 255), -- Hồng nhạt
+        Color3.fromRGB(0, 240, 255)    -- Vòng lại Cyan
+    },
+    Off = {
+        Color3.fromRGB(12, 12, 12),    -- Đen
+        Color3.fromRGB(180, 20, 20),   -- Đỏ gắt
+        Color3.fromRGB(12, 12, 12)     -- Đen
+    },
+    Text = {
+        Color3.fromRGB(0, 150, 255),   -- Xanh dương
+        Color3.fromRGB(255, 0, 150),   -- Hồng đậm
+        Color3.fromRGB(0, 150, 255)    -- Xanh dương
+    },
+    Border = {
+        Color3.fromRGB(255, 0, 0),     -- Đỏ
+        Color3.fromRGB(15, 15, 15),    -- Đen
+        Color3.fromRGB(255, 0, 0)      -- Đỏ
+    }
+}
+
+-- Thuật toán tạo dòng chảy bằng cách trượt Keypoint (Chống giật)
+local function GetMovingColorSequence(palette, shift)
+    local keypoints = {}
+    for step = 0, 5 do
+        local i = step / 5 -- Chia gradient thành 6 điểm để bao phủ đều (0, 0.2, 0.4, 0.6, 0.8, 1.0)
+        local t = (i - shift) % 1
+        if t < 0 then t = t + 1 end
+        
+        local segments = #palette - 1
+        local scaled = t * segments
+        local index = math.floor(scaled) + 1
+        local fraction = scaled - (index - 1)
+        
+        local color
+        if index >= #palette then
+            color = palette[#palette]
+        else
+            color = palette[index]:Lerp(palette[index + 1], fraction)
+        end
+        table.insert(keypoints, ColorSequenceKeypoint.new(i, color))
+    end
+    return ColorSequence.new(keypoints)
 end
 
 local function CreateBorder(parent)
     local stroke = Instance.new("UIStroke", parent)
     stroke.Thickness = 1.8
     stroke.Color = Color3.new(1, 1, 1)
-    CreateRedBlackGradient(stroke)
+    local grad = Instance.new("UIGradient", stroke)
+    grad.Rotation = 90
+    table.insert(UIGradientList, grad)
 end
 
--- Chữ Xanh Dương - Hồng đặc ruột (Kèm viền mỏng 1/2)
 local function CreateTextGradient(parent)
     parent.TextColor3 = Color3.new(1, 1, 1) 
     parent.TextStrokeTransparency = 1 
     
-    -- Viền chữ mỏng (0.5)
+    -- Viền chữ mỏng (0.5) tinh tế
     local txtStroke = Instance.new("UIStroke", parent)
     txtStroke.Thickness = 0.5
     txtStroke.Color = Color3.new(0, 0, 0)
 
     local grad = Instance.new("UIGradient", parent)
     grad.Rotation = 90
-    grad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 150, 255)),   
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 0, 150)), 
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 150, 255))    
-    })
     table.insert(TextGradientList, grad)
 end
 
--- Nền nút mờ dần (Cyan-Tím-Hồng theo ảnh hoặc Đen-Đỏ)
 local function ApplyToggleGradient(parent, isOn)
     local grad = parent:FindFirstChild("ToggleGrad")
     if not grad then
@@ -89,26 +120,10 @@ local function ApplyToggleGradient(parent, isOn)
         grad.Rotation = 90
         table.insert(BtnGradientList, grad)
     end
-    
-    if isOn then
-        -- Màu trích xuất từ ảnh: Cyan -> Xanh Dương -> Tím -> Hồng -> Cyan (Seamless Loop)
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 240, 255)),   -- Cyan sáng
-            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(130, 100, 255)), -- Tím mộng mơ
-            ColorSequenceKeypoint.new(0.66, Color3.fromRGB(255, 150, 255)), -- Hồng nhạt
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 240, 255))    -- Vòng lại Cyan
-        })
-    else
-        -- Đen -> Đỏ -> Đen (Hòa trộn cực êm)
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 12, 12)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(180, 20, 20)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 12))
-        })
-    end
+    -- Gắn nhãn trạng thái để Heartbeat tự động vẽ màu
+    parent:SetAttribute("IsOn", isOn)
 end
 
--- Tạo Label text riêng biệt dán lên nút để tránh lỗi Gradient
 local function CreateButtonText(parent, text, font, size)
     local txt = Instance.new("TextLabel", parent)
     txt.Size = UDim2.new(1, 0, 1, 0)
@@ -146,8 +161,7 @@ ToggleBtn.Image="rbxassetid://125329301331069"
 ToggleBtn.BackgroundColor3=Color3.fromRGB(30,30,30)
 ToggleBtn.ClipsDescendants=true; ToggleBtn.Visible=_G.Config.Show_ToggleBtn
 Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,20)
-local ts=Instance.new("UIStroke",ToggleBtn); ts.Thickness=3; ts.Color=Color3.new(1,1,1)
-CreateRedBlackGradient(ts)
+CreateBorder(ToggleBtn)
 MakeDraggable(ToggleBtn)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -159,8 +173,7 @@ local MainFrame=Instance.new("Frame",ScreenGui)
 MainFrame.Size=UDim2.new(0,400,0,310); MainFrame.Position=UDim2.new(0,70,0.2,0)
 MainFrame.BackgroundColor3=Color3.fromRGB(18,18,18); MainFrame.Visible=false
 Instance.new("UICorner",MainFrame).CornerRadius=UDim.new(0,20)
-local ms=Instance.new("UIStroke",MainFrame); ms.Thickness=3; ms.Color=Color3.new(1,1,1)
-CreateRedBlackGradient(ms)
+CreateBorder(MainFrame)
 
 -- Nút Reset
 local ResetBtn=Instance.new("TextButton",MainFrame)
@@ -442,16 +455,30 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- ==========================================
+-- ĐỘNG CƠ RENDER (HEARTBEAT) - TÍNH TOÁN DÒNG CHẢY
+-- ==========================================
 RunService.Heartbeat:Connect(function()
     local rgb=GetRGB() 
     
-    -- CHẠY HIỆU ỨNG LIÊN TỤC VÀ NHẸ NHÀNG (Seamless Loop)
-    -- Sử dụng modulo % 1 để mảng màu lặp lại tuần hoàn không điểm dừng
-    local continuousOffset = -(tick() * 0.3) % 1 
+    -- Tốc độ dòng chảy (Chậm rãi, nhẹ nhàng, lững lờ trôi)
+    local shift = tick() * 0.15 
+    
+    -- Sinh ra Sequence toán học cho từng Frame để loại bỏ hiện tượng giật lặp
+    local seqOn = GetMovingColorSequence(Palettes.On, shift)
+    local seqOff = GetMovingColorSequence(Palettes.Off, shift)
+    local seqText = GetMovingColorSequence(Palettes.Text, shift * 1.5)
+    local seqBorder = GetMovingColorSequence(Palettes.Border, shift * 1.8)
 
-    for _, grad in ipairs(UIGradientList) do grad.Offset = Vector2.new(0, continuousOffset) end
-    for _, grad in ipairs(TextGradientList) do grad.Offset = Vector2.new(0, continuousOffset) end
-    for _, grad in ipairs(BtnGradientList) do grad.Offset = Vector2.new(0, continuousOffset) end
+    for _, grad in ipairs(UIGradientList) do grad.Color = seqBorder end
+    for _, grad in ipairs(TextGradientList) do grad.Color = seqText end
+    for _, grad in ipairs(BtnGradientList) do 
+        if grad.Parent and grad.Parent:GetAttribute("IsOn") then
+            grad.Color = seqOn
+        else
+            grad.Color = seqOff
+        end
+    end
 
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     local hasLowHPEnemy = false
