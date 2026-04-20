@@ -9,8 +9,8 @@ local CoreGui = game:GetService("CoreGui")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC",
-    Text="Đã khôi phục bản gốc uy tín! Nút Desync mặc định Tắt, X:70 Y:20.",
-    Duration=5
+    Text="Cập nhật: Text gọn gàng, Hiệu ứng nút thông minh!",
+    Duration=8
 })
 
 _G.Config={
@@ -38,9 +38,9 @@ _G.Config={
     
     -- CẤU HÌNH DESYNC
     Desync_HideAuto = false,
-    Desync_ShowFloat = false,  -- NÚT NỔI MẶC ĐỊNH TẮT
-    Desync_FloatX = 70,        -- TỌA ĐỘ X 70
-    Desync_FloatY = 20,        -- TỌA ĐỘ Y 20
+    Desync_ShowFloat = false,  -- MẶC ĐỊNH TẮT
+    Desync_FloatX = 70,        -- TỌA ĐỘ X: 70
+    Desync_FloatY = 20,        -- TỌA ĐỘ Y: 20
     Desync_Mode = "Normal"
 }
 
@@ -119,6 +119,7 @@ local function CreateTextGradient(parent)
     table.insert(TextGradientList, grad)
 end
 
+-- Hàm xử lý đổi màu chữ khi bật/tắt (ĐEN KHI BẬT, MÀU KHI TẮT)
 local function ApplyToggleGradient(parent, isOn)
     local grad = parent:FindFirstChild("ToggleGrad")
     if not grad then
@@ -128,6 +129,18 @@ local function ApplyToggleGradient(parent, isOn)
         table.insert(BtnGradientList, grad)
     end
     parent:SetAttribute("IsOn", isOn)
+    
+    local txt = parent:FindFirstChildOfClass("TextLabel")
+    if txt then
+        local txtGrad = txt:FindFirstChildOfClass("UIGradient")
+        if isOn then
+            if txtGrad then txtGrad.Enabled = false end
+            txt.TextColor3 = Color3.fromRGB(0, 0, 0) -- Chữ đen khi bật
+        else
+            if txtGrad then txtGrad.Enabled = true end
+            txt.TextColor3 = Color3.fromRGB(255, 255, 255) -- Chữ gradient khi tắt
+        end
+    end
 end
 
 local function CreateButtonText(parent, text, font, size)
@@ -139,6 +152,15 @@ local function CreateButtonText(parent, text, font, size)
     txt.TextSize = size
     CreateTextGradient(txt)
     return txt
+end
+
+local function ApplyButtonAnimation(btn)
+    local ts = game:GetService("TweenService")
+    local scale = Instance.new("UIScale", btn) scale.Scale = 1
+    btn.MouseEnter:Connect(function() ts:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.05}):Play() end)
+    btn.MouseLeave:Connect(function() ts:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.0}):Play() end)
+    btn.MouseButton1Down:Connect(function() ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0.9}):Play() end)
+    btn.MouseButton1Up:Connect(function() ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.05}):Play() end)
 end
 
 -- ==========================================
@@ -528,6 +550,7 @@ ToggleBtn.Visible = _G.Config.Show_ToggleBtn
 Instance.new("UICorner",ToggleBtn).CornerRadius = UDim.new(0,20) 
 CreateBorder(ToggleBtn) 
 MakeDraggable(ToggleBtn)
+ApplyButtonAnimation(ToggleBtn)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed) 
     if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then 
@@ -553,6 +576,7 @@ Instance.new("UICorner",ResetBtn).CornerRadius = UDim.new(0,16)
 ApplyToggleGradient(ResetBtn, false) 
 CreateBorder(ResetBtn) 
 CreateButtonText(ResetBtn, "RST", Enum.Font.GothamBold, 13)
+ApplyButtonAnimation(ResetBtn)
 
 ResetBtn.MouseButton1Click:Connect(function() 
     task.spawn(function() 
@@ -604,6 +628,7 @@ for i,tab in ipairs(Tabs)do
     ApplyToggleGradient(btn, false) 
     CreateBorder(btn) 
     CreateButtonText(btn, tab, Enum.Font.GothamBold, 12)
+    ApplyButtonAnimation(btn)
     
     local content = Instance.new("ScrollingFrame",MainFrame) 
     content.Size = UDim2.new(1,-10,1,-95)
@@ -645,6 +670,7 @@ local function AddToggle(tab,name,key,cb)
     ApplyToggleGradient(btn, _G.Config[key]) 
     CreateBorder(btn) 
     local btnTxt = CreateButtonText(btn, name..": "..(_G.Config[key]and"ON"or"OFF"), Enum.Font.GothamBold, 14)
+    ApplyButtonAnimation(btn)
     
     btn.MouseButton1Click:Connect(function() 
         _G.Config[key] = not _G.Config[key] 
@@ -680,6 +706,7 @@ local function AddAdjust(tab,name,key,step,minV,maxV,cb)
     ApplyToggleGradient(minus, false) 
     CreateBorder(minus) 
     CreateButtonText(minus, "-", Enum.Font.GothamBold, 18)
+    ApplyButtonAnimation(minus)
     
     minus.MouseButton1Click:Connect(function() 
         _G.Config[key] = math.clamp(_G.Config[key]-step, minVal, maxVal)
@@ -696,6 +723,7 @@ local function AddAdjust(tab,name,key,step,minV,maxV,cb)
     ApplyToggleGradient(plus, false) 
     CreateBorder(plus) 
     CreateButtonText(plus, "+", Enum.Font.GothamBold, 16)
+    ApplyButtonAnimation(plus)
     
     plus.MouseButton1Click:Connect(function() 
         _G.Config[key] = math.clamp(_G.Config[key]+step, minVal, maxVal)
@@ -733,6 +761,7 @@ Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled) 
 CreateBorder(WSToggle) 
 local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: OFF", Enum.Font.GothamBold, 14)
+ApplyButtonAnimation(WSToggle)
 
 local WSSliderBg = Instance.new("Frame", WSContainer) 
 WSSliderBg.Size = UDim2.new(1, -16, 0, 25)
@@ -770,6 +799,7 @@ local function createWSBtn(text, posScale)
     ApplyToggleGradient(btn, false)
     CreateBorder(btn) 
     CreateButtonText(btn, text, Enum.Font.GothamBold, 14) 
+    ApplyButtonAnimation(btn)
     return btn 
 end
 
@@ -820,7 +850,7 @@ AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
 AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
 
 -- ==========================================
--- GIAO DIỆN DESYNC TAB & KHỞI TẠO NÚT NỔI
+-- DESYNC TAB & NÚT NỔI
 -- ==========================================
 local RefreshFloatBtn 
 
@@ -846,6 +876,7 @@ local function createModeBtn(text, posScale, modeStr)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16)
     CreateBorder(btn)
     local txt = CreateButtonText(btn, text, Enum.Font.GothamBold, 12)
+    ApplyButtonAnimation(btn)
     
     local function UpdateState()
         local isSelected = (_G.Config.Desync_Mode == modeStr)
@@ -854,7 +885,14 @@ local function createModeBtn(text, posScale, modeStr)
     UpdateState()
     
     btn.MouseButton1Click:Connect(function()
-        if desyncState then return end
+        if desyncState then 
+            game:GetService("StarterGui"):SetCore("SendNotification",{
+                Title="CẢNH BÁO",
+                Text="Vui lòng TẮT Desync trước khi đổi chế độ!",
+                Duration=2
+            })
+            return 
+        end
         _G.Config.Desync_Mode = modeStr
         for _, child in ipairs(ModeFrame:GetChildren()) do
             if child:IsA("TextButton") then 
@@ -891,6 +929,7 @@ floatBtn.AutoButtonColor = false
 floatBtn.Active = false
 floatBtn.Draggable = false
 Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) 
+ApplyButtonAnimation(floatBtn)
 
 local btnGradient = Instance.new("UIGradient", floatBtn)
 btnGradient.Color = cyanPinkColors
@@ -937,8 +976,7 @@ RefreshFloatBtn = function()
     floatStroke.Color = Color3.fromRGB(255, 255, 255)
 
     if desyncState then
-        local dName = _G.Config.Desync_Mode == "Fix" and "FIX" or _G.Config.Desync_Mode:upper()
-        floatText.Text = "DeSync : On ("..dName..")"
+        floatText.Text = "DeSync : On" 
         btnGradient.Enabled = true
         floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         textGradient.Enabled = false
