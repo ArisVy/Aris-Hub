@@ -8,8 +8,8 @@ local Camera=workspace.CurrentCamera
 local CoreGui=game:GetService("CoreGui")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V53 PRO",
-    Text="Thuật Toán Dòng Chảy Vô Hạn Siêu Mượt - Chữ Nét Hơn!",
+    Title="ARIS HUB V53 PRO + DESYNC",
+    Text="Đã thêm Animation cho mọi nút & Tối ưu UI Desync!",
     Duration=8
 })
 
@@ -18,10 +18,18 @@ _G.Config={
     Hitbox_P=false, HitboxSize=150, Hitbox_WallCheck=false, Hitbox_Box=false,
     TeamCheck=true, LowHP_KS=false, WalkSpeed=90, WalkSpeedEnabled=false, Show_ToggleBtn=true,
     Hitbox_NPC=false, HitboxSize_NPC=20, Hitbox_Box_NPC=false, ESP_NPC_Name=false, ESP_NPC_Chams=false, TeamCheck_NPC=false,
-    MenuOpen=false
+    MenuOpen=false,
+    
+    -- CẤU HÌNH DESYNC
+    Desync_HideAuto = false,
+    Desync_ShowFloat = false, -- MẶC ĐỊNH TẮT THEO YÊU CẦU
+    Desync_FloatX = 20,       -- MẶC ĐỊNH X: 20
+    Desync_FloatY = 70,       -- MẶC ĐỊNH Y: 70
+    Desync_Mode = "Normal"
 }
 
 if CoreGui:FindFirstChild("ArisHUB_PRO")then CoreGui.ArisHUB_PRO:Destroy()end
+if CoreGui:FindFirstChild("ArisFloatToggle") then CoreGui.ArisFloatToggle:Destroy() end
 
 local ScreenGui=Instance.new("ScreenGui")
 ScreenGui.Name="ArisHUB_PRO"
@@ -37,53 +45,27 @@ local BtnGradientList={}
 local function GetRGB()return Color3.fromHSV(tick()%5/5,1,1)end
 
 -- ==========================================
--- HỆ THỐNG DÒNG CHẢY MÀU VÔ HẠN (KHÔNG BAO GIỜ BỊ KHỰNG)
+-- HỆ THỐNG DÒNG CHẢY MÀU VÔ HẠN
 -- ==========================================
-
--- Bảng màu chuẩn (Đã thiết lập vòng lặp điểm cuối giống điểm đầu để nối đuôi mượt mà)
 local Palettes = {
-    On = {
-        Color3.fromRGB(0, 240, 255),   -- Cyan sáng
-        Color3.fromRGB(130, 100, 255), -- Tím mộng mơ
-        Color3.fromRGB(255, 150, 255), -- Hồng nhạt
-        Color3.fromRGB(0, 240, 255)    -- Vòng lại Cyan
-    },
-    Off = {
-        Color3.fromRGB(12, 12, 12),    -- Đen
-        Color3.fromRGB(180, 20, 20),   -- Đỏ gắt
-        Color3.fromRGB(12, 12, 12)     -- Đen
-    },
-    Text = {
-        Color3.fromRGB(0, 150, 255),   -- Xanh dương
-        Color3.fromRGB(255, 0, 150),   -- Hồng đậm
-        Color3.fromRGB(0, 150, 255)    -- Xanh dương
-    },
-    Border = {
-        Color3.fromRGB(255, 0, 0),     -- Đỏ
-        Color3.fromRGB(15, 15, 15),    -- Đen
-        Color3.fromRGB(255, 0, 0)      -- Đỏ
-    }
+    On = { Color3.fromRGB(0, 240, 255), Color3.fromRGB(130, 100, 255), Color3.fromRGB(255, 150, 255), Color3.fromRGB(0, 240, 255) },
+    Off = { Color3.fromRGB(12, 12, 12), Color3.fromRGB(180, 20, 20), Color3.fromRGB(12, 12, 12) },
+    Text = { Color3.fromRGB(0, 150, 255), Color3.fromRGB(255, 0, 150), Color3.fromRGB(0, 150, 255) },
+    Border = { Color3.fromRGB(255, 0, 0), Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 0, 0) }
 }
 
--- Thuật toán tạo dòng chảy bằng cách trượt Keypoint (Chống giật)
 local function GetMovingColorSequence(palette, shift)
     local keypoints = {}
     for step = 0, 5 do
-        local i = step / 5 -- Chia gradient thành 6 điểm để bao phủ đều (0, 0.2, 0.4, 0.6, 0.8, 1.0)
+        local i = step / 5 
         local t = (i - shift) % 1
         if t < 0 then t = t + 1 end
-        
         local segments = #palette - 1
         local scaled = t * segments
         local index = math.floor(scaled) + 1
         local fraction = scaled - (index - 1)
-        
         local color
-        if index >= #palette then
-            color = palette[#palette]
-        else
-            color = palette[index]:Lerp(palette[index + 1], fraction)
-        end
+        if index >= #palette then color = palette[#palette] else color = palette[index]:Lerp(palette[index + 1], fraction) end
         table.insert(keypoints, ColorSequenceKeypoint.new(i, color))
     end
     return ColorSequence.new(keypoints)
@@ -101,12 +83,9 @@ end
 local function CreateTextGradient(parent)
     parent.TextColor3 = Color3.new(1, 1, 1) 
     parent.TextStrokeTransparency = 1 
-    
-    -- Viền chữ mỏng (0.5) tinh tế
     local txtStroke = Instance.new("UIStroke", parent)
     txtStroke.Thickness = 0.5
     txtStroke.Color = Color3.new(0, 0, 0)
-
     local grad = Instance.new("UIGradient", parent)
     grad.Rotation = 90
     table.insert(TextGradientList, grad)
@@ -120,7 +99,6 @@ local function ApplyToggleGradient(parent, isOn)
         grad.Rotation = 90
         table.insert(BtnGradientList, grad)
     end
-    -- Gắn nhãn trạng thái để Heartbeat tự động vẽ màu
     parent:SetAttribute("IsOn", isOn)
 end
 
@@ -136,276 +114,429 @@ local function CreateButtonText(parent, text, font, size)
 end
 
 -- ==========================================
--- GIAO DIỆN MENU
+-- HỆ THỐNG ANIMATION CHO NÚT BẤM (Hover & Click)
 -- ==========================================
-
-local function MakeDraggable(f)
-    local d=false;local i,s
-    f.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then d=true;i=inp.Position;s=f.Position end
+local function ApplyButtonAnimation(btn)
+    local ts = game:GetService("TweenService")
+    local scale = Instance.new("UIScale", btn)
+    scale.Scale = 1
+    
+    btn.MouseEnter:Connect(function()
+        ts:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.05}):Play()
     end)
-    f.InputChanged:Connect(function(inp)
-        if (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) and d then
-            local delta=inp.Position-i; f.Position=UDim2.new(s.X.Scale,s.X.Offset+delta.X,s.Y.Scale,s.Y.Offset+delta.Y)
-        end
+    btn.MouseLeave:Connect(function()
+        ts:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.0}):Play()
     end)
-    UserInputService.InputEnded:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then d=false end
+    btn.MouseButton1Down:Connect(function()
+        ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0.9}):Play()
+    end)
+    btn.MouseButton1Up:Connect(function()
+        ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.05}):Play()
     end)
 end
 
--- Nút Toggle Menu
-local ToggleBtn=Instance.new("ImageButton",ScreenGui)
-ToggleBtn.Size=UDim2.new(0,50,0,50); ToggleBtn.Position=UDim2.new(0,10,0.5,-25)
-ToggleBtn.Image="rbxassetid://125329301331069"
-ToggleBtn.BackgroundColor3=Color3.fromRGB(30,30,30)
-ToggleBtn.ClipsDescendants=true; ToggleBtn.Visible=_G.Config.Show_ToggleBtn
-Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,20)
-CreateBorder(ToggleBtn)
-MakeDraggable(ToggleBtn)
+-- ==========================================
+-- HỆ THỐNG DESYNC CORE
+-- ==========================================
+local desyncState = false
+local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then _G.Config.MenuOpen = not _G.Config.MenuOpen; MainFrame.Visible = _G.Config.MenuOpen end
+local function ToggleDesync(state)
+    pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end)
+end
+
+local NumericFlags = {
+    {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"}, {"TimestepArbiterVelocityCriteriaThresholdTwoDt","2147483646"},
+    {"S2PhysicsSenderRate","15000"}, {"MaxDataPacketPerSend","2147483647"}, {"PhysicsSenderMaxBandwidthBps","20000"},
+    {"CheckPVCachedVelThresholdPercent","10"}, {"MaxMissedWorldStepsRemembered","-2147483648"}, {"StreamJobNOUVolumeLengthCap","2147483647"},
+    {"WorldStepMax","30"}, {"MaxAcceptableUpdateDelay","1"}
+}
+
+local AnimationLib = {}
+function AnimationLib.CreateParticleEffect(position, color, duration)
+	local part = Instance.new("Part") part.Size = Vector3.new(2, 2, 2) part.Anchored = true part.CanCollide = false
+	part.Material = Enum.Material.Neon part.Color = color part.CFrame = CFrame.new(position) part.Transparency = 0.3 part.Parent = workspace
+	local light = Instance.new("PointLight") light.Color = color light.Range = 15 light.Brightness = 2 light.Parent = part
+	local tween = game:GetService("TweenService"):Create(part, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(0.5, 0.5, 0.5), Transparency = 1, CFrame = CFrame.new(position) * CFrame.new(math.random(-5, 5), math.random(5, 10), math.random(-5, 5))})
+	tween:Play() tween.Completed:Connect(function() part:Destroy() end) return part
+end
+
+function AnimationLib.CreateBeam(startPos, endPos, color, duration)
+	local attachment1 = Instance.new("Attachment") attachment1.Position = Vector3.new(0, 0, 0)
+	local attachment2 = Instance.new("Attachment") attachment2.Position = endPos - startPos
+	local beam = Instance.new("Beam") beam.Attachment0 = attachment1 beam.Attachment1 = attachment2 beam.Color = ColorSequence.new(color) beam.Width0 = 0.5 beam.Width1 = 0.5 beam.FaceCamera = true
+	local part = Instance.new("Part") part.Size = Vector3.new(1, 1, 1) part.Anchored = true part.CanCollide = false part.Transparency = 1 part.CFrame = CFrame.new(startPos) part.Parent = workspace
+	attachment1.Parent = part attachment2.Parent = part beam.Parent = part
+	task.delay(duration, function() beam:Destroy() attachment1:Destroy() attachment2:Destroy() part:Destroy() end) return beam
+end
+
+function AnimationLib.DesyncTeleportEffect(position)
+	for i = 1, 8 do task.spawn(function() AnimationLib.CreateParticleEffect(position + Vector3.new(math.random(-3, 3), 0, math.random(-3, 3)), Color3.fromRGB(0, 150, 255), 0.8) end) task.wait(0.05) end
+	local wave = Instance.new("Part") wave.Size = Vector3.new(1, 1, 1) wave.Anchored = true wave.CanCollide = false wave.Transparency = 0.7 wave.Color = Color3.fromRGB(0, 100, 255) wave.Material = Enum.Material.Neon wave.CFrame = CFrame.new(position) wave.Parent = workspace
+	local tween = game:GetService("TweenService"):Create(wave, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(20, 0.1, 20), Transparency = 1})
+	tween:Play() tween.Completed:Connect(function() wave:Destroy() end)
+end
+
+local desyncPart local lastSafeCF = nil local lastTeleportCheck = nil
+local function CreateDesyncMarker(pos)
+	if desyncPart then desyncPart:Destroy() desyncPart = nil end
+	desyncPart = Instance.new("Part") desyncPart.Name = "DesyncMarker" desyncPart.Anchored = true desyncPart.CanCollide = false desyncPart.Size = Vector3.new(4, 4, 4) desyncPart.Transparency = 0.5 desyncPart.Color = Color3.fromRGB(0, 150, 255) desyncPart.Material = Enum.Material.Neon desyncPart.CFrame = pos desyncPart.Parent = workspace lastSafeCF = pos
+	local bbGui = Instance.new("BillboardGui") bbGui.Size = UDim2.new(10, 0, 4, 0) bbGui.AlwaysOnTop = true bbGui.Adornee = desyncPart bbGui.Parent = desyncPart
+	local frame = Instance.new("Frame") frame.Size = UDim2.new(1, 0, 1, 0) frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) frame.BackgroundTransparency = 0.7 frame.Parent = bbGui Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+	local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.Text = "ARIS DESYNC POINT" txt.TextColor3 = Color3.fromRGB(255, 255, 255) txt.TextScaled = true txt.Font = Enum.Font.GothamBold txt.TextStrokeTransparency = 0.8 txt.Parent = frame
+	task.spawn(function()
+		while desyncPart and desyncPart.Parent do
+			local t1 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4.5, 4.5, 4.5)}) t1:Play() t1.Completed:Wait()
+			if desyncPart then local t2 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4, 4, 4)}) t2:Play() t2.Completed:Wait() end
+		end
+	end)
+	AnimationLib.DesyncTeleportEffect(pos.Position) return desyncPart
+end
+
+local function UpdateDesyncMarker(pos)
+	if not desyncPart then CreateDesyncMarker(pos) return end
+	if lastTeleportCheck then
+		local delta = (pos.Position - lastTeleportCheck.Position).Magnitude
+		if delta > 1.5 then AnimationLib.DesyncTeleportEffect(desyncPart.Position) AnimationLib.CreateBeam(desyncPart.Position, pos.Position, Color3.fromRGB(0, 150, 255), 0.3) desyncPart.CFrame = pos lastSafeCF = pos end
+	end lastTeleportCheck = pos
+end
+
+local function ForceUpdateMarker(pos)
+    if not desyncPart then CreateDesyncMarker(pos) return end
+    AnimationLib.DesyncTeleportEffect(desyncPart.Position) desyncPart.CFrame = pos lastSafeCF = pos lastTeleportCheck = pos
+end
+
+local function HideDesyncMarker()
+	if desyncPart then AnimationLib.DesyncTeleportEffect(desyncPart.Position) desyncPart:Destroy() desyncPart = nil lastSafeCF = nil lastTeleportCheck = nil end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	local hrp = char:WaitForChild("HumanoidRootPart", 10) if not hrp then return end
+    task.wait(0.1)
+	if desyncState then
+        if desyncPart then AnimationLib.CreateBeam(desyncPart.Position, hrp.Position, Color3.fromRGB(0, 150, 255), 0.5) end
+		ForceUpdateMarker(hrp.CFrame)
+	end
 end)
 
--- Main Menu
-local MainFrame=Instance.new("Frame",ScreenGui)
-MainFrame.Size=UDim2.new(0,400,0,310); MainFrame.Position=UDim2.new(0,70,0.2,0)
-MainFrame.BackgroundColor3=Color3.fromRGB(18,18,18); MainFrame.Visible=false
-Instance.new("UICorner",MainFrame).CornerRadius=UDim.new(0,20)
-CreateBorder(MainFrame)
-
--- Nút Reset
-local ResetBtn=Instance.new("TextButton",MainFrame)
-ResetBtn.Size=UDim2.new(0,36,0,32); ResetBtn.Position=UDim2.new(0,12,0,7)
-ResetBtn.Text="" 
-ResetBtn.BackgroundColor3=Color3.new(1,1,1)
-Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,16)
-ApplyToggleGradient(ResetBtn, false)
-CreateBorder(ResetBtn)
-CreateButtonText(ResetBtn, "RST", Enum.Font.GothamBold, 13)
-
-ResetBtn.MouseButton1Click:Connect(function()
+local function FastRespawnUserLogic(plr, isHide)
+    ToggleDesync(true)
+    local char = plr.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local ogpos = hrp.CFrame local ogpos2 = workspace.CurrentCamera.CFrame
+    local hum = char:FindFirstChildWhichIsA("Humanoid") if hum then hum.Health = 0 end
     task.spawn(function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            while char.Humanoid.Health > 0 and char.Parent do char.Humanoid.Health = 0; task.wait(0.1) end
+        local newChar = plr.CharacterAdded:Wait()
+        local newHrp = newChar:WaitForChild("HumanoidRootPart", 10) if not newHrp then return end
+        if isHide then
+            local vheight = math.random(5000, 9888)
+            newHrp.CFrame = ogpos + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = ogpos2
+        else
+            newHrp.CFrame = ogpos workspace.CurrentCamera.CFrame = ogpos2
         end
     end)
-end)
+end
 
-local Title=Instance.new("TextLabel",MainFrame)
-Title.Size=UDim2.new(1,-70,0,45); Title.Position=UDim2.new(0,60,0,0)
-Title.Text="ARIS HUB V53 PRO"; Title.Font=Enum.Font.GothamBlack; Title.TextSize=20
-Title.BackgroundTransparency=1; Title.TextXAlignment=Enum.TextXAlignment.Left
-CreateTextGradient(Title)
-MakeDraggable(MainFrame) 
+local function CustomRespawnFix(plr)
+	local char = plr.Character if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+	AnimationLib.DesyncTeleportEffect(hrp.Position)
+	local ogpos = hrp.CFrame local ogpos2 = workspace.CurrentCamera.CFrame
+    replicatesignal(plr.ConnectDiedSignalBackend) task.wait(Players.RespawnTime - 0.1) replicatesignal(plr.Kill)
+	return plr.CharacterAdded:Wait(), ogpos, ogpos2
+end
 
+local function DoHideNormal()
+	local char = LocalPlayer.Character if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+	local originalCF = hrp.CFrame local originalCam = workspace.CurrentCamera.CFrame
+	local vheight = math.random(5000, 9888) hrp.CFrame = originalCF + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = originalCam
+	task.wait(0.15) ToggleDesync(true)
+	hrp.CFrame = originalCF workspace.CurrentCamera.CFrame = originalCam
+    UpdateDesyncMarker(originalCF) AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) AnimationLib.DesyncTeleportEffect(originalCF.Position)
+end
+
+local function ActivateDesyncNormal()
+	local char = LocalPlayer.Character local hrp = char and char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+	if _G.Config.Desync_HideAuto then DoHideNormal() else ToggleDesync(true) UpdateDesyncMarker(hrp.CFrame) AnimationLib.DesyncTeleportEffect(hrp.Position) end
+end
+
+local function DoFastDesync()
+	local char = LocalPlayer.Character if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local savedCFrame = hrp.CFrame UpdateDesyncMarker(savedCFrame) FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
+    local newChar = LocalPlayer.Character if newChar then local newHrp = newChar:WaitForChild("HumanoidRootPart", 5) if newHrp then UpdateDesyncMarker(savedCFrame) end end
+end
+
+local function DoFixDesync(isHide)
+    local char = LocalPlayer.Character if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+	ToggleDesync(true) for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+	UpdateDesyncMarker(hrp.CFrame)
+	local newChar, originalCF, originalCam = CustomRespawnFix(LocalPlayer) local newHrp = newChar:WaitForChild("HumanoidRootPart")
+	if isHide then local randomY = math.random(8000, 9000) newHrp.CFrame = CFrame.new(newHrp.Position.X, randomY, newHrp.Position.Z) workspace.CurrentCamera.CFrame = newHrp.CFrame task.wait(0.15) end
+	UpdateDesyncMarker(newHrp.CFrame)
+end
+
+-- ==========================================
+-- GIAO DIỆN MENU
+-- ==========================================
+local function MakeDraggable(f)
+    local d=false;local i,s
+    f.InputBegan:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then d=true;i=inp.Position;s=f.Position end end)
+    f.InputChanged:Connect(function(inp) if (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) and d then local delta=inp.Position-i; f.Position=UDim2.new(s.X.Scale,s.X.Offset+delta.X,s.Y.Scale,s.Y.Offset+delta.Y) end end)
+    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then d=false end end)
+end
+
+local ToggleBtn=Instance.new("ImageButton",ScreenGui) ToggleBtn.Size=UDim2.new(0,50,0,50); ToggleBtn.Position=UDim2.new(0,10,0.5,-25) ToggleBtn.Image="rbxassetid://125329301331069" ToggleBtn.BackgroundColor3=Color3.fromRGB(30,30,30) ToggleBtn.ClipsDescendants=true; ToggleBtn.Visible=_G.Config.Show_ToggleBtn Instance.new("UICorner",ToggleBtn).CornerRadius=UDim.new(0,20) CreateBorder(ToggleBtn) MakeDraggable(ToggleBtn)
+ApplyButtonAnimation(ToggleBtn) -- Thêm Anim
+UserInputService.InputBegan:Connect(function(input, gameProcessed) if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then _G.Config.MenuOpen = not _G.Config.MenuOpen; MainFrame.Visible = _G.Config.MenuOpen end end)
+
+local MainFrame=Instance.new("Frame",ScreenGui) MainFrame.Size=UDim2.new(0,400,0,310); MainFrame.Position=UDim2.new(0,70,0.2,0) MainFrame.BackgroundColor3=Color3.fromRGB(18,18,18); MainFrame.Visible=false Instance.new("UICorner",MainFrame).CornerRadius=UDim.new(0,20) CreateBorder(MainFrame)
+
+local ResetBtn=Instance.new("TextButton",MainFrame) ResetBtn.Size=UDim2.new(0,36,0,32); ResetBtn.Position=UDim2.new(0,12,0,7) ResetBtn.Text="" ResetBtn.BackgroundColor3=Color3.new(1,1,1) Instance.new("UICorner",ResetBtn).CornerRadius=UDim.new(0,16) ApplyToggleGradient(ResetBtn, false) CreateBorder(ResetBtn) CreateButtonText(ResetBtn, "RST", Enum.Font.GothamBold, 13)
+ApplyButtonAnimation(ResetBtn) -- Thêm Anim
+ResetBtn.MouseButton1Click:Connect(function() task.spawn(function() local char = LocalPlayer.Character if char and char:FindFirstChild("Humanoid") then while char.Humanoid.Health > 0 and char.Parent do char.Humanoid.Health = 0; task.wait(0.1) end end end) end)
+
+local Title=Instance.new("TextLabel",MainFrame) Title.Size=UDim2.new(1,-70,0,45); Title.Position=UDim2.new(0,60,0,0) Title.Text="ARIS HUB V53 PRO"; Title.Font=Enum.Font.GothamBlack; Title.TextSize=20 Title.BackgroundTransparency=1; Title.TextXAlignment=Enum.TextXAlignment.Left CreateTextGradient(Title) MakeDraggable(MainFrame) 
 ToggleBtn.MouseButton1Click:Connect(function() _G.Config.MenuOpen=not _G.Config.MenuOpen; MainFrame.Visible=_G.Config.MenuOpen end)
 
-local TabFrame=Instance.new("Frame",MainFrame)
-TabFrame.Size=UDim2.new(1,-10,0,35); TabFrame.Position=UDim2.new(0,5,0,45); TabFrame.BackgroundTransparency=1
-local Tabs={"ESP","Hitbox","Misc","NPC"}
+local TabFrame=Instance.new("Frame",MainFrame) TabFrame.Size=UDim2.new(1,-10,0,35); TabFrame.Position=UDim2.new(0,5,0,45); TabFrame.BackgroundTransparency=1
+local Tabs={"ESP","Hitbox","Misc","NPC","Desync"}
 local ContentFrames={}
 
-local tabListLayout = Instance.new("UIListLayout", TabFrame)
-tabListLayout.FillDirection = Enum.FillDirection.Horizontal; tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-tabListLayout.Padding = UDim.new(0, 6); tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local tabListLayout = Instance.new("UIListLayout", TabFrame) tabListLayout.FillDirection = Enum.FillDirection.Horizontal; tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder tabListLayout.Padding = UDim.new(0, 6); tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 for i,tab in ipairs(Tabs)do
-    local btn=Instance.new("TextButton",TabFrame)
-    btn.Size=UDim2.new(0.25, -6, 1, 0); btn.Text=""
-    btn.BackgroundColor3=Color3.new(1,1,1)
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,16)
-    ApplyToggleGradient(btn, false)
-    CreateBorder(btn)
-    CreateButtonText(btn, tab, Enum.Font.GothamBold, 13)
-
-    local content=Instance.new("ScrollingFrame",MainFrame)
-    content.Size=UDim2.new(1,-10,1,-95); content.Position=UDim2.new(0,5,0,85)
-    content.BackgroundTransparency=1; content.ScrollBarThickness=5; content.Visible=false; content.BorderSizePixel=0
-    local list=Instance.new("UIListLayout",content)
-    list.Padding=UDim.new(0,8); list.SortOrder=Enum.SortOrder.LayoutOrder
-    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() content.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 15) end)
+    local btn=Instance.new("TextButton",TabFrame) btn.Size=UDim2.new(1/#Tabs, -6, 1, 0); btn.Text="" btn.BackgroundColor3=Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius=UDim.new(0,16) ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, tab, Enum.Font.GothamBold, 12)
+    ApplyButtonAnimation(btn) -- Thêm Anim
+    local content=Instance.new("ScrollingFrame",MainFrame) content.Size=UDim2.new(1,-10,1,-95); content.Position=UDim2.new(0,5,0,85) content.BackgroundTransparency=1; content.ScrollBarThickness=5; content.Visible=false; content.BorderSizePixel=0
+    local list=Instance.new("UIListLayout",content) list.Padding=UDim.new(0,8); list.SortOrder=Enum.SortOrder.LayoutOrder list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() content.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 15) end)
     local pad=Instance.new("UIPadding",content); pad.PaddingLeft=UDim.new(0,5); pad.PaddingTop=UDim.new(0,5)
-
     ContentFrames[tab]={Frame=content}
     btn.MouseButton1Click:Connect(function() for _,f in pairs(ContentFrames)do f.Frame.Visible=false end; content.Visible=true end)
 end
 ContentFrames["ESP"].Frame.Visible=true
 
 local function AddToggle(tab,name,key,cb)
-    local content=ContentFrames[tab].Frame
-    local btn=Instance.new("TextButton",content)
-    btn.Size=UDim2.new(1,-16,0,36); btn.Text=""
-    btn.BackgroundColor3=Color3.new(1,1,1)
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,20)
-    
-    ApplyToggleGradient(btn, _G.Config[key])
-    CreateBorder(btn)
-    local btnTxt = CreateButtonText(btn, name..": "..(_G.Config[key]and"ON"or"OFF"), Enum.Font.GothamBold, 14)
-    
-    btn.MouseButton1Click:Connect(function()
-        _G.Config[key]=not _G.Config[key]
-        btnTxt.Text=name..": "..(_G.Config[key]and"ON"or"OFF")
-        ApplyToggleGradient(btn, _G.Config[key])
-        if cb then cb(_G.Config[key])end
-    end)
+    local content=ContentFrames[tab].Frame local btn=Instance.new("TextButton",content) btn.Size=UDim2.new(1,-16,0,36); btn.Text="" btn.BackgroundColor3=Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius=UDim.new(0,20)
+    ApplyToggleGradient(btn, _G.Config[key]) CreateBorder(btn) local btnTxt = CreateButtonText(btn, name..": "..(_G.Config[key]and"ON"or"OFF"), Enum.Font.GothamBold, 14)
+    ApplyButtonAnimation(btn) -- Thêm Anim
+    btn.MouseButton1Click:Connect(function() _G.Config[key]=not _G.Config[key] btnTxt.Text=name..": "..(_G.Config[key]and"ON"or"OFF") ApplyToggleGradient(btn, _G.Config[key]) if cb then cb(_G.Config[key])end end)
 end
 
-local function AddAdjust(tab,name,key,step)
-    local content=ContentFrames[tab].Frame
-    local frame=Instance.new("Frame",content)
-    frame.Size=UDim2.new(1,-16,0,36); frame.BackgroundTransparency=1
-
-    local label=Instance.new("TextLabel",frame)
-    label.Size=UDim2.new(0.55,0,1,0); label.Position=UDim2.new(0.2,0,0,0)
-    label.BackgroundTransparency=1; label.Text=name..": ".._G.Config[key]
-    label.Font=Enum.Font.GothamBold; label.TextSize=14
-    CreateTextGradient(label)
-
-    local minus=Instance.new("TextButton",frame)
-    minus.Size=UDim2.new(0.2,-5,1,0); minus.Text=""
-    minus.BackgroundColor3=Color3.new(1,1,1)
-    Instance.new("UICorner",minus).CornerRadius=UDim.new(0,20)
-    ApplyToggleGradient(minus, false)
-    CreateBorder(minus)
-    local minusTxt = CreateButtonText(minus, "-", Enum.Font.GothamBold, 18)
+local function AddAdjust(tab,name,key,step,minV,maxV,cb)
+    local content=ContentFrames[tab].Frame local frame=Instance.new("Frame",content) frame.Size=UDim2.new(1,-16,0,36); frame.BackgroundTransparency=1
+    local label=Instance.new("TextLabel",frame) label.Size=UDim2.new(0.55,0,1,0); label.Position=UDim2.new(0.2,0,0,0) label.BackgroundTransparency=1; label.Text=name..": ".._G.Config[key] label.Font=Enum.Font.GothamBold; label.TextSize=14 CreateTextGradient(label)
+    local minVal = minV or step
+    local maxVal = maxV or 9999
     
-    minus.MouseButton1Click:Connect(function()
-        _G.Config[key]=math.max(step,_G.Config[key]-step); label.Text=name..": ".._G.Config[key]
-    end)
-
-    local plus=Instance.new("TextButton",frame)
-    plus.Size=UDim2.new(0.2,-5,1,0); plus.Position=UDim2.new(0.8,5,0,0); plus.Text=""
-    plus.BackgroundColor3=Color3.new(1,1,1)
-    Instance.new("UICorner",plus).CornerRadius=UDim.new(0,20)
-    ApplyToggleGradient(plus, false)
-    CreateBorder(plus)
-    local plusTxt = CreateButtonText(plus, "+", Enum.Font.GothamBold, 16)
+    local minus=Instance.new("TextButton",frame) minus.Size=UDim2.new(0.2,-5,1,0); minus.Text="" minus.BackgroundColor3=Color3.new(1,1,1) Instance.new("UICorner",minus).CornerRadius=UDim.new(0,20) ApplyToggleGradient(minus, false) CreateBorder(minus) CreateButtonText(minus, "-", Enum.Font.GothamBold, 18)
+    ApplyButtonAnimation(minus) -- Thêm Anim
+    minus.MouseButton1Click:Connect(function() _G.Config[key]=math.clamp(_G.Config[key]-step, minVal, maxVal); label.Text=name..": ".._G.Config[key] if cb then cb() end end)
     
-    plus.MouseButton1Click:Connect(function()
-        _G.Config[key]=_G.Config[key]+step; label.Text=name..": ".._G.Config[key]
-    end)
+    local plus=Instance.new("TextButton",frame) plus.Size=UDim2.new(0.2,-5,1,0); plus.Position=UDim2.new(0.8,5,0,0); plus.Text="" plus.BackgroundColor3=Color3.new(1,1,1) Instance.new("UICorner",plus).CornerRadius=UDim.new(0,20) ApplyToggleGradient(plus, false) CreateBorder(plus) CreateButtonText(plus, "+", Enum.Font.GothamBold, 16)
+    ApplyButtonAnimation(plus) -- Thêm Anim
+    plus.MouseButton1Click:Connect(function() _G.Config[key]=math.clamp(_G.Config[key]+step, minVal, maxVal); label.Text=name..": ".._G.Config[key] if cb then cb() end end)
 end
 
-AddToggle("ESP","ESP NAME","ESP_Name_P")
-AddToggle("ESP","ESP HEALTH","ESP_Health_P")
-AddToggle("ESP","ESP DISTANCE","ESP_Distance_P")
-AddToggle("ESP","ESP BOX 2D","ESP_Box_P")
-AddToggle("ESP","ESP CHAMS","ESP_Chams_P")
-
-AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P")
-AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
-AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
-AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
-
-AddToggle("Misc","HIỆN NÚT ẢNH MỞ MENU","Show_ToggleBtn", function(val) ToggleBtn.Visible = val end)
-AddToggle("Misc","TEAM CHECK (ESP + HB)","TeamCheck")
-AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
+AddToggle("ESP","ESP NAME","ESP_Name_P") AddToggle("ESP","ESP HEALTH","ESP_Health_P") AddToggle("ESP","ESP DISTANCE","ESP_Distance_P") AddToggle("ESP","ESP BOX 2D","ESP_Box_P") AddToggle("ESP","ESP CHAMS","ESP_Chams_P")
+AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P") AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10) AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box") AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
+AddToggle("Misc","HIỆN NÚT ẢNH MỞ MENU","Show_ToggleBtn", function(val) ToggleBtn.Visible = val end) AddToggle("Misc","TEAM CHECK (ESP + HB)","TeamCheck") AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 
 -- UI WALKSPEED MỤC MISC
 local MiscContent = ContentFrames["Misc"].Frame
-local WSContainer = Instance.new("Frame", MiscContent)
-WSContainer.Size = UDim2.new(1, 0, 0, 115); WSContainer.BackgroundTransparency = 1
+local WSContainer = Instance.new("Frame", MiscContent) WSContainer.Size = UDim2.new(1, 0, 0, 115); WSContainer.BackgroundTransparency = 1
+local WSToggle = Instance.new("TextButton", WSContainer) WSToggle.Size = UDim2.new(1, -16, 0, 36); WSToggle.Text = "" WSToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled) CreateBorder(WSToggle) local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: OFF", Enum.Font.GothamBold, 14)
+ApplyButtonAnimation(WSToggle) -- Thêm Anim
 
-local WSToggle = Instance.new("TextButton", WSContainer)
-WSToggle.Size = UDim2.new(1, -16, 0, 36); WSToggle.Text = ""
-WSToggle.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled)
-CreateBorder(WSToggle)
-local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: OFF", Enum.Font.GothamBold, 14)
-
-local WSSliderBg = Instance.new("Frame", WSContainer)
-WSSliderBg.Size = UDim2.new(1, -16, 0, 25); WSSliderBg.Position = UDim2.new(0, 0, 0, 48)
-WSSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 20)
-
-local WSSliderFill = Instance.new("Frame", WSSliderBg)
-WSSliderFill.Size = UDim2.new((_G.Config.WalkSpeed - 16) / (250 - 16), 0, 1, 0)
-WSSliderFill.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(WSSliderFill, true)
-
-local WSValLabel = Instance.new("TextLabel", WSSliderBg)
-WSValLabel.Size = UDim2.new(1, 0, 1, 0); WSValLabel.BackgroundTransparency = 1
-WSValLabel.Text = "Speed: " .. _G.Config.WalkSpeed
-WSValLabel.Font = Enum.Font.GothamBold; WSValLabel.TextSize = 12
-CreateTextGradient(WSValLabel)
-
-local WSBtnFrame = Instance.new("Frame", WSContainer)
-WSBtnFrame.Size = UDim2.new(1, -16, 0, 32); WSBtnFrame.Position = UDim2.new(0, 0, 0, 82)
-WSBtnFrame.BackgroundTransparency = 1
+local WSSliderBg = Instance.new("Frame", WSContainer) WSSliderBg.Size = UDim2.new(1, -16, 0, 25); WSSliderBg.Position = UDim2.new(0, 0, 0, 48) WSSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 20)
+local WSSliderFill = Instance.new("Frame", WSSliderBg) WSSliderFill.Size = UDim2.new((_G.Config.WalkSpeed - 16) / (250 - 16), 0, 1, 0) WSSliderFill.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(WSSliderFill, true)
+local WSValLabel = Instance.new("TextLabel", WSSliderBg) WSValLabel.Size = UDim2.new(1, 0, 1, 0); WSValLabel.BackgroundTransparency = 1 WSValLabel.Text = "Speed: " .. _G.Config.WalkSpeed WSValLabel.Font = Enum.Font.GothamBold; WSValLabel.TextSize = 12 CreateTextGradient(WSValLabel)
+local WSBtnFrame = Instance.new("Frame", WSContainer) WSBtnFrame.Size = UDim2.new(1, -16, 0, 32); WSBtnFrame.Position = UDim2.new(0, 0, 0, 82) WSBtnFrame.BackgroundTransparency = 1
 
 local btnW = 0.22; local gap = 0.04
-local function createWSBtn(text, posScale)
-    local btn = Instance.new("TextButton", WSBtnFrame)
-    btn.Size = UDim2.new(btnW, 0, 1, 0); btn.Position = UDim2.new(posScale, 0, 0, 0)
-    btn.Text = ""; btn.BackgroundColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
-    ApplyToggleGradient(btn, false); CreateBorder(btn)
-    CreateButtonText(btn, text, Enum.Font.GothamBold, 14)
+local function createWSBtn(text, posScale) local btn = Instance.new("TextButton", WSBtnFrame) btn.Size = UDim2.new(btnW, 0, 1, 0); btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = ""; btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false); CreateBorder(btn) CreateButtonText(btn, text, Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn) return btn end
+local m10 = createWSBtn("-10", 0) local m5 = createWSBtn("-5", btnW + gap) local p5 = createWSBtn("+5", (btnW + gap) * 2) local p10 = createWSBtn("+10", (btnW + gap) * 3)
+
+local function UpdateWS(val) _G.Config.WalkSpeed = math.clamp(val, 16, 250) local ratio = (_G.Config.WalkSpeed - 16) / (250 - 16) WSSliderFill.Size = UDim2.new(ratio, 0, 1, 0) WSValLabel.Text = "Speed: " .. math.floor(_G.Config.WalkSpeed) end
+m10.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed - 10) end) m5.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed - 5) end) p5.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed + 5) end) p10.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed + 10) end)
+WSToggle.MouseButton1Click:Connect(function() _G.Config.WalkSpeedEnabled = not _G.Config.WalkSpeedEnabled WSToggleTxt.Text = "WALKSPEED: " .. (_G.Config.WalkSpeedEnabled and "ON" or "OFF") ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled) end)
+
+local draggingWS = false
+WSSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = true end end)
+WSSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = false end end)
+UserInputService.InputChanged:Connect(function(input) if draggingWS and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - WSSliderBg.AbsolutePosition.X) / WSSliderBg.AbsoluteSize.X, 0, 1) UpdateWS(16 + relX * (250 - 16)) end end)
+
+AddToggle("NPC","HITBOX NPC","Hitbox_NPC") AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10) AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC") AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name") AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
+
+-- ==========================================
+-- GIAO DIỆN DESYNC TAB & KHỞI TẠO NÚT NỔI
+-- ==========================================
+local RefreshFloatBtn 
+
+local desyncTab = ContentFrames["Desync"].Frame
+local ModeFrame = Instance.new("Frame", desyncTab)
+ModeFrame.Size = UDim2.new(1, -16, 0, 36)
+ModeFrame.BackgroundTransparency = 1
+
+local modeLabel = Instance.new("TextLabel", ModeFrame)
+modeLabel.Size = UDim2.new(0.2, 0, 1, 0)
+modeLabel.BackgroundTransparency = 1
+modeLabel.Text = "MODE:"
+modeLabel.Font = Enum.Font.GothamBold
+modeLabel.TextSize = 13
+CreateTextGradient(modeLabel)
+
+local function createModeBtn(text, posScale, modeStr)
+    local btn = Instance.new("TextButton", ModeFrame)
+    btn.Size = UDim2.new(0.25, 0, 1, 0)
+    btn.Position = UDim2.new(posScale, 0, 0, 0)
+    btn.Text = ""
+    btn.BackgroundColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16)
+    CreateBorder(btn)
+    local txt = CreateButtonText(btn, text, Enum.Font.GothamBold, 12)
+    ApplyButtonAnimation(btn) -- Thêm Anim
+    
+    local function UpdateState()
+        local isSelected = (_G.Config.Desync_Mode == modeStr)
+        ApplyToggleGradient(btn, isSelected)
+    end
+    UpdateState()
+    
+    btn.MouseButton1Click:Connect(function()
+        if desyncState then return end
+        _G.Config.Desync_Mode = modeStr
+        for _, child in ipairs(ModeFrame:GetChildren()) do
+            if child:IsA("TextButton") then ApplyToggleGradient(child, child:GetAttribute("ModeStr") == _G.Config.Desync_Mode) end
+        end
+        if RefreshFloatBtn then RefreshFloatBtn() end
+    end)
+    btn:SetAttribute("ModeStr", modeStr)
     return btn
 end
 
-local m10 = createWSBtn("-10", 0)
-local m5 = createWSBtn("-5", btnW + gap)
-local p5 = createWSBtn("+5", (btnW + gap) * 2)
-local p10 = createWSBtn("+10", (btnW + gap) * 3)
+createModeBtn("Normal", 0.22, "Normal")
+createModeBtn("Fast", 0.49, "Fast")
+createModeBtn("Fix", 0.76, "Fix")
 
-local function UpdateWS(val)
-    _G.Config.WalkSpeed = math.clamp(val, 16, 250)
-    local ratio = (_G.Config.WalkSpeed - 16) / (250 - 16)
-    WSSliderFill.Size = UDim2.new(ratio, 0, 1, 0)
-    WSValLabel.Text = "Speed: " .. math.floor(_G.Config.WalkSpeed)
+local floatGui = Instance.new("ScreenGui", CoreGui)
+floatGui.Name = "ArisFloatToggle"
+floatGui.ResetOnSpawn = false
+floatGui.DisplayOrder = 1000
+floatGui.Enabled = _G.Config.Desync_ShowFloat -- Liên kết với biến Mặc định (Tắt)
+
+local cyanPinkColors = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200))
+})
+
+-- KÍCH THƯỚC NÚT TO LÊN (150x50)
+local floatBtn = Instance.new("TextButton", floatGui)
+floatBtn.Size = UDim2.new(0, 150, 0, 50) 
+floatBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+floatBtn.Text = ""
+floatBtn.AutoButtonColor = false
+floatBtn.Active = false
+floatBtn.Draggable = false
+Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) 
+ApplyButtonAnimation(floatBtn) -- Thêm Anim mượt mà cho Nút Nổi
+
+local btnGradient = Instance.new("UIGradient", floatBtn)
+btnGradient.Color = cyanPinkColors
+btnGradient.Enabled = false
+
+local floatStroke = Instance.new("UIStroke", floatBtn)
+floatStroke.Thickness = 2.5
+floatStroke.Color = Color3.fromRGB(255, 255, 255)
+floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local strokeGradient = Instance.new("UIGradient", floatStroke)
+strokeGradient.Color = cyanPinkColors
+
+local floatText = Instance.new("TextLabel", floatBtn)
+floatText.Size = UDim2.new(1, 0, 1, 0)
+floatText.BackgroundTransparency = 1
+floatText.Text = "DeSync : Off"
+floatText.TextColor3 = Color3.fromRGB(255, 255, 255)
+floatText.TextSize = 15 -- Chữ to lên theo nút
+floatText.Font = Enum.Font.GothamBold
+
+local textGradient = Instance.new("UIGradient", floatText)
+textGradient.Color = cyanPinkColors
+textGradient.Enabled = true
+
+local function UpdateFloatPosition()
+    floatBtn.Position = UDim2.new(_G.Config.Desync_FloatX / 100, 0, _G.Config.Desync_FloatY / 100, 0)
+end
+UpdateFloatPosition()
+
+RefreshFloatBtn = function()
+    if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
+        floatText.Text = "N/A ⚠️"
+        btnGradient.Enabled = false
+        textGradient.Enabled = false
+        strokeGradient.Enabled = false
+        floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        floatText.TextColor3 = Color3.fromRGB(200, 200, 200)
+        floatStroke.Color = Color3.fromRGB(100, 100, 100)
+        return
+    end
+
+    strokeGradient.Enabled = true
+    floatStroke.Color = Color3.fromRGB(255, 255, 255)
+
+	if desyncState then
+		local dName = _G.Config.Desync_Mode == "Fix" and "FIX" or _G.Config.Desync_Mode:upper()
+		floatText.Text = "DeSync: On ("..dName..")"
+        btnGradient.Enabled = true
+        floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        textGradient.Enabled = false
+        floatText.TextColor3 = Color3.fromRGB(0, 0, 0)
+	else
+		floatText.Text = "DeSync: Off"
+        btnGradient.Enabled = false
+        floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        textGradient.Enabled = true
+        floatText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end
 end
 
-m10.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed - 10) end)
-m5.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed - 5) end)
-p5.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed + 5) end)
-p10.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed + 10) end)
+floatBtn.MouseButton1Click:Connect(function()
+    if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
+	desyncState = not desyncState
+	RefreshFloatBtn()
 
-WSToggle.MouseButton1Click:Connect(function()
-    _G.Config.WalkSpeedEnabled = not _G.Config.WalkSpeedEnabled
-    WSToggleTxt.Text = "WALKSPEED: " .. (_G.Config.WalkSpeedEnabled and "ON" or "OFF")
-    ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled)
+	if desyncState then
+		if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto)
+		elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync()
+		else ActivateDesyncNormal() end
+	else
+		ToggleDesync(false)
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
+        HideDesyncMarker()
+	end
 end)
 
-local draggingWS = false
-WSSliderBg.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = true end
-end)
-WSSliderBg.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = false end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if draggingWS and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local relX = math.clamp((input.Position.X - WSSliderBg.AbsolutePosition.X) / WSSliderBg.AbsoluteSize.X, 0, 1)
-        UpdateWS(16 + relX * (250 - 16))
-    end
-end)
+AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddToggle("Desync", "HIỆN NÚT DESYNC NỔI", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
+AddAdjust("Desync", "TỌA ĐỘ X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
+AddAdjust("Desync", "TỌA ĐỘ Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
 
-AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
-AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
-AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
-AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
-AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
-
-local ESP_Store={}
-local NPC_Store={}
-local CachedNPCs = {}
+-- ==========================================
+-- ESP VÀ HITBOX CORE
+-- ==========================================
+local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
 
 local function CheckAndCacheNPC(obj)
     if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
         if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then CachedNPCs[obj] = true end
     end
 end
-
 for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
-Workspace.DescendantAdded:Connect(function(descendant)
-    task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end)
-end)
+Workspace.DescendantAdded:Connect(function(descendant) task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end) end)
 
 local function RestoreHRP(hrp)
     if hrp and hrp:GetAttribute("ArisOrigSizeX") then
@@ -444,9 +575,7 @@ local function CleanupNPC(m)
     end
 end
 
-Workspace.DescendantRemoving:Connect(function(descendant)
-    if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end
-end)
+Workspace.DescendantRemoving:Connect(function(descendant) if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end end)
 
 RunService.RenderStepped:Connect(function()
     if _G.Config.WalkSpeedEnabled and LocalPlayer.Character then
@@ -456,15 +585,12 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==========================================
--- ĐỘNG CƠ RENDER (HEARTBEAT) - TÍNH TOÁN DÒNG CHẢY
+-- ĐỘNG CƠ RENDER (HEARTBEAT)
 -- ==========================================
 RunService.Heartbeat:Connect(function()
     local rgb=GetRGB() 
-    
-    -- Tốc độ dòng chảy (Chậm rãi, nhẹ nhàng, lững lờ trôi)
     local shift = tick() * 0.15 
     
-    -- Sinh ra Sequence toán học cho từng Frame để loại bỏ hiện tượng giật lặp
     local seqOn = GetMovingColorSequence(Palettes.On, shift)
     local seqOff = GetMovingColorSequence(Palettes.Off, shift)
     local seqText = GetMovingColorSequence(Palettes.Text, shift * 1.5)
@@ -473,11 +599,7 @@ RunService.Heartbeat:Connect(function()
     for _, grad in ipairs(UIGradientList) do grad.Color = seqBorder end
     for _, grad in ipairs(TextGradientList) do grad.Color = seqText end
     for _, grad in ipairs(BtnGradientList) do 
-        if grad.Parent and grad.Parent:GetAttribute("IsOn") then
-            grad.Color = seqOn
-        else
-            grad.Color = seqOff
-        end
+        if grad.Parent and grad.Parent:GetAttribute("IsOn") then grad.Color = seqOn else grad.Color = seqOff end
     end
 
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -486,9 +608,7 @@ RunService.Heartbeat:Connect(function()
         for _, p in Players:GetPlayers() do
             if p == LocalPlayer then continue end
             if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then continue end
-            local char = p.Character
-            local hum = char and char:FindFirstChild("Humanoid")
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local char = p.Character local hum = char and char:FindFirstChild("Humanoid") local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if char and hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - myRoot.Position).Magnitude
                 if dist <= 2000 and (hum.Health / hum.MaxHealth) <= 0.3 then hasLowHPEnemy = true; break end
@@ -496,12 +616,9 @@ RunService.Heartbeat:Connect(function()
         end
     end
 
-    -- PLAYER LOOP
     for _,p in Players:GetPlayers()do
         if p==LocalPlayer then continue end
-        local char=p.Character
-        local hrp=char and char:FindFirstChild("HumanoidRootPart")
-        local hum=char and char:FindFirstChild("Humanoid")
+        local char=p.Character local hrp=char and char:FindFirstChild("HumanoidRootPart") local hum=char and char:FindFirstChild("Humanoid")
         local isTeammate = (_G.Config.TeamCheck and p.Team ~= nil and p.Team == LocalPlayer.Team)
 
         if not char or not hrp or not hum or hum.Health<=0 or isTeammate then
@@ -572,13 +689,9 @@ RunService.Heartbeat:Connect(function()
         else CleanupESP(p.Name) end
     end
 
-    -- NPC LOOP
     for obj in pairs(CachedNPCs) do
         if not obj.Parent then CachedNPCs[obj] = nil; CleanupNPC(obj); continue end
-
-        local hum = obj:FindFirstChild("Humanoid")
-        local hrp = obj:FindFirstChild("HumanoidRootPart")
-        
+        local hum = obj:FindFirstChild("Humanoid") local hrp = obj:FindFirstChild("HumanoidRootPart")
         if hum and hrp and hum.Health > 0 then
             if _G.Config.Hitbox_NPC then
                 if not hrp:GetAttribute("ArisOrigSizeX") then
