@@ -39,8 +39,8 @@ _G.Config={
     -- CẤU HÌNH DESYNC
     Desync_HideAuto = false,
     Desync_ShowFloat = false,  -- NÚT NỔI MẶC ĐỊNH TẮT
-    Desync_FloatX = 20,        -- TỌA ĐỘ X 20
-    Desync_FloatY = 70,        -- TỌA ĐỘ Y 70
+    Desync_FloatX = 70,        -- TỌA ĐỘ X 20
+    Desync_FloatY = 20,        -- TỌA ĐỘ Y 70
     Desync_Mode = "Normal"
 }
 
