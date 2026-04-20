@@ -9,8 +9,8 @@ local CoreGui = game:GetService("CoreGui")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC",
-    Text="Đã khôi phục bản gốc uy tín! Nút Desync mặc định Tắt, X:20 Y:70.",
-    Duration=8
+    Text="Đã khôi phục bản gốc uy tín! Nút Desync mặc định Tắt, X:70 Y:20.",
+    Duration=5
 })
 
 _G.Config={
@@ -39,8 +39,8 @@ _G.Config={
     -- CẤU HÌNH DESYNC
     Desync_HideAuto = false,
     Desync_ShowFloat = false,  -- NÚT NỔI MẶC ĐỊNH TẮT
-    Desync_FloatX = 70,        -- TỌA ĐỘ X 20
-    Desync_FloatY = 20,        -- TỌA ĐỘ Y 70
+    Desync_FloatX = 70,        -- TỌA ĐỘ X 70
+    Desync_FloatY = 20,        -- TỌA ĐỘ Y 20
     Desync_Mode = "Normal"
 }
 
