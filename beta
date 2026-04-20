@@ -330,7 +330,7 @@ local subtitle = Instance.new("TextLabel") subtitle.Size = UDim2.new(1, -20, 0, 
 
 local mainContainer = Instance.new("Frame") mainContainer.Name = "MainContainer" mainContainer.Size = UDim2.new(1, -20, 1, -42) mainContainer.Position = UDim2.new(0, 10, 0, 37) mainContainer.BackgroundTransparency = 1 mainContainer.Parent = background
 
-local floatBtn, floatText, floatIcon, floatStroke, RefreshMain
+local floatBtn, floatText, floatStroke, RefreshMain
 
 local modeSection = Instance.new("Frame") modeSection.Size = UDim2.new(1, 0, 0, 28) modeSection.BackgroundTransparency = 1 modeSection.Parent = mainContainer
 local modeLabel = Instance.new("TextLabel") modeLabel.Size = UDim2.new(0.2, 0, 1, 0) modeLabel.BackgroundTransparency = 1 modeLabel.Text = "MODE:" modeLabel.TextColor3 = Color3.fromRGB(200, 200, 200) modeLabel.TextSize = 10 modeLabel.Font = Enum.Font.GothamSemibold modeLabel.TextXAlignment = Enum.TextXAlignment.Left modeLabel.Parent = modeSection
@@ -449,7 +449,7 @@ task.spawn(function()
 end)
 
 -- ===============================================================
--- KHỞI TẠO NÚT DESYNC NỔI LƠ LỬNG
+-- KHỞI TẠO NÚT DESYNC NỔI LƠ LỬNG (GIAO DIỆN MỚI)
 -- ===============================================================
 local floatGui = Instance.new("ScreenGui")
 floatGui.Name = "ArisFloatToggle"
@@ -457,40 +457,52 @@ floatGui.Parent = CoreGui
 floatGui.ResetOnSpawn = false
 floatGui.DisplayOrder = 1000
 
+local cyanPinkColors = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200))
+})
+
 floatBtn = Instance.new("TextButton")
-floatBtn.Size = UDim2.new(0, 65, 0, 65)
+floatBtn.Size = UDim2.new(0, 95, 0, 50)
 floatBtn.AnchorPoint = Vector2.new(0.5, 0.5)
 floatBtn.Position = UDim2.new(0.5, 0, 0.8, 0) -- Mặc định X: 50%, Y: 80%
-floatBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 floatBtn.Text = ""
 floatBtn.AutoButtonColor = false
 floatBtn.Active = false -- KHÓA TƯƠNG TÁC KÉO TAY
 floatBtn.Draggable = false -- KHÓA KÉO TAY
 floatBtn.Parent = floatGui
-Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(0, 12)
+
+local btnGradient = Instance.new("UIGradient")
+btnGradient.Color = cyanPinkColors
+btnGradient.Enabled = false
+btnGradient.Parent = floatBtn
 
 floatStroke = Instance.new("UIStroke")
 floatStroke.Parent = floatBtn
-floatStroke.Thickness = 3
-floatStroke.Color = Color3.fromRGB(255, 100, 100)
+floatStroke.Thickness = 2.5
+floatStroke.Color = Color3.fromRGB(255, 255, 255)
+floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-floatIcon = Instance.new("TextLabel")
-floatIcon.Size = UDim2.new(1, 0, 0.6, 0)
-floatIcon.Position = UDim2.new(0, 0, 0, 5)
-floatIcon.BackgroundTransparency = 1
-floatIcon.Text = "⭕"
-floatIcon.TextSize = 20
-floatIcon.Parent = floatBtn
+local strokeGradient = Instance.new("UIGradient")
+strokeGradient.Color = cyanPinkColors
+strokeGradient.Parent = floatStroke
 
 floatText = Instance.new("TextLabel")
-floatText.Size = UDim2.new(1, 0, 0.4, 0)
-floatText.Position = UDim2.new(0, 0, 0.5, 5)
+floatText.Size = UDim2.new(1, 0, 1, 0)
 floatText.BackgroundTransparency = 1
-floatText.Text = "OFF"
+floatText.Text = "DeSync : Off"
 floatText.TextColor3 = Color3.fromRGB(255, 255, 255)
-floatText.TextSize = 12
+floatText.TextSize = 13
 floatText.Font = Enum.Font.GothamBold
+floatText.TextWrapped = true
 floatText.Parent = floatBtn
+
+local textGradient = Instance.new("UIGradient")
+textGradient.Color = cyanPinkColors
+textGradient.Enabled = true
+textGradient.Parent = floatText
 
 -- Hàm cập nhật tọa độ nút từ Menu
 local function UpdateFloatPosition()
@@ -507,28 +519,36 @@ yBox.FocusLost:Connect(UpdateFloatPosition)
 
 RefreshMain = function()
     if GENV.SelectedMode == "Fix" and GENV.HideAuto then
-        floatText.Text = "N/A"
-        floatIcon.Text = "⚠️"
-        TweenService:Create(floatBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}):Play()
-        TweenService:Create(floatStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(100, 100, 100)}):Play()
+        floatText.Text = "N/A\n⚠️"
+        btnGradient.Enabled = false
+        textGradient.Enabled = false
+        strokeGradient.Enabled = false
+        floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        floatText.TextColor3 = Color3.fromRGB(200, 200, 200)
+        floatStroke.Color = Color3.fromRGB(100, 100, 100)
         return
     end
 
+    strokeGradient.Enabled = true
+    floatStroke.Color = Color3.fromRGB(255, 255, 255)
+
 	if desyncState then
 		local dName = GENV.SelectedMode == "Fix" and "FIX" or GENV.SelectedMode:upper()
-		floatText.Text = dName
-		local c, sC
-		if GENV.SelectedMode == "Fast" then c=Color3.fromRGB(0,150,255) sC=Color3.fromRGB(0,200,255)
-		elseif GENV.SelectedMode == "Fix" then c=Color3.fromRGB(255,140,0) sC=Color3.fromRGB(255,180,50)
-		else c=Color3.fromRGB(0,200,100) sC=Color3.fromRGB(0,255,150) end
-		TweenService:Create(floatBtn, TweenInfo.new(0.3), {BackgroundColor3 = c}):Play()
-		TweenService:Create(floatStroke, TweenInfo.new(0.3), {Color = sC}):Play()
-		floatIcon.Text = "✅"
+		floatText.Text = "DeSync : On\n("..dName..")"
+		
+        -- Bật nền Gradient Cyan Pink, chữ màu Đen
+        btnGradient.Enabled = true
+        floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        textGradient.Enabled = false
+        floatText.TextColor3 = Color3.fromRGB(0, 0, 0)
 	else
-		floatText.Text = "OFF"
-		TweenService:Create(floatBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}):Play()
-		TweenService:Create(floatStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(255, 100, 100)}):Play()
-		floatIcon.Text = "⭕"
+		floatText.Text = "DeSync : Off"
+		
+        -- Tắt nền (về Đen), chữ hiển thị hiệu ứng Gradient Cyan Pink
+        btnGradient.Enabled = false
+        floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        textGradient.Enabled = true
+        floatText.TextColor3 = Color3.fromRGB(255, 255, 255)
 	end
 end
 RefreshMain()
@@ -537,9 +557,9 @@ floatBtn.MouseButton1Click:Connect(function()
     if GENV.SelectedMode == "Fix" and GENV.HideAuto then return end
 	desyncState = not desyncState
 	RefreshMain()
-	TweenService:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 55, 0, 55)}):Play()
+	TweenService:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 85, 0, 45)}):Play()
 	task.wait(0.1)
-	TweenService:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 65, 0, 65)}):Play()
+	TweenService:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 95, 0, 50)}):Play()
 
 	if desyncState then
 		if GENV.SelectedMode == "Fix" then DoFixDesync(GENV.HideAuto)
