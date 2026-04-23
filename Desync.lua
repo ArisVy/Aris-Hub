@@ -113,6 +113,7 @@ ThongBao("Đã tải thư chia tay từ Aris_Vy!")
 -- ==========================================
 
 if CoreGui:FindFirstChild("ArisMenuMobile") then CoreGui.ArisMenuMobile:Destroy() end
+if CoreGui:FindFirstChild("ArisDramaticScreen") then CoreGui.ArisDramaticScreen:Destroy() end
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ArisMenuMobile"
@@ -318,7 +319,6 @@ langText.MouseButton1Click:Connect(function()
     updateLanguage()
 end)
 
--- Khởi tạo ngôn ngữ mặc định (Tiếng Việt)
 updateLanguage()
 
 RunService.RenderStepped:Connect(function()
@@ -327,4 +327,84 @@ RunService.RenderStepped:Connect(function()
     langGradient.Rotation = fastRot
     smallGradient.Rotation = fastRot
     scrollGradient.Rotation = fastRot
+end)
+
+-- ==========================================
+-- HIỆU ỨNG MÀN HÌNH ĐEN KỊCH TÍNH (SAU 7 GIÂY)
+-- ==========================================
+task.delay(7, function()
+    local blackGui = Instance.new("ScreenGui")
+    blackGui.Name = "ArisDramaticScreen"
+    blackGui.Parent = CoreGui
+    blackGui.DisplayOrder = 99999 -- Mức cao nhất để đè lên mọi thứ
+    blackGui.IgnoreGuiInset = true -- Bỏ qua Topbar, che kín màn hình
+
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 1
+    bg.BorderSizePixel = 0
+    bg.Parent = blackGui
+
+    local msg = Instance.new("TextLabel")
+    msg.Size = UDim2.new(0.9, 0, 0.4, 0)
+    msg.Position = UDim2.new(0.05, 0, 0.3, 0)
+    msg.BackgroundTransparency = 1
+    msg.Font = Enum.Font.GothamBlack
+    msg.TextScaled = true
+    msg.TextColor3 = Color3.fromRGB(255, 255, 255)
+    msg.TextTransparency = 1
+    
+    -- Gộp cả Tiếng Việt và Tiếng Anh, phân tách bằng dấu xuống dòng
+    local textVi = "CÓ VẺ CENTUDOX ĐÃ LẤY SOURCE CỦA TÔI MÀ KHÔNG XIN PHÉP RỒI 🥲"
+    local textEn = "IT SEEMS CENTUDOX TOOK MY SOURCE WITHOUT PERMISSION 🥲"
+    msg.Text = textVi .. "\n\n" .. textEn
+    msg.Parent = bg
+
+    -- Viền đỏ để tăng độ kịch tính
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(255, 0, 0)
+    stroke.Thickness = 4
+    stroke.Transparency = 1
+    stroke.Parent = msg
+
+    local uis = Instance.new("UIScale")
+    uis.Parent = msg
+    uis.Scale = 0.1
+
+    -- Bắt đầu làm tối màn hình dần dần
+    TweenService:Create(bg, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.4}):Play() -- Không làm đen 100% để tránh người chơi tưởng game crash, để ở 0.4 là đủ tối. (Nếu muốn đen hẳn thì đổi 0.4 thành 0)
+    task.wait(1)
+
+    -- Hiện chữ bật nảy (Pop-up)
+    msg.TextTransparency = 0
+    stroke.Transparency = 0
+    TweenService:Create(uis, TweenInfo.new(1.5, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Scale = 1}):Play()
+    
+    -- Hiệu ứng nhịp đập (Pulsing) gây áp lực tâm lý
+    local isPulsing = true
+    task.spawn(function()
+        while isPulsing and msg.Parent do
+            TweenService:Create(uis, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Scale = 1.05}):Play()
+            task.wait(0.8)
+            TweenService:Create(uis, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Scale = 1}):Play()
+            task.wait(0.8)
+        end
+    end)
+
+    -- CHỜ 10 GIÂY RỒI TỪ TỪ BIẾN MẤT
+    task.wait(10)
+    isPulsing = false -- Dừng hiệu ứng đập
+
+    local fadeBg = TweenService:Create(bg, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {BackgroundTransparency = 1})
+    local fadeMsg = TweenService:Create(msg, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {TextTransparency = 1})
+    local fadeStroke = TweenService:Create(stroke, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Transparency = 1})
+
+    fadeBg:Play()
+    fadeMsg:Play()
+    fadeStroke:Play()
+
+    fadeBg.Completed:Connect(function()
+        if blackGui then blackGui:Destroy() end
+    end)
 end)
