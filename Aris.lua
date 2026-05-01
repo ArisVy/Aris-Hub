@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -11,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="Đã Tách Nút FREEZE HITBOX & Fix Lag Player",
+    Text="Đã trả nút MENU về nguyên bản & Fix đè logo",
     Duration=8
 })
 
@@ -26,7 +25,7 @@ _G.Config={
     Hitbox_WallCheck=false,
     Hitbox_Box=false,
     ESP_2D_Hitbox=false, 
-    Freeze_Hitbox=false, -- TÍNH NĂNG MỚI TÁCH RỜI
+    Freeze_Hitbox=false,
     TeamCheck=true,
     LowHP_KS=false,
     WalkSpeed=90,
@@ -71,10 +70,10 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = CoreGui
 
--- BẢNG FPS & PING
+-- BẢNG FPS & PING (Đã hạ xuống để không đè lên Roblox Logo)
 local StatsFrame = Instance.new("Frame", ScreenGui)
 StatsFrame.Size = UDim2.new(0, 150, 0, 26)
-StatsFrame.Position = UDim2.new(0, 15, 0, 15)
+StatsFrame.Position = UDim2.new(0, 15, 0, 60)
 StatsFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 StatsFrame.BackgroundTransparency = 0.5
 StatsFrame.BorderSizePixel = 0
@@ -91,8 +90,8 @@ StatsText.TextColor3 = Color3.new(1,1,1)
 
 local StatsGrad = Instance.new("UIGradient", StatsText)
 StatsGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, 230, 255),
-    ColorSequenceKeypoint.new(1, 255, 50, 200)
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200))
 })
 
 local FPS_Frames = 0
@@ -449,6 +448,7 @@ local function MakeDraggable(f)
     end)
 end
 
+-- TRẢ LẠI IMAGEBUTTON NGUYÊN BẢN CỦA BẠN
 local ToggleBtn = Instance.new("ImageButton",ScreenGui)
 ToggleBtn.Size = UDim2.new(0,50,0,50)
 ToggleBtn.Position = UDim2.new(0,10,0.5,-25)
@@ -663,7 +663,7 @@ AddToggle("ESP","ESP BOX 2D","ESP_Box_P")
 AddToggle("ESP","ESP CHAMS","ESP_Chams_P")
 
 AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P")
-AddToggle("Hitbox","FREEZE HITBOX (Chống Lag)","Freeze_Hitbox") -- NÚT TÁCH RỜI CHỨC NĂNG
+AddToggle("Hitbox","FREEZE HITBOX (Chống Lag)","Freeze_Hitbox") 
 AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
 AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
@@ -1285,17 +1285,13 @@ RunService.Heartbeat:Connect(function()
                     if hrp.Massless ~= nil then hrp:SetAttribute("ArisOrigMassless", hrp.Massless) end
                 end
                 
-                -- LOGIC ĐƯỢC TÁCH RA THÀNH 2 PHẦN THEO YÊU CẦU
                 if _G.Config.Freeze_Hitbox then
-                    -- BẬT "FREEZE HITBOX": Chỉ update size khi có sự khác biệt để tránh kẹt
                     local targetSize = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
                     if hrp.Size ~= targetSize then hrp.Size = targetSize end
                     if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
                     if hrp.CanCollide ~= false then hrp.CanCollide = false end
                     if hrp.Massless ~= true then hrp.Massless = true end
                 else
-                    -- TẮT "FREEZE HITBOX" (LOGIC THƯỜNG + FIX VẬT LÝ):
-                    -- Ép size liên tục 60fps nhưng chèn CustomPhysicalProperties để triệt tiêu độ nặng, ma sát. Player sẽ k còn bị giật/freeze.
                     hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
                     hrp.Transparency = 0.6
                     hrp.CanCollide = false
