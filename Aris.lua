@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="Đã Fix Freeze Buddha & Thêm ESP 2D Hitbox",
+    Text="FIX 100% FREEZE BUDDHA: Hitbox ngưng ép size khi tắt!",
     Duration=8
 })
 
@@ -24,7 +24,7 @@ _G.Config={
     HitboxSize=150,
     Hitbox_WallCheck=false,
     Hitbox_Box=false,
-    ESP_2D_Hitbox=false, -- TÍNH NĂNG ESP 2D PHÓNG TO THEO HITBOX
+    ESP_2D_Hitbox=false, 
     TeamCheck=true,
     LowHP_KS=false,
     WalkSpeed=90,
@@ -262,82 +262,30 @@ function AnimationLib.CreateParticleEffect(position, color, duration)
     part.CFrame = CFrame.new(position)
     part.Transparency = 0.3
     part.Parent = workspace
-
-    local light = Instance.new("PointLight") 
-    light.Color = color 
-    light.Range = 15 
-    light.Brightness = 2 
-    light.Parent = part
-
+    local light = Instance.new("PointLight") light.Color = color light.Range = 15 light.Brightness = 2 light.Parent = part
     local tween = game:GetService("TweenService"):Create(part, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = Vector3.new(0.5, 0.5, 0.5), 
-        Transparency = 1, 
-        CFrame = CFrame.new(position) * CFrame.new(math.random(-5, 5), math.random(5, 10), math.random(-5, 5))
+        Size = Vector3.new(0.5, 0.5, 0.5), Transparency = 1, CFrame = CFrame.new(position) * CFrame.new(math.random(-5, 5), math.random(5, 10), math.random(-5, 5))
     })
-    tween:Play() 
-    tween.Completed:Connect(function() part:Destroy() end) 
-    return part
+    tween:Play() tween.Completed:Connect(function() part:Destroy() end) return part
 end
 
 function AnimationLib.CreateBeam(startPos, endPos, color, duration)
-    local attachment1 = Instance.new("Attachment")
-    attachment1.Position = Vector3.new(0, 0, 0)
-    local attachment2 = Instance.new("Attachment")
-    attachment2.Position = endPos - startPos
-
-    local beam = Instance.new("Beam") 
-    beam.Attachment0 = attachment1 
-    beam.Attachment1 = attachment2 
-    beam.Color = ColorSequence.new(color) 
-    beam.Width0 = 0.5 
-    beam.Width1 = 0.5 
-    beam.FaceCamera = true
-
-    local part = Instance.new("Part") 
-    part.Size = Vector3.new(1, 1, 1) 
-    part.Anchored = true 
-    part.CanCollide = false 
-    part.Transparency = 1 
-    part.CFrame = CFrame.new(startPos) 
-    part.Parent = workspace
-
-    attachment1.Parent = part 
-    attachment2.Parent = part 
-    beam.Parent = part
-
-    task.delay(duration, function() 
-        beam:Destroy() 
-        attachment1:Destroy() 
-        attachment2:Destroy() 
-        part:Destroy() 
-    end) 
-    return beam
+    local attachment1 = Instance.new("Attachment") attachment1.Position = Vector3.new(0, 0, 0)
+    local attachment2 = Instance.new("Attachment") attachment2.Position = endPos - startPos
+    local beam = Instance.new("Beam") beam.Attachment0 = attachment1 beam.Attachment1 = attachment2 beam.Color = ColorSequence.new(color) beam.Width0 = 0.5 beam.Width1 = 0.5 beam.FaceCamera = true
+    local part = Instance.new("Part") part.Size = Vector3.new(1, 1, 1) part.Anchored = true part.CanCollide = false part.Transparency = 1 part.CFrame = CFrame.new(startPos) part.Parent = workspace
+    attachment1.Parent = part attachment2.Parent = part beam.Parent = part
+    task.delay(duration, function() beam:Destroy() attachment1:Destroy() attachment2:Destroy() part:Destroy() end) return beam
 end
 
 function AnimationLib.DesyncTeleportEffect(position)
     for i = 1, 8 do
-        task.spawn(function()
-            AnimationLib.CreateParticleEffect(position + Vector3.new(math.random(-3, 3), 0, math.random(-3, 3)), Color3.fromRGB(0, 150, 255), 0.8)
-        end)
+        task.spawn(function() AnimationLib.CreateParticleEffect(position + Vector3.new(math.random(-3, 3), 0, math.random(-3, 3)), Color3.fromRGB(0, 150, 255), 0.8) end)
         task.wait(0.05)
     end
-
-    local wave = Instance.new("Part") 
-    wave.Size = Vector3.new(1, 1, 1) 
-    wave.Anchored = true 
-    wave.CanCollide = false 
-    wave.Transparency = 0.7 
-    wave.Color = Color3.fromRGB(0, 100, 255) 
-    wave.Material = Enum.Material.Neon 
-    wave.CFrame = CFrame.new(position) 
-    wave.Parent = workspace
-
-    local tween = game:GetService("TweenService"):Create(wave, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = Vector3.new(20, 0.1, 20), 
-        Transparency = 1
-    })
-    tween:Play() 
-    tween.Completed:Connect(function() wave:Destroy() end)
+    local wave = Instance.new("Part") wave.Size = Vector3.new(1, 1, 1) wave.Anchored = true wave.CanCollide = false wave.Transparency = 0.7 wave.Color = Color3.fromRGB(0, 100, 255) wave.Material = Enum.Material.Neon wave.CFrame = CFrame.new(position) wave.Parent = workspace
+    local tween = game:GetService("TweenService"):Create(wave, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(20, 0.1, 20), Transparency = 1})
+    tween:Play() tween.Completed:Connect(function() wave:Destroy() end)
 end
 
 local desyncPart
@@ -345,67 +293,23 @@ local lastSafeCF = nil
 local lastTeleportCheck = nil
 
 local function CreateDesyncMarker(pos)
-    if desyncPart then
-        desyncPart:Destroy()
-        desyncPart = nil
-    end
-    desyncPart = Instance.new("Part")
-    desyncPart.Name = "DesyncMarker"
-    desyncPart.Anchored = true
-    desyncPart.CanCollide = false
-    desyncPart.Size = Vector3.new(4, 4, 4)
-    desyncPart.Transparency = 0.5
-    desyncPart.Color = Color3.fromRGB(0, 150, 255)
-    desyncPart.Material = Enum.Material.Neon
-    desyncPart.CFrame = pos
-    desyncPart.Parent = workspace
+    if desyncPart then desyncPart:Destroy() desyncPart = nil end
+    desyncPart = Instance.new("Part") desyncPart.Name = "DesyncMarker" desyncPart.Anchored = true desyncPart.CanCollide = false desyncPart.Size = Vector3.new(4, 4, 4) desyncPart.Transparency = 0.5 desyncPart.Color = Color3.fromRGB(0, 150, 255) desyncPart.Material = Enum.Material.Neon desyncPart.CFrame = pos desyncPart.Parent = workspace
     lastSafeCF = pos
-
-    local bbGui = Instance.new("BillboardGui") 
-    bbGui.Size = UDim2.new(10, 0, 4, 0) 
-    bbGui.AlwaysOnTop = true 
-    bbGui.Adornee = desyncPart 
-    bbGui.Parent = desyncPart
-
-    local frame = Instance.new("Frame") 
-    frame.Size = UDim2.new(1, 0, 1, 0) 
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) 
-    frame.BackgroundTransparency = 0.7 
-    frame.Parent = bbGui 
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-
-    local txt = Instance.new("TextLabel") 
-    txt.Size = UDim2.new(1, 0, 1, 0) 
-    txt.BackgroundTransparency = 1 
-    txt.Text = "ARIS DESYNC POINT" 
-    txt.TextColor3 = Color3.fromRGB(255, 255, 255) 
-    txt.TextScaled = true 
-    txt.Font = Enum.Font.GothamBold 
-    txt.TextStrokeTransparency = 0.8 
-    txt.Parent = frame
-
+    local bbGui = Instance.new("BillboardGui") bbGui.Size = UDim2.new(10, 0, 4, 0) bbGui.AlwaysOnTop = true bbGui.Adornee = desyncPart bbGui.Parent = desyncPart
+    local frame = Instance.new("Frame") frame.Size = UDim2.new(1, 0, 1, 0) frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) frame.BackgroundTransparency = 0.7 frame.Parent = bbGui Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+    local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.Text = "ARIS DESYNC POINT" txt.TextColor3 = Color3.fromRGB(255, 255, 255) txt.TextScaled = true txt.Font = Enum.Font.GothamBold txt.TextStrokeTransparency = 0.8 txt.Parent = frame
     task.spawn(function()
         while desyncPart and desyncPart.Parent do
-            local t1 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4.5, 4.5, 4.5)}) 
-            t1:Play() 
-            t1.Completed:Wait()
-            if desyncPart then 
-                local t2 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4, 4, 4)}) 
-                t2:Play() 
-                t2.Completed:Wait() 
-            end
+            local t1 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4.5, 4.5, 4.5)}) t1:Play() t1.Completed:Wait()
+            if desyncPart then local t2 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4, 4, 4)}) t2:Play() t2.Completed:Wait() end
         end
     end)
-
-    AnimationLib.DesyncTeleportEffect(pos.Position) 
-    return desyncPart
+    AnimationLib.DesyncTeleportEffect(pos.Position) return desyncPart
 end
 
 local function UpdateDesyncMarker(pos)
-    if not desyncPart then
-        CreateDesyncMarker(pos)
-        return
-    end
+    if not desyncPart then CreateDesyncMarker(pos) return end
     if lastTeleportCheck then
         local delta = (pos.Position - lastTeleportCheck.Position).Magnitude
         if delta > 1.5 then
@@ -419,23 +323,15 @@ local function UpdateDesyncMarker(pos)
 end
 
 local function ForceUpdateMarker(pos)
-    if not desyncPart then
-        CreateDesyncMarker(pos)
-        return
-    end
+    if not desyncPart then CreateDesyncMarker(pos) return end
     AnimationLib.DesyncTeleportEffect(desyncPart.Position)
-    desyncPart.CFrame = pos
-    lastSafeCF = pos
-    lastTeleportCheck = pos
+    desyncPart.CFrame = pos lastSafeCF = pos lastTeleportCheck = pos
 end
 
 local function HideDesyncMarker()
     if desyncPart then
         AnimationLib.DesyncTeleportEffect(desyncPart.Position)
-        desyncPart:Destroy()
-        desyncPart = nil
-        lastSafeCF = nil
-        lastTeleportCheck = nil
+        desyncPart:Destroy() desyncPart = nil lastSafeCF = nil lastTeleportCheck = nil
     end
 end
 
@@ -444,167 +340,94 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     if not hrp then return end
     task.wait(0.1)
     if desyncState then
-        if desyncPart then
-            AnimationLib.CreateBeam(desyncPart.Position, hrp.Position, Color3.fromRGB(0, 150, 255), 0.5)
-        end
+        if desyncPart then AnimationLib.CreateBeam(desyncPart.Position, hrp.Position, Color3.fromRGB(0, 150, 255), 0.5) end
         ForceUpdateMarker(hrp.CFrame)
     end
 end)
 
 local function CreateFakeBody(char, posCF)
-    char.Archivable = true
-    local fake = char:Clone()
-    char.Archivable = false
+    char.Archivable = true local fake = char:Clone() char.Archivable = false
     if fake then
         fake.Name = "Aris_FakeBody"
         for _, v in ipairs(fake:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.Anchored = true
-                v.CanCollide = false
-            elseif v:IsA("Script") or v:IsA("LocalScript") then
-                v:Destroy()
-            end
+            if v:IsA("BasePart") then v.Anchored = true v.CanCollide = false elseif v:IsA("Script") or v:IsA("LocalScript") then v:Destroy() end
         end
-        if fake:FindFirstChild("HumanoidRootPart") then
-            fake:SetPrimaryPartCFrame(posCF)
-        elseif fake.PrimaryPart then
-            fake:SetPrimaryPartCFrame(posCF)
-        else
-            fake:MoveTo(posCF.Position)
-        end
-        fake.Parent = workspace
-        return fake
+        if fake:FindFirstChild("HumanoidRootPart") then fake:SetPrimaryPartCFrame(posCF) elseif fake.PrimaryPart then fake:SetPrimaryPartCFrame(posCF) else fake:MoveTo(posCF.Position) end
+        fake.Parent = workspace return fake
     end
     return nil
 end
 
 local function FastRespawnUserLogic(plr, isHide)
     ToggleDesync(true)
-    local char = plr.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local ogpos = hrp.CFrame 
-    local ogpos2 = workspace.CurrentCamera.CFrame
-    local hum = char:FindFirstChildWhichIsA("Humanoid") 
-
-    if hum then 
-        hum.Health = 0 
-    end
-
+    local char = plr.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local ogpos = hrp.CFrame local ogpos2 = workspace.CurrentCamera.CFrame
+    local hum = char:FindFirstChildWhichIsA("Humanoid") if hum then hum.Health = 0 end
     task.spawn(function()
         local newChar = plr.CharacterAdded:Wait()
-        local newHrp = newChar:WaitForChild("HumanoidRootPart", 10) 
-        if not newHrp then return end
-        
+        local newHrp = newChar:WaitForChild("HumanoidRootPart", 10) if not newHrp then return end
         if isHide then
             local vheight = math.random(5000, 9888)
-            newHrp.CFrame = ogpos + Vector3.new(0, vheight, 0) 
-            workspace.CurrentCamera.CFrame = ogpos2
+            newHrp.CFrame = ogpos + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = ogpos2
         else
-            newHrp.CFrame = ogpos 
-            workspace.CurrentCamera.CFrame = ogpos2
+            newHrp.CFrame = ogpos workspace.CurrentCamera.CFrame = ogpos2
         end
     end)
 end
 
 local function CustomRespawnFix(plr)
-    local char = plr.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
+    local char = plr.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     AnimationLib.DesyncTeleportEffect(hrp.Position)
-    local ogpos = hrp.CFrame 
-    local ogpos2 = workspace.CurrentCamera.CFrame
-
-    replicatesignal(plr.ConnectDiedSignalBackend) 
-    task.wait(Players.RespawnTime - 0.1) 
-    replicatesignal(plr.Kill)
-
+    local ogpos = hrp.CFrame local ogpos2 = workspace.CurrentCamera.CFrame
+    replicatesignal(plr.ConnectDiedSignalBackend) task.wait(Players.RespawnTime - 0.1) replicatesignal(plr.Kill)
     return plr.CharacterAdded:Wait(), ogpos, ogpos2
 end
 
 local function DoHideNormal()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local originalCF = hrp.CFrame 
-    local originalCam = workspace.CurrentCamera.CFrame
+    local char = LocalPlayer.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local originalCF = hrp.CFrame local originalCam = workspace.CurrentCamera.CFrame
     local vheight = math.random(5000, 9888) 
-
-    hrp.CFrame = originalCF + Vector3.new(0, vheight, 0) 
-    workspace.CurrentCamera.CFrame = originalCam
-    task.wait(0.15) 
-    ToggleDesync(true)
-
-    hrp.CFrame = originalCF 
-    workspace.CurrentCamera.CFrame = originalCam
-
-    UpdateDesyncMarker(originalCF) 
-    AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) 
-    AnimationLib.DesyncTeleportEffect(originalCF.Position)
+    hrp.CFrame = originalCF + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = originalCam
+    task.wait(0.15) ToggleDesync(true)
+    hrp.CFrame = originalCF workspace.CurrentCamera.CFrame = originalCam
+    UpdateDesyncMarker(originalCF) AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) AnimationLib.DesyncTeleportEffect(originalCF.Position)
 end
 
 local function ActivateDesyncNormal()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
-    if _G.Config.Desync_HideAuto then 
-        DoHideNormal() 
-    else 
-        ToggleDesync(true) 
-        UpdateDesyncMarker(hrp.CFrame) 
-        AnimationLib.DesyncTeleportEffect(hrp.Position) 
-    end
+    if _G.Config.Desync_HideAuto then DoHideNormal() else ToggleDesync(true) UpdateDesyncMarker(hrp.CFrame) AnimationLib.DesyncTeleportEffect(hrp.Position) end
 end
 
 local function DoFastDesync()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local savedCFrame = hrp.CFrame 
-    UpdateDesyncMarker(savedCFrame) 
-    FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
-
+    local char = LocalPlayer.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local savedCFrame = hrp.CFrame UpdateDesyncMarker(savedCFrame) FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
     local newChar = LocalPlayer.Character 
     if newChar then 
         local newHrp = newChar:WaitForChild("HumanoidRootPart", 5) 
-        if newHrp then 
-            UpdateDesyncMarker(savedCFrame) 
-        end 
+        if newHrp then UpdateDesyncMarker(savedCFrame) end 
     end
 end
 
 local function DoFixDesync(isHide)
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
+    local char = LocalPlayer.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     if ArisFakeBody then ArisFakeBody:Destroy(); ArisFakeBody = nil end
     ArisFakeBody = CreateFakeBody(char, hrp.CFrame)
-
     ToggleDesync(true) 
-    for _, flagData in ipairs(NumericFlags) do 
-        pcall(function() setfflag(flagData[1], flagData[2]) end) 
-    end
+    for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
     UpdateDesyncMarker(hrp.CFrame)
-
     local newChar, originalCF, originalCam = CustomRespawnFix(LocalPlayer) 
     local newHrp = newChar:WaitForChild("HumanoidRootPart")
-
     if isHide then 
         local randomY = math.random(8000, 9000) 
         newHrp.CFrame = CFrame.new(newHrp.Position.X, randomY, newHrp.Position.Z) 
-        workspace.CurrentCamera.CFrame = newHrp.CFrame 
-        task.wait(0.15) 
+        workspace.CurrentCamera.CFrame = newHrp.CFrame task.wait(0.15) 
     end
     UpdateDesyncMarker(newHrp.CFrame)
 end
@@ -612,20 +435,15 @@ end
 local function MakeDraggable(f)
     local d=false;local i,s
     f.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
-            d=true; i=inp.Position; s=f.Position
-        end
+        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then d=true; i=inp.Position; s=f.Position end
     end)
     f.InputChanged:Connect(function(inp)
         if (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) and d then
-            local delta=inp.Position-i;
-            f.Position=UDim2.new(s.X.Scale,s.X.Offset+delta.X,s.Y.Scale,s.Y.Offset+delta.Y)
+            local delta=inp.Position-i; f.Position=UDim2.new(s.X.Scale,s.X.Offset+delta.X,s.Y.Scale,s.Y.Offset+delta.Y)
         end
     end)
     UserInputService.InputEnded:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
-            d=false
-        end
+        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then d=false end
     end)
 end
 
@@ -738,9 +556,7 @@ for i,tab in ipairs(Tabs)do
 
     ContentFrames[tab] = {Frame=content}
     btn.MouseButton1Click:Connect(function() 
-        for _,f in pairs(ContentFrames)do 
-            f.Frame.Visible=false 
-        end
+        for _,f in pairs(ContentFrames)do f.Frame.Visible=false end
         content.Visible=true 
     end)
 end
@@ -757,9 +573,7 @@ local function AddButton(tab, name, cb)
     CreateBorder(btn)
     local txt = CreateButtonText(btn, name, Enum.Font.GothamBold, 13)
     ApplyButtonAnimation(btn)
-    btn.MouseButton1Click:Connect(function()
-        if cb then cb() end
-    end)
+    btn.MouseButton1Click:Connect(function() if cb then cb() end end)
     return btn
 end
 
@@ -775,7 +589,6 @@ local function AddToggle(tab,name,key,cb)
     CreateBorder(btn) 
     local btnTxt = CreateButtonText(btn, name..": "..(_G.Config[key]and"ON"or"OFF"), Enum.Font.GothamBold, 14)
     ApplyButtonAnimation(btn)
-
     ToggleButtons[key] = {Btn = btn, Txt = btnTxt, Name = name}
 
     btn.MouseButton1Click:Connect(function() 
@@ -819,9 +632,7 @@ local function AddAdjust(tab,name,key,step,minV,maxV,cb)
 
     minus.MouseButton1Click:Connect(function() 
         _G.Config[key] = math.clamp(_G.Config[key]-step, minVal, maxVal)
-        for _, lblData in ipairs(AdjustLabels[key]) do
-            lblData.Label.Text = lblData.Name..": ".._G.Config[key]
-        end
+        for _, lblData in ipairs(AdjustLabels[key]) do lblData.Label.Text = lblData.Name..": ".._G.Config[key] end
         if cb then cb() end 
     end)
 
@@ -838,9 +649,7 @@ local function AddAdjust(tab,name,key,step,minV,maxV,cb)
 
     plus.MouseButton1Click:Connect(function() 
         _G.Config[key] = math.clamp(_G.Config[key]+step, minVal, maxVal)
-        for _, lblData in ipairs(AdjustLabels[key]) do
-            lblData.Label.Text = lblData.Name..": ".._G.Config[key]
-        end
+        for _, lblData in ipairs(AdjustLabels[key]) do lblData.Label.Text = lblData.Name..": ".._G.Config[key] end
         if cb then cb() end 
     end)
 end
@@ -941,14 +750,10 @@ end)
 
 local draggingWS = false
 WSSliderBg.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingWS = true
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = true end
 end)
 WSSliderBg.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingWS = false
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingWS = false end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if draggingWS and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
@@ -998,18 +803,12 @@ local function createModeBtn(text, posScale, modeStr)
 
     btn.MouseButton1Click:Connect(function()
         if desyncState then 
-            game:GetService("StarterGui"):SetCore("SendNotification",{
-                Title="CẢNH BÁO",
-                Text="Vui lòng TẮT Desync trước khi đổi chế độ!",
-                Duration=2
-            })
+            game:GetService("StarterGui"):SetCore("SendNotification",{ Title="CẢNH BÁO", Text="Vui lòng TẮT Desync trước khi đổi chế độ!", Duration=2 })
             return 
         end
         _G.Config.Desync_Mode = modeStr
         for _, child in ipairs(ModeFrame:GetChildren()) do
-            if child:IsA("TextButton") then 
-                ApplyToggleGradient(child, child:GetAttribute("ModeStr") == _G.Config.Desync_Mode) 
-            end
+            if child:IsA("TextButton") then ApplyToggleGradient(child, child:GetAttribute("ModeStr") == _G.Config.Desync_Mode) end
         end
         if RefreshFloatBtn then RefreshFloatBtn() end
     end)
@@ -1113,18 +912,12 @@ floatBtn.MouseButton1Click:Connect(function()
     ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
 
     if desyncState then
-        if _G.Config.Desync_Mode == "Fix" then 
-            DoFixDesync(_G.Config.Desync_HideAuto)
-        elseif _G.Config.Desync_Mode == "Fast" then 
-            DoFastDesync()
-        else 
-            ActivateDesyncNormal() 
-        end
+        if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto)
+        elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync()
+        else ActivateDesyncNormal() end
     else
         ToggleDesync(false)
-        for _, flagData in ipairs(NumericFlags) do 
-            pcall(function() setfflag(flagData[1], "") end) 
-        end
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
         HideDesyncMarker()
         if ArisFakeBody then ArisFakeBody:Destroy(); ArisFakeBody = nil end 
     end
@@ -1141,54 +934,38 @@ local CachedNPCs = {}
 
 local function CheckAndCacheNPC(obj)
     if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
-        if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-            CachedNPCs[obj] = true
-        end
+        if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then CachedNPCs[obj] = true end
     end
 end
 
-for _, v in ipairs(Workspace:GetDescendants()) do
-    CheckAndCacheNPC(v)
-end
+for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
 
 Workspace.DescendantAdded:Connect(function(descendant)
-    task.delay(1, function()
-        if descendant.Parent then CheckAndCacheNPC(descendant) end
-    end)
+    task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end)
 end)
 
--- [FIX BUG: NGỪNG HOẠT ĐỘNG THAY VÌ ÉP SIZE]
-local function RestoreHRP(hrp)
-    if hrp and hrp:GetAttribute("ArisOrigSizeX") then
-        -- Trả về nguyên bản ĐÚNG 1 LẦN
-        hrp.Size = Vector3.new(hrp:GetAttribute("ArisOrigSizeX"), hrp:GetAttribute("ArisOrigSizeY"), hrp:GetAttribute("ArisOrigSizeZ"))
-        hrp.Transparency = hrp:GetAttribute("ArisOrigTrans")
-        hrp.CanCollide = hrp:GetAttribute("ArisOrigCollide")
-        if hrp:GetAttribute("ArisOrigMassless") ~= nil then
-            hrp.Massless = hrp:GetAttribute("ArisOrigMassless")
-        end
-        
-        -- Xóa các attribute để đánh dấu là đã trả về gốc.
-        -- Script sẽ NGỪNG can thiệp vào HRP, giúp Buddha thoải mái biến hình mà không bị kẹt hay freeze.
-        hrp:SetAttribute("ArisOrigSizeX", nil)
-        hrp:SetAttribute("ArisOrigSizeY", nil)
-        hrp:SetAttribute("ArisOrigSizeZ", nil)
-        hrp:SetAttribute("ArisOrigTrans", nil)
-        hrp:SetAttribute("ArisOrigCollide", nil)
-        hrp:SetAttribute("ArisOrigMassless", nil)
+-- [MỚI] Tắt Hitbox NGƯNG GHI ĐÈ SIZE để tránh crash vật lý game (Fix lỗi Buddha)
+local function CleanupHitboxAttributes(hrp)
+    if hrp and hrp:GetAttribute("ArisHitboxActive") then
+        hrp:SetAttribute("ArisHitboxActive", nil)
+        -- CHỈ trả lại trong suốt và xuyên thấu, KHÔNG đụng vào size
+        hrp.Transparency = 1
+        hrp.CanCollide = true
+        hrp.Massless = false
+    end
+end
+
+local function CleanupHitboxAttributesNPC(hrp)
+    if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then
+        hrp:SetAttribute("ArisHitboxActiveNPC", nil)
+        hrp.Transparency = 1
+        hrp.CanCollide = true
+        hrp.Massless = false
     end
 end
 
 local function GetHealthColor(pct)
-    if pct>0.7 then
-        return Color3.new(0,1,0)
-    elseif pct>0.5 then
-        return Color3.new(1,1,0)
-    elseif pct>0.3 then
-        return Color3.new(1,0.5,0)
-    else
-        return Color3.new(1,0,0)
-    end
+    if pct>0.7 then return Color3.new(0,1,0) elseif pct>0.5 then return Color3.new(1,1,0) elseif pct>0.3 then return Color3.new(1,0.5,0) else return Color3.new(1,0,0) end
 end
 
 local function CleanupESP(playerName)
@@ -1205,7 +982,7 @@ local function CleanupESP(playerName)
         local hrp = p.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
             if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end;
-            RestoreHRP(hrp)
+            CleanupHitboxAttributes(hrp)
         end
     end
 end
@@ -1223,15 +1000,13 @@ local function CleanupNPC(m)
         local hrp = m:FindFirstChild("HumanoidRootPart")
         if hrp then
             if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end;
-            RestoreHRP(hrp)
+            CleanupHitboxAttributesNPC(hrp)
         end
     end
 end
 
 Workspace.DescendantRemoving:Connect(function(descendant)
-    if CachedNPCs[descendant] then
-        CachedNPCs[descendant] = nil; CleanupNPC(descendant)
-    end
+    if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end
 end)
 
 local currentTween = nil
@@ -1242,26 +1017,18 @@ local charParts = {}
 local function updateCharParts()
     charParts = {}
     if LocalPlayer.Character then
-        for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then table.insert(charParts, v) end
-        end
+        for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then table.insert(charParts, v) end end
     end
 end
 
 local function setCollision(state)
-    for _, v in ipairs(charParts) do
-        if v and v.Parent then v.CanCollide = state end
-    end
+    for _, v in ipairs(charParts) do if v and v.Parent then v.CanCollide = state end end
 end
 
 local function toggleNoclip(active)
     if active then
         updateCharParts()
-        if not noclipConnection then
-            noclipConnection = RunService.Stepped:Connect(function()
-                setCollision(false)
-            end)
-        end
+        if not noclipConnection then noclipConnection = RunService.Stepped:Connect(function() setCollision(false) end) end
     else
         if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
         setCollision(true)
@@ -1289,10 +1056,7 @@ local function doMagnetLoop()
                             local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Hitbox") or npc:FindFirstChild("Torso") or npc:FindFirstChild("UpperTorso")
                             if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
                                 local dist = (myRoot.Position - root.Position).Magnitude
-                                if dist < shortestDist then
-                                    shortestDist = dist
-                                    nearest = root
-                                end
+                                if dist < shortestDist then shortestDist = dist nearest = root end
                             end
                         end
                     end
@@ -1305,10 +1069,7 @@ local function doMagnetLoop()
                                 local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
                                 if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
                                     local dist = (myRoot.Position - root.Position).Magnitude
-                                    if dist < shortestDist then
-                                        shortestDist = dist
-                                        nearest = root
-                                    end
+                                    if dist < shortestDist then shortestDist = dist nearest = root end
                                 end
                             end
                         end
@@ -1322,14 +1083,10 @@ local function doMagnetLoop()
                 
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
-                    
                     local targetPos = currentTarget.CFrame * CFrame.new(0, _G.Config.TP_Height, 0)
-                    
                     if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then
-                        local vel = currentTarget.AssemblyLinearVelocity
-                        targetPos = targetPos + (vel * _G.Config.Prediction)
+                        local vel = currentTarget.AssemblyLinearVelocity targetPos = targetPos + (vel * _G.Config.Prediction)
                     end
-                    
                     local dist = (myRoot.Position - targetPos.Position).Magnitude
                     
                     if dist <= 100 then
@@ -1354,18 +1111,11 @@ end
 
 AddToggle("TP NPC", "BẬT TWEEN/TP NPC", "TP_NPC", function(val)
     if val then
-        _G.Config.TP_Player = false
-        local b = ToggleButtons["TP_Player"]
-        if b then
-            b.Txt.Text = b.Name..": OFF"
-            ApplyToggleGradient(b.Btn, false)
-        end
+        _G.Config.TP_Player = false local b = ToggleButtons["TP_Player"]
+        if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
-        if not _G.Config.TP_Player then
-            currentTarget = nil
-            if currentTween then currentTween:Cancel() end
-        end
+        if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end
     end
 end)
 AddAdjust("TP NPC", "ĐỘ CAO (Y)", "TP_Height", 5)
@@ -1373,86 +1123,53 @@ AddAdjust("TP NPC", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
 AddButton("TP NPC", "⏭️ BỎ QUA NPC HIỆN TẠI (SKIP)", function()
     if currentTarget and currentTarget.Parent then
-        TempSkipNPC[currentTarget.Parent] = true
-        currentTarget = nil
-        if currentTween then currentTween:Cancel() end
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title="SKIP NPC", Text="Đã tạm thời bỏ qua NPC này!", Duration=3
-        })
+        TempSkipNPC[currentTarget.Parent] = true currentTarget = nil if currentTween then currentTween:Cancel() end
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP NPC", Text="Đã tạm thời bỏ qua NPC này!", Duration=3 })
     end
 end)
 
 local BlacklistContainer = Instance.new("Frame", ContentFrames["TP NPC"].Frame)
-BlacklistContainer.Size = UDim2.new(1, -16, 0, 0)
-BlacklistContainer.BackgroundTransparency = 1
-local blLayout = Instance.new("UIListLayout", BlacklistContainer)
-blLayout.Padding = UDim.new(0, 8)
-blLayout.SortOrder = Enum.SortOrder.LayoutOrder
-blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y)
-end)
+BlacklistContainer.Size = UDim2.new(1, -16, 0, 0) BlacklistContainer.BackgroundTransparency = 1
+local blLayout = Instance.new("UIListLayout", BlacklistContainer) blLayout.Padding = UDim.new(0, 8) blLayout.SortOrder = Enum.SortOrder.LayoutOrder
+blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
 
 AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
-    for _, child in ipairs(BlacklistContainer:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
+    for _, child in ipairs(BlacklistContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end
     
     local foundNPCs = {}
     for npc, _ in pairs(CachedNPCs) do
         if npc and npc.Parent then
             local root = npc:FindFirstChild("HumanoidRootPart")
-            if root and (root.Position - myRoot.Position).Magnitude <= 1000 then
-                foundNPCs[npc.Name] = true
-            end
+            if root and (root.Position - myRoot.Position).Magnitude <= 1000 then foundNPCs[npc.Name] = true end
         end
     end
     
     local count = 0
     for npcName, _ in pairs(foundNPCs) do
         count = count + 1
-        local btn = Instance.new("TextButton", BlacklistContainer)
-        btn.Size = UDim2.new(1, 0, 0, 36)
-        btn.Text = ""
-        btn.BackgroundColor3 = Color3.new(1,1,1)
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
-        
+        local btn = Instance.new("TextButton", BlacklistContainer) btn.Size = UDim2.new(1, 0, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
         local isBlacklisted = _G.Config.BlacklistedNPCs[npcName] or false
-        ApplyToggleGradient(btn, isBlacklisted)
-        CreateBorder(btn)
-        local txt = CreateButtonText(btn, "🚫 BL: " .. npcName, Enum.Font.GothamBold, 12)
-        if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end
+        ApplyToggleGradient(btn, isBlacklisted) CreateBorder(btn)
+        local txt = CreateButtonText(btn, "🚫 BL: " .. npcName, Enum.Font.GothamBold, 12) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
         btn.MouseButton1Click:Connect(function()
             _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName]
             local state = _G.Config.BlacklistedNPCs[npcName]
-            ApplyToggleGradient(btn, state)
-            txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1)
+            ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1)
         end)
     end
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title="TÌM KIẾM NPC", Text="Phát hiện " .. count .. " loại NPC trong 1km!", Duration=3
-    })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="TÌM KIẾM NPC", Text="Phát hiện " .. count .. " loại NPC trong 1km!", Duration=3 })
 end)
 
 AddToggle("TP Player", "BẬT TWEEN/TP PLAYER", "TP_Player", function(val)
     if val then
-        _G.Config.TP_NPC = false
-        local b = ToggleButtons["TP_NPC"]
-        if b then
-             b.Txt.Text = b.Name..": OFF"
-            ApplyToggleGradient(b.Btn, false)
-        end
+        _G.Config.TP_NPC = false local b = ToggleButtons["TP_NPC"]
+        if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
-        if not _G.Config.TP_NPC then
-            currentTarget = nil
-            if currentTween then currentTween:Cancel() end
-        end
+        if not _G.Config.TP_NPC then currentTarget = nil if currentTween then currentTween:Cancel() end end
     end
 end)
 AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5)
@@ -1461,98 +1178,25 @@ AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 -- ==========================================
 -- UI PREDICTION
 -- ==========================================
-local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame)
-PredContainer.Size = UDim2.new(1, 0, 0, 115)
-PredContainer.BackgroundTransparency = 1
-
-local PredToggle = Instance.new("TextButton", PredContainer)
-PredToggle.Size = UDim2.new(1, -16, 0, 36)
-PredToggle.Text = ""
-PredToggle.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled)
-CreateBorder(PredToggle)
-local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14)
-ApplyButtonAnimation(PredToggle)
-
-local PredSliderBg = Instance.new("Frame", PredContainer)
-PredSliderBg.Size = UDim2.new(1, -16, 0, 25)
-PredSliderBg.Position = UDim2.new(0, 0, 0, 48)
-PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
-
-local PredSliderFill = Instance.new("Frame", PredSliderBg)
-PredSliderFill.Size = UDim2.new(_G.Config.Prediction / 10, 0, 1, 0)
-PredSliderFill.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", PredSliderFill).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(PredSliderFill, true)
-
-local PredValLabel = Instance.new("TextLabel", PredSliderBg)
-PredValLabel.Size = UDim2.new(1, 0, 1, 0)
-PredValLabel.BackgroundTransparency = 1
-PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s"
-PredValLabel.Font = Enum.Font.GothamBold
-PredValLabel.TextSize = 12
-CreateTextGradient(PredValLabel)
-
-local PredBtnFrame = Instance.new("Frame", PredContainer)
-PredBtnFrame.Size = UDim2.new(1, -16, 0, 32)
-PredBtnFrame.Position = UDim2.new(0, 0, 0, 82)
-PredBtnFrame.BackgroundTransparency = 1
+local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame) PredContainer.Size = UDim2.new(1, 0, 0, 115) PredContainer.BackgroundTransparency = 1
+local PredToggle = Instance.new("TextButton", PredContainer) PredToggle.Size = UDim2.new(1, -16, 0, 36) PredToggle.Text = "" PredToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) CreateBorder(PredToggle) local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(PredToggle)
+local PredSliderBg = Instance.new("Frame", PredContainer) PredSliderBg.Size = UDim2.new(1, -16, 0, 25) PredSliderBg.Position = UDim2.new(0, 0, 0, 48) PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
+local PredSliderFill = Instance.new("Frame", PredSliderBg) PredSliderFill.Size = UDim2.new(_G.Config.Prediction / 10, 0, 1, 0) PredSliderFill.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredSliderFill).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredSliderFill, true)
+local PredValLabel = Instance.new("TextLabel", PredSliderBg) PredValLabel.Size = UDim2.new(1, 0, 1, 0) PredValLabel.BackgroundTransparency = 1 PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" PredValLabel.Font = Enum.Font.GothamBold PredValLabel.TextSize = 12 CreateTextGradient(PredValLabel)
+local PredBtnFrame = Instance.new("Frame", PredContainer) PredBtnFrame.Size = UDim2.new(1, -16, 0, 32) PredBtnFrame.Position = UDim2.new(0, 0, 0, 82) PredBtnFrame.BackgroundTransparency = 1
 
 local function createPredBtn(text, posScale)
-    local btn = Instance.new("TextButton", PredBtnFrame)
-    btn.Size = UDim2.new(0.22, 0, 1, 0)
-    btn.Position = UDim2.new(posScale, 0, 0, 0)
-    btn.Text = ""
-    btn.BackgroundColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
-    ApplyToggleGradient(btn, false)
-    CreateBorder(btn)
-    CreateButtonText(btn, text, Enum.Font.GothamBold, 14)
-    ApplyButtonAnimation(btn)
-    return btn
+    local btn = Instance.new("TextButton", PredBtnFrame) btn.Size = UDim2.new(0.22, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, text, Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn) return btn
 end
 
-local pm1 = createPredBtn("-1", 0)
-local pm01 = createPredBtn("-0.1", 0.26)
-local pp01 = createPredBtn("+0.1", 0.52)
-local pp1 = createPredBtn("+1", 0.78)
-
-local function UpdatePred(val)
-    _G.Config.Prediction = math.clamp(val, 0, 10)
-    local ratio = _G.Config.Prediction / 10
-    PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0)
-    PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s"
-end
-pm1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 1) end)
-pm01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.1) end)
-pp01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.1) end)
-pp1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 1) end)
-
-PredToggle.MouseButton1Click:Connect(function()
-    _G.Config.Prediction_Enabled = not _G.Config.Prediction_Enabled
-    PredToggleTxt.Text = "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF")
-    ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled)
-end)
-
+local pm1 = createPredBtn("-1", 0) local pm01 = createPredBtn("-0.1", 0.26) local pp01 = createPredBtn("+0.1", 0.52) local pp1 = createPredBtn("+1", 0.78)
+local function UpdatePred(val) _G.Config.Prediction = math.clamp(val, 0, 10) local ratio = _G.Config.Prediction / 10 PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0) PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" end
+pm1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 1) end) pm01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.1) end) pp01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.1) end) pp1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 1) end)
+PredToggle.MouseButton1Click:Connect(function() _G.Config.Prediction_Enabled = not _G.Config.Prediction_Enabled PredToggleTxt.Text = "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF") ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) end)
 local draggingPred = false
-PredSliderBg.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingPred = true
-    end
-end)
-PredSliderBg.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingPred = false
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1)
-        UpdatePred(relX * 10)
-    end
-end)
+PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = true end end)
+PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
+UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
 
 RunService.RenderStepped:Connect(function()
     if _G.Config.WalkSpeedEnabled and LocalPlayer.Character then
@@ -1571,20 +1215,8 @@ RunService.Heartbeat:Connect(function()
     local seqBorder = GetMovingColorSequence(Palettes.Border, shift * 1.8)
 
     for _, grad in ipairs(UIGradientList) do grad.Color = seqBorder end
-    
-    for _, grad in ipairs(TextGradientList) do 
-        if not grad:GetAttribute("CustomOnColor") then
-            grad.Color = seqText 
-        end
-    end
-    
-    for _, grad in ipairs(BtnGradientList) do 
-        if grad.Parent and grad.Parent:GetAttribute("IsOn") then 
-            grad.Color = seqOn 
-        else 
-            grad.Color = seqOff 
-        end
-    end
+    for _, grad in ipairs(TextGradientList) do if not grad:GetAttribute("CustomOnColor") then grad.Color = seqText end end
+    for _, grad in ipairs(BtnGradientList) do if grad.Parent and grad.Parent:GetAttribute("IsOn") then grad.Color = seqOn else grad.Color = seqOff end end
 
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     local hasLowHPEnemy = false
@@ -1612,74 +1244,60 @@ RunService.Heartbeat:Connect(function()
         local isTeammate = (_G.Config.TeamCheck and p.Team ~= nil and p.Team == LocalPlayer.Team)
 
         if not char or not hrp or not hum or hum.Health<=0 or isTeammate then
-            if hrp then RestoreHRP(hrp) end; CleanupESP(p.Name); continue
+            CleanupHitboxAttributes(hrp); CleanupESP(p.Name); continue
         end
 
         local hp_percent = hum.Health / hum.MaxHealth
         local dist = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
-        local enableHitbox = false
+        local hitboxShouldEnable = false
         
         if _G.Config.Hitbox_P then
             if _G.Config.LowHP_KS then
                 if hasLowHPEnemy then 
-                    if hp_percent <= 0.3 then enableHitbox = true end
+                    if hp_percent <= 0.3 then hitboxShouldEnable = true end
                 else 
-                    if dist <= 2000 then enableHitbox = true end 
+                    if dist <= 2000 then hitboxShouldEnable = true end 
                 end
             else 
-                enableHitbox = true 
+                hitboxShouldEnable = true 
             end
         end
 
-        if enableHitbox then
+        if hitboxShouldEnable then
             local valid = true
             if _G.Config.Hitbox_WallCheck then
-                local rp = RaycastParams.new(); rp.FilterDescendantsInstances = {LocalPlayer.Character}; 
-                rp.FilterType = Enum.RaycastFilterType.Exclude
+                local rp = RaycastParams.new(); rp.FilterDescendantsInstances = {LocalPlayer.Character}; rp.FilterType = Enum.RaycastFilterType.Exclude
                 local rr = Workspace:Raycast(Camera.CFrame.Position, (hrp.Position - Camera.CFrame.Position), rp)
-                if rr and rr.Instance and not rr.Instance:IsDescendantOf(char) then 
-                    valid = false 
-                end
+                if rr and rr.Instance and not rr.Instance:IsDescendantOf(char) then valid = false end
             end
 
             if valid then
-                -- LƯU LẠI 1 LẦN DUY NHẤT
-                if not hrp:GetAttribute("ArisOrigSizeX") then
-                    hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
-                    hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
-                    hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
-                    hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
-                    hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
-                    if hrp.Massless ~= nil then hrp:SetAttribute("ArisOrigMassless", hrp.Massless) end
-                end
-                
+                -- [ĐIỂM FIX FREEZE] Nếu bật Hitbox, chỉ thiết lập Size nếu nó khác
                 local targetSize = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
                 if hrp.Size ~= targetSize then hrp.Size = targetSize end
                 if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
                 if hrp.CanCollide ~= false then hrp.CanCollide = false end
                 if hrp.Massless ~= true then hrp.Massless = true end
+                
+                hrp:SetAttribute("ArisHitboxActive", true)
             else 
-                RestoreHRP(hrp) 
+                CleanupHitboxAttributes(hrp)
             end
         else 
-            RestoreHRP(hrp) 
+            CleanupHitboxAttributes(hrp)
         end
 
         local hl = char:FindFirstChild("ArisHL")
         if _G.Config.ESP_Chams_P then
-            if not hl then 
-                hl = Instance.new("Highlight", char); hl.Name = "ArisHL" 
-            end
+            if not hl then hl = Instance.new("Highlight", char); hl.Name = "ArisHL" end
             hl.FillColor = rgb; hl.Enabled = true
         else 
             if hl then hl:Destroy() end 
         end
 
         local hbBox = hrp:FindFirstChild("ArisHitboxBox")
-        if enableHitbox and _G.Config.Hitbox_Box then
-            if not hbBox then 
-                hbBox = Instance.new("SelectionBox", hrp); hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp 
-            end
+        if hrp:GetAttribute("ArisHitboxActive") and _G.Config.Hitbox_Box then
+            if not hbBox then hbBox = Instance.new("SelectionBox", hrp); hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp end
             hbBox.SurfaceColor3 = rgb
         else 
             if hbBox then hbBox:Destroy() end 
@@ -1688,13 +1306,9 @@ RunService.Heartbeat:Connect(function()
         if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P then
             if not ESP_Store[p.Name] then
                 local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4.2,0,5.8,0); boxBill.AlwaysOnTop = true
-                
                 local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1
-                
                 Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 16)
-                
-                local outS = Instance.new("UIStroke", outF);
-                outS.Thickness = 2.5; outS.Color = Color3.new(1,1,1)
+                local outS = Instance.new("UIStroke", outF); outS.Thickness = 2.5; outS.Color = Color3.new(1,1,1)
                 
                 local grad = Instance.new("UIGradient", outS)
                 grad.Color = ColorSequence.new({
@@ -1710,7 +1324,6 @@ RunService.Heartbeat:Connect(function()
                 local vLine = Instance.new("Frame", boxBill); vLine.Size = UDim2.new(0,1,0.5,0); vLine.Position = UDim2.new(0.5,0,0.25,0); vLine.BackgroundColor3 = Color3.new(1,1,1); vLine.BackgroundTransparency = 0.5; vLine.BorderSizePixel=0
                 
                 local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
-                
                 local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12
                 txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
                 
@@ -1718,10 +1331,13 @@ RunService.Heartbeat:Connect(function()
             end
             local s=ESP_Store[p.Name]
             s.BoxBill.Adornee = hrp; s.TextBill.Adornee = char:FindFirstChild("Head") or hrp
-            s.BoxBill.Enabled = _G.Config.ESP_Box_P or (enableHitbox and _G.Config.ESP_2D_Hitbox)
+            
+            -- [NEW] ESP 2D Hitbox
+            local isHitboxActive = hrp:GetAttribute("ArisHitboxActive") == true
+            s.BoxBill.Enabled = _G.Config.ESP_Box_P or (isHitboxActive and _G.Config.ESP_2D_Hitbox)
             if s.Grad then s.Grad.Rotation = (tick() * 150) % 360 end
             
-            if enableHitbox and _G.Config.ESP_2D_Hitbox then
+            if isHitboxActive and _G.Config.ESP_2D_Hitbox then
                 s.BoxBill.Size = UDim2.new(_G.Config.HitboxSize, 0, _G.Config.HitboxSize, 0)
             else
                 s.BoxBill.Size = UDim2.new(4.2, 0, 5.8, 0)
@@ -1736,36 +1352,24 @@ RunService.Heartbeat:Connect(function()
     end
 
     for obj in pairs(CachedNPCs) do
-        if not obj.Parent then 
-            CachedNPCs[obj] = nil; CleanupNPC(obj); continue 
-        end
+        if not obj.Parent then CachedNPCs[obj] = nil; CleanupNPC(obj); continue end
         local hum = obj:FindFirstChild("Humanoid") 
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         if hum and hrp and hum.Health > 0 then
             if _G.Config.Hitbox_NPC then
-                if not hrp:GetAttribute("ArisOrigSizeX") then
-                    hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
-                    hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
-                    hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
-                    hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
-                    hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
-                    if hrp.Massless ~= nil then hrp:SetAttribute("ArisOrigMassless", hrp.Massless) end
-                end
-                
                 local targetSizeNPC = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
                 if hrp.Size ~= targetSizeNPC then hrp.Size = targetSizeNPC end
                 if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
                 if hrp.CanCollide ~= false then hrp.CanCollide = false end
                 if hrp.Massless ~= true then hrp.Massless = true end
+                hrp:SetAttribute("ArisHitboxActiveNPC", true)
             else 
-                RestoreHRP(hrp) 
+                CleanupHitboxAttributesNPC(hrp)
             end
 
             local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
-            if _G.Config.Hitbox_NPC and _G.Config.Hitbox_Box_NPC then
-                if not hbBoxNPC then 
-                    hbBoxNPC = Instance.new("SelectionBox", hrp); hbBoxNPC.Name = "ArisHitboxBoxNPC"; hbBoxNPC.Adornee = hrp 
-                end
+            if hrp:GetAttribute("ArisHitboxActiveNPC") and _G.Config.Hitbox_Box_NPC then
+                if not hbBoxNPC then hbBoxNPC = Instance.new("SelectionBox", hrp); hbBoxNPC.Name = "ArisHitboxBoxNPC"; hbBoxNPC.Adornee = hrp end
                 hbBoxNPC.SurfaceColor3 = rgb
             else 
                 if hbBoxNPC then hbBoxNPC:Destroy() end 
@@ -1773,9 +1377,7 @@ RunService.Heartbeat:Connect(function()
 
             local hlNPC = obj:FindFirstChild("ArisHL_NPC")
             if _G.Config.ESP_NPC_Chams then
-                if not hlNPC then 
-                    hlNPC = Instance.new("Highlight", obj); hlNPC.Name = "ArisHL_NPC" 
-                end
+                if not hlNPC then hlNPC = Instance.new("Highlight", obj); hlNPC.Name = "ArisHL_NPC" end
                 hlNPC.FillColor = rgb; hlNPC.Enabled = true
             else 
                 if hlNPC then hlNPC:Destroy() end 
@@ -1801,11 +1403,12 @@ RunService.Heartbeat:Connect(function()
                 ns.Text.TextColor3 = rgb
                 ns.Bill.Enabled = _G.Config.ESP_NPC_Name
                 
+                local isHitboxActiveNPC = hrp:GetAttribute("ArisHitboxActiveNPC") == true
                 ns.BoxBill.Adornee = hrp
                 ns.InStroke.Color = rgb
-                ns.BoxBill.Enabled = _G.Config.ESP_NPC_Box or (_G.Config.Hitbox_NPC and _G.Config.ESP_2D_Hitbox)
+                ns.BoxBill.Enabled = _G.Config.ESP_NPC_Box or (isHitboxActiveNPC and _G.Config.ESP_2D_Hitbox)
 
-                if _G.Config.Hitbox_NPC and _G.Config.ESP_2D_Hitbox then
+                if isHitboxActiveNPC and _G.Config.ESP_2D_Hitbox then
                     ns.BoxBill.Size = UDim2.new(_G.Config.HitboxSize_NPC, 0, _G.Config.HitboxSize_NPC, 0)
                 else
                     ns.BoxBill.Size = UDim2.new(4, 0, 5.5, 0)
