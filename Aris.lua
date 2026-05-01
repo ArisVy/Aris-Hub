@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="FIX DỨT ĐIỂM HITBOX: Chuyển sang RenderStepped & Ngưng ép Size!",
+    Text="FIX LAG TỤT FPS: Đã tối ưu vòng lặp & Giới hạn tầm nhìn NPC!",
     Duration=8
 })
 
@@ -54,6 +54,7 @@ _G.Config={
 
 local TempSkipNPC = {}
 local ArisFakeBody = nil
+local MAX_NPC_RENDER_DISTANCE = 2500 -- GIỚI HẠN XỬ LÝ NPC ĐỂ CHỐNG LAG
 
 if CoreGui:FindFirstChild("ArisHUB_PRO") then
     CoreGui.ArisHUB_PRO:Destroy()
@@ -69,7 +70,6 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = CoreGui
 
--- BẢNG FPS & PING
 local StatsFrame = Instance.new("Frame", ScreenGui)
 StatsFrame.Size = UDim2.new(0, 150, 0, 26)
 StatsFrame.Position = UDim2.new(0, 15, 0, 60)
@@ -116,9 +116,7 @@ local BtnGradientList = {}
 local ToggleButtons = {}
 local AdjustLabels = {}
 
-local function GetRGB()
-    return Color3.fromHSV(tick() % 5 / 5, 1, 1)
-end
+local function GetRGB() return Color3.fromHSV(tick() % 5 / 5, 1, 1) end
 
 local Palettes = {
     On = { Color3.fromRGB(0, 240, 255), Color3.fromRGB(130, 100, 255), Color3.fromRGB(255, 150, 255), Color3.fromRGB(0, 240, 255) },
@@ -161,7 +159,6 @@ local function ApplyToggleGradient(parent, isOn)
         grad = Instance.new("UIGradient", parent) grad.Name = "ToggleGrad" grad.Rotation = 90 table.insert(BtnGradientList, grad)
     end
     parent:SetAttribute("IsOn", isOn)
-
     local txt = parent:FindFirstChildOfClass("TextLabel")
     if txt then
         local txtGrad = txt:FindFirstChildOfClass("UIGradient")
@@ -194,7 +191,6 @@ end
 
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
-
 local function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
 
 local NumericFlags = {
@@ -560,13 +556,11 @@ end
 for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
 Workspace.DescendantAdded:Connect(function(descendant) task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end) end)
 
--- [CHUẨN CHỈNH] NGƯNG HOẠT ĐỘNG HOÀN TOÀN KHI TẮT HITBOX, KHÔNG ĐỤNG CHẠM VÀO SIZE
 local function CleanupHitboxAttributes(hrp)
     if hrp and hrp:GetAttribute("ArisHitboxActive") then
         hrp:SetAttribute("ArisHitboxActive", nil)
         hrp.Transparency = 1
         hrp.CanCollide = true
-        -- Xóa mọi trick vật lý dư thừa
     end
 end
 
@@ -704,7 +698,7 @@ end)
 
 AddToggle("TP Player", "BẬT TWEEN/TP PLAYER", "TP_Player", function(val)
     if val then _G.Config.TP_NPC = false local b = ToggleButtons["TP_NPC"] if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end doMagnetLoop()
-    else if not _G.Config.TP_NPC then currentTarget = nil if currentTween then currentTween:Cancel() end end end
+    else if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end end
 end)
 AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
@@ -724,13 +718,10 @@ PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.U
 PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
 UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
 
--- [CHUẨN] DÙNG RENDERSTEPPED THAY VÌ HEARTBEAT ĐỂ KHÔNG BỊ TRỄ KHUNG HÌNH VẬT LÝ GÂY FREEZE
-RunService.RenderStepped:Connect(function()
-    if _G.Config.WalkSpeedEnabled and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = _G.Config.WalkSpeed end
-    end
-
+-- [MẤU CHỐT TỐI ƯU] Trả lại vòng lặp Heartbeat (không chặn khung hình)
+RunService.Heartbeat:Connect(function()
+    local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    
     local rgb = GetRGB()
     local shift = tick() * 0.15
 
@@ -743,7 +734,6 @@ RunService.RenderStepped:Connect(function()
     for _, grad in ipairs(TextGradientList) do if not grad:GetAttribute("CustomOnColor") then grad.Color = seqText end end
     for _, grad in ipairs(BtnGradientList) do if grad.Parent and grad.Parent:GetAttribute("IsOn") then grad.Color = seqOn else grad.Color = seqOff end end
 
-    local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     local hasLowHPEnemy = false
     if _G.Config.Hitbox_P and _G.Config.LowHP_KS and myRoot then
         for _, p in Players:GetPlayers() do
@@ -785,9 +775,11 @@ RunService.RenderStepped:Connect(function()
             end
 
             if valid then
-                hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
-                hrp.Transparency = 0.6
-                hrp.CanCollide = false
+                -- CHECK ĐIỀU KIỆN TRƯỚC KHI ĐỔI KÍCH THƯỚC (CHỐNG FREEZE BẬT)
+                local targetSize = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                if hrp.Size ~= targetSize then hrp.Size = targetSize end
+                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
+                if hrp.CanCollide ~= false then hrp.CanCollide = false end
                 hrp:SetAttribute("ArisHitboxActive", true)
             else CleanupHitboxAttributes(hrp) end
         else CleanupHitboxAttributes(hrp) end
@@ -835,10 +827,19 @@ RunService.RenderStepped:Connect(function()
         if not obj.Parent then CachedNPCs[obj] = nil; CleanupNPC(obj); continue end
         local hum = obj:FindFirstChild("Humanoid") local hrp = obj:FindFirstChild("HumanoidRootPart")
         if hum and hrp and hum.Health > 0 then
+            
+            -- [MẤU CHỐT TỐI ƯU LAG] Culling - Giới hạn tầm xử lý NPC
+            local distToNPC = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
+            if distToNPC > MAX_NPC_RENDER_DISTANCE then
+                CleanupNPC(obj)
+                continue
+            end
+
             if _G.Config.Hitbox_NPC then
-                hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
-                hrp.Transparency = 0.6
-                hrp.CanCollide = false
+                local targetSizeNPC = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
+                if hrp.Size ~= targetSizeNPC then hrp.Size = targetSizeNPC end
+                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
+                if hrp.CanCollide ~= false then hrp.CanCollide = false end
                 hrp:SetAttribute("ArisHitboxActiveNPC", true)
             else CleanupHitboxAttributesNPC(hrp) end
 
