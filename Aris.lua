@@ -1,3 +1,4 @@
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -10,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="FIX 100% FREEZE BUDDHA: Hitbox ngưng ép size khi tắt!",
+    Text="Đã Tách Nút FREEZE HITBOX & Fix Lag Player",
     Duration=8
 })
 
@@ -25,6 +26,7 @@ _G.Config={
     Hitbox_WallCheck=false,
     Hitbox_Box=false,
     ESP_2D_Hitbox=false, 
+    Freeze_Hitbox=false, -- TÍNH NĂNG MỚI TÁCH RỜI
     TeamCheck=true,
     LowHP_KS=false,
     WalkSpeed=90,
@@ -89,8 +91,8 @@ StatsText.TextColor3 = Color3.new(1,1,1)
 
 local StatsGrad = Instance.new("UIGradient", StatsText)
 StatsGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200))
+    ColorSequenceKeypoint.new(0, 230, 255),
+    ColorSequenceKeypoint.new(1, 255, 50, 200)
 })
 
 local FPS_Frames = 0
@@ -661,6 +663,7 @@ AddToggle("ESP","ESP BOX 2D","ESP_Box_P")
 AddToggle("ESP","ESP CHAMS","ESP_Chams_P")
 
 AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P")
+AddToggle("Hitbox","FREEZE HITBOX (Chống Lag)","Freeze_Hitbox") -- NÚT TÁCH RỜI CHỨC NĂNG
 AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
 AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
@@ -944,14 +947,14 @@ Workspace.DescendantAdded:Connect(function(descendant)
     task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end)
 end)
 
--- [MỚI] Tắt Hitbox NGƯNG GHI ĐÈ SIZE để tránh crash vật lý game (Fix lỗi Buddha)
 local function CleanupHitboxAttributes(hrp)
     if hrp and hrp:GetAttribute("ArisHitboxActive") then
         hrp:SetAttribute("ArisHitboxActive", nil)
-        -- CHỈ trả lại trong suốt và xuyên thấu, KHÔNG đụng vào size
         hrp.Transparency = 1
         hrp.CanCollide = true
         hrp.Massless = false
+        -- Reset vật lý (Fix Freeze logic thường)
+        hrp.CustomPhysicalProperties = nil
     end
 end
 
@@ -961,6 +964,7 @@ local function CleanupHitboxAttributesNPC(hrp)
         hrp.Transparency = 1
         hrp.CanCollide = true
         hrp.Massless = false
+        hrp.CustomPhysicalProperties = nil
     end
 end
 
@@ -1169,7 +1173,7 @@ AddToggle("TP Player", "BẬT TWEEN/TP PLAYER", "TP_Player", function(val)
         if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
-        if not _G.Config.TP_NPC then currentTarget = nil if currentTween then currentTween:Cancel() end end
+        if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end
     end
 end)
 AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5)
@@ -1272,12 +1276,32 @@ RunService.Heartbeat:Connect(function()
             end
 
             if valid then
-                -- [ĐIỂM FIX FREEZE] Nếu bật Hitbox, chỉ thiết lập Size nếu nó khác
-                local targetSize = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
-                if hrp.Size ~= targetSize then hrp.Size = targetSize end
-                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
-                if hrp.CanCollide ~= false then hrp.CanCollide = false end
-                if hrp.Massless ~= true then hrp.Massless = true end
+                if not hrp:GetAttribute("ArisOrigSizeX") then
+                    hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
+                    hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
+                    hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
+                    hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
+                    hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
+                    if hrp.Massless ~= nil then hrp:SetAttribute("ArisOrigMassless", hrp.Massless) end
+                end
+                
+                -- LOGIC ĐƯỢC TÁCH RA THÀNH 2 PHẦN THEO YÊU CẦU
+                if _G.Config.Freeze_Hitbox then
+                    -- BẬT "FREEZE HITBOX": Chỉ update size khi có sự khác biệt để tránh kẹt
+                    local targetSize = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                    if hrp.Size ~= targetSize then hrp.Size = targetSize end
+                    if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
+                    if hrp.CanCollide ~= false then hrp.CanCollide = false end
+                    if hrp.Massless ~= true then hrp.Massless = true end
+                else
+                    -- TẮT "FREEZE HITBOX" (LOGIC THƯỜNG + FIX VẬT LÝ):
+                    -- Ép size liên tục 60fps nhưng chèn CustomPhysicalProperties để triệt tiêu độ nặng, ma sát. Player sẽ k còn bị giật/freeze.
+                    hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                    hrp.Transparency = 0.6
+                    hrp.CanCollide = false
+                    hrp.Massless = true
+                    hrp.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+                end
                 
                 hrp:SetAttribute("ArisHitboxActive", true)
             else 
@@ -1332,7 +1356,6 @@ RunService.Heartbeat:Connect(function()
             local s=ESP_Store[p.Name]
             s.BoxBill.Adornee = hrp; s.TextBill.Adornee = char:FindFirstChild("Head") or hrp
             
-            -- [NEW] ESP 2D Hitbox
             local isHitboxActive = hrp:GetAttribute("ArisHitboxActive") == true
             s.BoxBill.Enabled = _G.Config.ESP_Box_P or (isHitboxActive and _G.Config.ESP_2D_Hitbox)
             if s.Grad then s.Grad.Rotation = (tick() * 150) % 360 end
@@ -1357,11 +1380,29 @@ RunService.Heartbeat:Connect(function()
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         if hum and hrp and hum.Health > 0 then
             if _G.Config.Hitbox_NPC then
-                local targetSizeNPC = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
-                if hrp.Size ~= targetSizeNPC then hrp.Size = targetSizeNPC end
-                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
-                if hrp.CanCollide ~= false then hrp.CanCollide = false end
-                if hrp.Massless ~= true then hrp.Massless = true end
+                if not hrp:GetAttribute("ArisOrigSizeX") then
+                    hrp:SetAttribute("ArisOrigSizeX", hrp.Size.X)
+                    hrp:SetAttribute("ArisOrigSizeY", hrp.Size.Y)
+                    hrp:SetAttribute("ArisOrigSizeZ", hrp.Size.Z)
+                    hrp:SetAttribute("ArisOrigTrans", hrp.Transparency)
+                    hrp:SetAttribute("ArisOrigCollide", hrp.CanCollide)
+                    if hrp.Massless ~= nil then hrp:SetAttribute("ArisOrigMassless", hrp.Massless) end
+                end
+                
+                if _G.Config.Freeze_Hitbox then
+                    local targetSizeNPC = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
+                    if hrp.Size ~= targetSizeNPC then hrp.Size = targetSizeNPC end
+                    if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
+                    if hrp.CanCollide ~= false then hrp.CanCollide = false end
+                    if hrp.Massless ~= true then hrp.Massless = true end
+                else
+                    hrp.Size = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
+                    hrp.Transparency = 0.6
+                    hrp.CanCollide = false
+                    hrp.Massless = true
+                    hrp.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+                end
+                
                 hrp:SetAttribute("ArisHitboxActiveNPC", true)
             else 
                 CleanupHitboxAttributesNPC(hrp)
