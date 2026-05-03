@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: 12k dap dat",
+    Text="CẬP NHẬT: 1t",
     Duration=8
 })
 
@@ -985,7 +985,7 @@ RunService.Heartbeat:Connect(function(dt)
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
                 -- TP thẳng lên 30km
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, 30000, 0)
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, 50000, 0)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
             end
@@ -996,7 +996,7 @@ RunService.Heartbeat:Connect(function(dt)
                 
                 if hpPct < 0.65 then
                     -- Bay lên tiếp với tốc độ 1200
-                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 1200 * dt, 0)
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 777 * dt, 0)
                 else
                     _G.IsFleeing = false
                     _G.IsReturning = true
