@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Đã tích hợp Fast M1 vào tab Misc!",
+    Text="CẬP NHẬT: Gộp hàng TP/Skip & Thêm chức năng SAFE (HP < 35%)!",
     Duration=8
 })
 
@@ -30,7 +30,7 @@ _G.Config={
     WalkSpeed=90,
     WalkSpeedEnabled=false,
     Show_Stats=true,
-    FastM1=false, -- Tích hợp Fast M1
+    FastM1=false,
     Hitbox_NPC=false,
     HitboxSize_NPC=20,
     Hitbox_Box_NPC=false,
@@ -51,8 +51,13 @@ _G.Config={
     Prediction_Enabled = false,
     Prediction = 1.0,
     BlacklistedNPCs = {},
-    SelectedTargetPlayer = nil
+    SelectedTargetPlayer = nil,
+    SafeMode = false
 }
+
+_G.IsFleeing = false
+_G.IsReturning = false
+_G.SafeReturnY = 0
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
@@ -371,6 +376,7 @@ MainFrame.Visible = false
 Instance.new("UICorner",MainFrame).CornerRadius = UDim.new(0,20)
 CreateBorder(MainFrame)
 
+-- ==================== NÚT RESET & SAFE ====================
 local ResetBtn = Instance.new("TextButton",MainFrame)
 ResetBtn.Size = UDim2.new(0,36,0,32)
 ResetBtn.Position = UDim2.new(0,12,0,7)
@@ -386,14 +392,28 @@ ResetBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
+local SafeBtn = Instance.new("TextButton",MainFrame)
+SafeBtn.Size = UDim2.new(0,45,0,32)
+SafeBtn.Position = UDim2.new(1,-55,0,7)
+SafeBtn.Text = ""
+SafeBtn.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",SafeBtn).CornerRadius = UDim.new(0,16)
+ApplyToggleGradient(SafeBtn, _G.Config.SafeMode) CreateBorder(SafeBtn) CreateButtonText(SafeBtn, "SAFE", Enum.Font.GothamBold, 11) ApplyButtonAnimation(SafeBtn)
+
+SafeBtn.MouseButton1Click:Connect(function()
+    _G.Config.SafeMode = not _G.Config.SafeMode
+    ApplyToggleGradient(SafeBtn, _G.Config.SafeMode)
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Bay 30km khi HP <35%!" or "Đã TẮT!", Duration=3 })
+end)
+
 local Title = Instance.new("TextLabel",MainFrame)
-Title.Size = UDim2.new(1,-70,0,45)
+Title.Size = UDim2.new(1,-120,0,45)
 Title.Position = UDim2.new(0,60,0,0)
 Title.Text = "ARIS HUB V53 PRO"
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 20
 Title.BackgroundTransparency = 1
-Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextXAlignment = Enum.TextXAlignment.Center
 CreateTextGradient(Title) MakeDraggable(MainFrame)
 
 ToggleBtn.MouseButton1Click:Connect(function() _G.Config.MenuOpen=not _G.Config.MenuOpen; MainFrame.Visible=_G.Config.MenuOpen end)
@@ -472,7 +492,7 @@ AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 AddToggle("Misc","TEAM CHECK (ESP + HB + TP)","TeamCheck")
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1") -- Tích hợp Fast M1 vào tab Misc
+AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1")
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) WSContainer.Size = UDim2.new(1, 0, 0, 115) WSContainer.BackgroundTransparency = 1
@@ -627,6 +647,11 @@ local function doMagnetLoop()
     if isFarming then return end isFarming = true
     task.spawn(function()
         while _G.Config.TP_NPC or _G.Config.TP_Player do
+            if _G.IsFleeing or _G.IsReturning then
+                task.wait(0.1)
+                continue
+            end
+            
             local char = LocalPlayer.Character local myRoot = char and char:FindFirstChild("HumanoidRootPart")
             if myRoot then
                 local keepCurrentTarget = false
@@ -712,7 +737,7 @@ AddToggle("TP NPC", "BẬT TWEEN/TP NPC", "TP_NPC", function(val)
     if val then 
         _G.Config.TP_Player = false 
         local b = ToggleButtons["TP_Player"] 
-        if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end 
+        if b then b.Txt.Text = "🎯 BẬT TP: OFF" ApplyToggleGradient(b.Btn, false) end 
         doMagnetLoop()
     else 
         TempSkipNPC = {} 
@@ -745,24 +770,49 @@ AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="TÌM KIẾM NPC", Text="Phát hiện " .. count .. " loại NPC trong 1km!", Duration=3 })
 end)
 
-AddToggle("TP Player", "BẬT TWEEN/TP PLAYER", "TP_Player", function(val)
-    if val then 
-        _G.Config.TP_NPC = false 
-        local b = ToggleButtons["TP_NPC"] 
-        if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end 
+-- ==================== CHỈNH SỬA UI TAB TP PLAYER ====================
+local tpPlayerTab = ContentFrames["TP Player"].Frame
+local dualRow = Instance.new("Frame", tpPlayerTab)
+dualRow.Size = UDim2.new(1, -16, 0, 36)
+dualRow.BackgroundTransparency = 1
+
+local tpSelBtn = Instance.new("TextButton", dualRow)
+tpSelBtn.Size = UDim2.new(0.48, 0, 1, 0)
+tpSelBtn.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", tpSelBtn).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
+CreateBorder(tpSelBtn)
+local tpSelTxt = CreateButtonText(tpSelBtn, "🎯 BẬT TP: OFF", Enum.Font.GothamBold, 11)
+ApplyButtonAnimation(tpSelBtn)
+ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "🎯 BẬT TP"}
+
+tpSelBtn.MouseButton1Click:Connect(function()
+    _G.Config.TP_Player = not _G.Config.TP_Player
+    ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
+    tpSelTxt.Text = "🎯 BẬT TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
+    if _G.Config.TP_Player then
+        _G.Config.TP_NPC = false
+        local b = ToggleButtons["TP_NPC"]
+        if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
-    else 
-        TempSkipPlayer = {} 
-        if not _G.Config.TP_Player then 
-            currentTarget = nil 
-            if currentTween then currentTween:Cancel() end 
-        end 
+    else
+        TempSkipPlayer = {}
+        if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end
         game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Đã xóa danh sách Player bị bỏ qua!", Duration=3 })
     end
 end)
-AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
-AddButton("TP Player", "⏭️ BỎ QUA PLAYER HIỆN TẠI (SKIP)", function()
+local skipBtn = Instance.new("TextButton", dualRow)
+skipBtn.Size = UDim2.new(0.48, 0, 1, 0)
+skipBtn.Position = UDim2.new(0.52, 0, 0, 0)
+skipBtn.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", skipBtn).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(skipBtn, false)
+CreateBorder(skipBtn)
+CreateButtonText(skipBtn, "⏭️ SKIP PLAYER", Enum.Font.GothamBold, 11)
+ApplyButtonAnimation(skipBtn)
+
+skipBtn.MouseButton1Click:Connect(function()
     if currentTarget and currentTarget.Parent then
         local p = Players:GetPlayerFromCharacter(currentTarget.Parent)
         if p then
@@ -773,6 +823,9 @@ AddButton("TP Player", "⏭️ BỎ QUA PLAYER HIỆN TẠI (SKIP)", function()
         end
     end
 end)
+
+AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) 
+AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
 local SelectedPlayerLabel = Instance.new("TextLabel", ContentFrames["TP Player"].Frame)
 SelectedPlayerLabel.Size = UDim2.new(1, -16, 0, 25)
@@ -863,9 +916,6 @@ PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.U
 PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
 UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
 
--- =========================================================
--- LOGIC FAST M1
--- =========================================================
 task.spawn(function()
     while task.wait(0.01) do
         if _G.Config.FastM1 then
@@ -892,9 +942,52 @@ task.spawn(function()
     end
 end)
 
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function(dt)
+    -- ==================== LOGIC SAFE MODE TỰ ĐỘNG ====================
+    if _G.Config.SafeMode and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hum and hrp and hum.Health > 0 then
+            local hpPct = hum.Health / hum.MaxHealth
+            
+            if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
+                _G.IsFleeing = true
+                _G.SafeReturnY = hrp.Position.Y
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, 30000, 0)
+                if currentTween then currentTween:Cancel() end
+                if not noclipConnection then toggleNoclip(true) end
+            end
+            
+            if _G.IsFleeing then
+                if currentTween then currentTween:Cancel() end
+                if not noclipConnection then toggleNoclip(true) end
+                
+                if hpPct < 0.65 then
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 2000 * dt, 0)
+                else
+                    _G.IsFleeing = false
+                    _G.IsReturning = true
+                end
+            elseif _G.IsReturning then
+                if currentTween then currentTween:Cancel() end
+                if not noclipConnection then toggleNoclip(true) end
+                
+                hrp.CFrame = hrp.CFrame - Vector3.new(0, 6000 * dt, 0)
+                
+                if hrp.Position.Y <= _G.SafeReturnY then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, _G.SafeReturnY, hrp.Position.Z)
+                    _G.IsReturning = false
+                    if noclipConnection and not isFarming then toggleNoclip(false) end
+                end
+            end
+        end
+    else
+        _G.IsFleeing = false
+        _G.IsReturning = false
+    end
+    -- =================================================================
+
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    
     if LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hum then
