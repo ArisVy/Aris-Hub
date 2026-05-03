@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="FIX LỖI: Đã thêm tính năng Reset danh sách Skip khi tắt TP!",
+    Text="FIX LỖI: Chế độ Lock-on dính mục tiêu như keo!",
     Duration=8
 })
 
@@ -620,6 +620,9 @@ local function toggleNoclip(active)
     else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end setCollision(true) end
 end
 
+-- =========================================================
+-- LOGIC VÒNG LẶP MAGNET CHÍNH THỨC (CÓ TARGET LOCK "DÍNH NHƯ KEO")
+-- =========================================================
 local isFarming = false
 local function doMagnetLoop()
     if isFarming then return end isFarming = true
@@ -627,50 +630,73 @@ local function doMagnetLoop()
         while _G.Config.TP_NPC or _G.Config.TP_Player do
             local char = LocalPlayer.Character local myRoot = char and char:FindFirstChild("HumanoidRootPart")
             if myRoot then
-                local nearest = nil local shortestDist = 5000
-                if _G.Config.TP_NPC then
-                    for npc, _ in pairs(CachedNPCs) do
-                        if npc and npc.Parent then
-                            if _G.Config.BlacklistedNPCs[npc.Name] or TempSkipNPC[npc] then continue end
-                            local hum = npc:FindFirstChild("Humanoid") local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Hitbox") or npc:FindFirstChild("Torso") or npc:FindFirstChild("UpperTorso")
-                            if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
-                                local dist = (myRoot.Position - root.Position).Magnitude if dist < shortestDist then shortestDist = dist nearest = root end
+                -- KIỂM TRA MỤC TIÊU HIỆN TẠI CÓ CÒN HỢP LỆ KHÔNG ĐỂ GIỮ LẠI (DÍNH NHƯ KEO)
+                local keepCurrentTarget = false
+                if currentTarget and currentTarget.Parent then
+                    local hum = currentTarget.Parent:FindFirstChild("Humanoid")
+                    if hum and hum.Health > 0 then
+                        if _G.Config.TP_Player then
+                            local p = Players:GetPlayerFromCharacter(currentTarget.Parent)
+                            if p and not TempSkipPlayer[p.Name] then
+                                if _G.Config.SelectedTargetPlayer and _G.Config.SelectedTargetPlayer ~= "" then
+                                    if p.Name == _G.Config.SelectedTargetPlayer then keepCurrentTarget = true end
+                                else
+                                    keepCurrentTarget = true -- Chế độ Auto Player: Đã dính là dính mãi đến khi chết hoặc ấn Skip
+                                end
+                            end
+                        elseif _G.Config.TP_NPC then
+                            if not TempSkipNPC[currentTarget.Parent] and not _G.Config.BlacklistedNPCs[currentTarget.Parent.Name] then 
+                                keepCurrentTarget = true 
                             end
                         end
                     end
-                elseif _G.Config.TP_Player then
-                    if _G.Config.SelectedTargetPlayer and _G.Config.SelectedTargetPlayer ~= "" then
-                        local p = Players:FindFirstChild(_G.Config.SelectedTargetPlayer)
-                        if p and p.Character and p ~= LocalPlayer and not TempSkipPlayer[p.Name] then
-                            local isSameTeam = (LocalPlayer.Team ~= nil and p.Team == LocalPlayer.Team)
-                            if not (_G.Config.TeamCheck and isSameTeam) then
-                                local hum = p.Character:FindFirstChild("Humanoid")
-                                local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+                end
+
+                -- NẾU MỤC TIÊU CŨ KHÔNG CÒN HỢP LỆ (Bị Skip/Chết/Đổi người trong list), BẮT ĐẦU QUÉT TÌM MỤC TIÊU MỚI
+                if not keepCurrentTarget then
+                    local nearest = nil local shortestDist = 5000
+                    if _G.Config.TP_NPC then
+                        for npc, _ in pairs(CachedNPCs) do
+                            if npc and npc.Parent then
+                                if _G.Config.BlacklistedNPCs[npc.Name] or TempSkipNPC[npc] then continue end
+                                local hum = npc:FindFirstChild("Humanoid") local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Hitbox") or npc:FindFirstChild("Torso") or npc:FindFirstChild("UpperTorso")
                                 if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
-                                    shortestDist = (myRoot.Position - root.Position).Magnitude
-                                    nearest = root
+                                    local dist = (myRoot.Position - root.Position).Magnitude if dist < shortestDist then shortestDist = dist nearest = root end
                                 end
                             end
                         end
-                    else
-                        for _, p in ipairs(Players:GetPlayers()) do
-                            if p ~= LocalPlayer and p.Character and not TempSkipPlayer[p.Name] then
+                    elseif _G.Config.TP_Player then
+                        if _G.Config.SelectedTargetPlayer and _G.Config.SelectedTargetPlayer ~= "" then
+                            local p = Players:FindFirstChild(_G.Config.SelectedTargetPlayer)
+                            if p and p.Character and p ~= LocalPlayer and not TempSkipPlayer[p.Name] then
                                 local isSameTeam = (LocalPlayer.Team ~= nil and p.Team == LocalPlayer.Team)
                                 if not (_G.Config.TeamCheck and isSameTeam) then
-                                    local hum = p.Character:FindFirstChild("Humanoid") local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+                                    local hum = p.Character:FindFirstChild("Humanoid")
+                                    local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
                                     if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
-                                        local dist = (myRoot.Position - root.Position).Magnitude if dist < shortestDist then shortestDist = dist nearest = root end
+                                        nearest = root
+                                    end
+                                end
+                            end
+                        else
+                            for _, p in ipairs(Players:GetPlayers()) do
+                                if p ~= LocalPlayer and p.Character and not TempSkipPlayer[p.Name] then
+                                    local isSameTeam = (LocalPlayer.Team ~= nil and p.Team == LocalPlayer.Team)
+                                    if not (_G.Config.TeamCheck and isSameTeam) then
+                                        local hum = p.Character:FindFirstChild("Humanoid") local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+                                        if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
+                                            local dist = (myRoot.Position - root.Position).Magnitude if dist < shortestDist then shortestDist = dist nearest = root end
+                                        end
                                     end
                                 end
                             end
                         end
                     end
+                    currentTarget = nearest
+                    if currentTween then currentTween:Cancel() end
                 end
                 
-                if nearest ~= currentTarget or (currentTarget and (not currentTarget.Parent or (currentTarget.Parent:FindFirstChild("Humanoid") and currentTarget.Parent.Humanoid.Health <= 0))) then
-                    currentTarget = nearest if currentTween then currentTween:Cancel() end
-                end
-                
+                -- THỰC HIỆN BAY TỚI MỤC TIÊU ĐANG KHÓA
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
                     local targetPos = currentTarget.CFrame * CFrame.new(0, _G.Config.TP_Height, 0)
@@ -685,6 +711,7 @@ local function doMagnetLoop()
         if noclipConnection then toggleNoclip(false) end isFarming = false
     end)
 end
+-- =========================================================
 
 AddToggle("TP NPC", "BẬT TWEEN/TP NPC", "TP_NPC", function(val)
     if val then 
