@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="Đã thêm tính năng TP Player được chọn & List Player!",
+    Text="FIX LỖI: Đã thêm tính năng Reset danh sách Skip khi tắt TP!",
     Duration=8
 })
 
@@ -50,7 +50,7 @@ _G.Config={
     Prediction_Enabled = false,
     Prediction = 1.0,
     BlacklistedNPCs = {},
-    SelectedTargetPlayer = nil -- Biến lưu trữ Player được chọn thủ công
+    SelectedTargetPlayer = nil
 }
 
 local TempSkipNPC = {}
@@ -687,8 +687,19 @@ local function doMagnetLoop()
 end
 
 AddToggle("TP NPC", "BẬT TWEEN/TP NPC", "TP_NPC", function(val)
-    if val then _G.Config.TP_Player = false local b = ToggleButtons["TP_Player"] if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end doMagnetLoop()
-    else if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end end
+    if val then 
+        _G.Config.TP_Player = false 
+        local b = ToggleButtons["TP_Player"] 
+        if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end 
+        doMagnetLoop()
+    else 
+        TempSkipNPC = {} -- XÓA DANH SÁCH SKIP NPC KHI TẮT
+        if not _G.Config.TP_Player then 
+            currentTarget = nil 
+            if currentTween then currentTween:Cancel() end 
+        end 
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Đã xóa danh sách NPC bị bỏ qua!", Duration=3 })
+    end
 end)
 AddAdjust("TP NPC", "ĐỘ CAO (Y)", "TP_Height", 5) AddAdjust("TP NPC", "TỐC ĐỘ BAY", "TP_Speed", 50)
 AddButton("TP NPC", "⏭️ BỎ QUA NPC HIỆN TẠI (SKIP)", function()
@@ -713,12 +724,22 @@ AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
 end)
 
 AddToggle("TP Player", "BẬT TWEEN/TP PLAYER", "TP_Player", function(val)
-    if val then _G.Config.TP_NPC = false local b = ToggleButtons["TP_NPC"] if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end doMagnetLoop()
-    else if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end end
+    if val then 
+        _G.Config.TP_NPC = false 
+        local b = ToggleButtons["TP_NPC"] 
+        if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end 
+        doMagnetLoop()
+    else 
+        TempSkipPlayer = {} -- XÓA DANH SÁCH SKIP PLAYER KHI TẮT
+        if not _G.Config.TP_Player then 
+            currentTarget = nil 
+            if currentTween then currentTween:Cancel() end 
+        end 
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Đã xóa danh sách Player bị bỏ qua!", Duration=3 })
+    end
 end)
 AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
--- ================= Thêm phần điều khiển List Player ở đây =================
 AddButton("TP Player", "⏭️ BỎ QUA PLAYER HIỆN TẠI (SKIP)", function()
     if currentTarget and currentTarget.Parent then
         local p = Players:GetPlayerFromCharacter(currentTarget.Parent)
@@ -803,7 +824,6 @@ AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
     end
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " người chơi!", Duration=3 })
 end)
--- ==============================================================================
 
 local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame) PredContainer.Size = UDim2.new(1, 0, 0, 115) PredContainer.BackgroundTransparency = 1
 local PredToggle = Instance.new("TextButton", PredContainer) PredToggle.Size = UDim2.new(1, -16, 0, 36) PredToggle.Text = "" PredToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) CreateBorder(PredToggle) local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(PredToggle)
