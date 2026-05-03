@@ -7,10 +7,9 @@ local lp = Players.LocalPlayer
 -- 1. TẠO GIAO DIỆN (GUI) NHỎ GỌN
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TRexPvPMenu"
+ScreenGui.Name = "RawLogicFastM1"
 ScreenGui.Parent = pcall(function() return CoreGui end) and CoreGui or lp.PlayerGui
 
--- Nút Thu/Phóng Menu
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Size = UDim2.new(0, 100, 0, 35)
 ToggleMenuBtn.Position = UDim2.new(0, 20, 0, 20)
@@ -22,7 +21,6 @@ ToggleMenuBtn.Text = "MỞ / ĐÓNG"
 ToggleMenuBtn.Parent = ScreenGui
 Instance.new("UICorner", ToggleMenuBtn).CornerRadius = UDim.new(0, 6)
 
--- Khung Menu Chính
 local MenuFrame = Instance.new("Frame")
 MenuFrame.Size = UDim2.new(0, 180, 0, 80)
 MenuFrame.Position = UDim2.new(0, 20, 0, 65)
@@ -32,15 +30,14 @@ MenuFrame.Active = true
 MenuFrame.Draggable = true 
 Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 8)
 
--- Nút Bật/Tắt Auto T-Rex
 local AttackBtn = Instance.new("TextButton")
 AttackBtn.Size = UDim2.new(0, 150, 0, 40)
 AttackBtn.Position = UDim2.new(0, 15, 0, 20)
 AttackBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 AttackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AttackBtn.Font = Enum.Font.GothamBold
-AttackBtn.TextSize = 13
-AttackBtn.Text = "AUTO T-REX: OFF"
+AttackBtn.TextSize = 14
+AttackBtn.Text = "FAST M1: OFF"
 AttackBtn.Parent = MenuFrame
 Instance.new("UICorner", AttackBtn).CornerRadius = UDim.new(0, 6)
 
@@ -54,47 +51,17 @@ end)
 local isAttacking = false
 AttackBtn.MouseButton1Click:Connect(function()
     isAttacking = not isAttacking
-    AttackBtn.Text = isAttacking and "AUTO T-REX: ON" or "AUTO T-REX: OFF"
+    AttackBtn.Text = isAttacking and "FAST M1: ON" or "FAST M1: OFF"
     AttackBtn.BackgroundColor3 = isAttacking and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
 end)
 
 -- ==========================================
--- 3. HÀM TÌM PLAYER GẦN NHẤT
--- ==========================================
-local function getNearestPlayer()
-    local char = lp.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
-    local hrp = char.HumanoidRootPart
-    
-    local nearest = nil
-    local minDist = math.huge
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= lp then
-            local pChar = player.Character
-            if pChar then
-                local p_hrp = pChar:FindFirstChild("HumanoidRootPart")
-                local p_hum = pChar:FindFirstChild("Humanoid")
-                
-                if p_hrp and p_hum and p_hum.Health > 0 then
-                    local dist = (p_hrp.Position - hrp.Position).Magnitude
-                    if dist < minDist then
-                        minDist = dist
-                        nearest = pChar
-                    end
-                end
-            end
-        end
-    end
-    
-    return nearest
-end
-
--- ==========================================
--- 4. LOGIC T-REX INFINITE RANGE + AUTO AIM
+-- 3. LOGIC FAST M1 CHUẨN TỪ FILE SOURCE
+-- (Trích xuất từ hàm FruitAttackPlayer và T-Rex Combat Loop)
 -- ==========================================
 task.spawn(function()
     while true do
+        -- Độ trễ y hệt trong vòng lặp M1 của file source
         task.wait(0.01) 
         
         if isAttacking then
@@ -102,22 +69,25 @@ task.spawn(function()
                 local char = lp.Character
                 if not char then return end
                 
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                local trex = char:FindFirstChild("T-Rex-T-Rex")
-                
-                -- Phải cầm T-Rex trên tay mới bắn
-                if hrp and trex then
-                    local remote = trex:FindFirstChild("LeftClickRemote")
-                    local targetChar = getNearestPlayer()
+                -- Tìm vũ khí ĐANG CẦM (Không hardcode T-Rex)
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then
+                    -- Lấy Remote giống cách file source gọi: tool:FindFirstChild(config.RemoteName)
+                    -- (Trong file config.RemoteName đa số là "LeftClickRemote")
+                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
                     
-                    if remote and targetChar then
-                        local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
-                        if targetHrp then
-                            -- Tính góc nhắm thẳng vào đầu người chơi khác
-                            local direction = (targetHrp.Position - hrp.Position).Unit
-                            
-                            -- Khai thác LeftClickRemote[cite: 1]
+                    if remote then
+                        -- Tọa độ hướng đánh (Hardcode Vector3.new(0, -0.9, 0.03) lấy trực tiếp từ hàm FruitAttackPlayer trong file)
+                        local direction = Vector3.new(0, -0.9, 0.03)
+                        
+                        -- Nếu là RemoteEvent (Trái ác quỷ / Súng thường dùng cái này)
+                        if remote:IsA("RemoteEvent") then
+                            -- Bắn thẳng lên server, số 1 là tham số args combo (giống Kitsune/Dragon trong file)
                             remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
+                        
+                        -- Nếu là RemoteFunction (Melee / Kiếm thường dùng cái này)
+                        elseif remote:IsA("RemoteFunction") then
+                            remote:InvokeServer()
                         end
                     end
                 end
