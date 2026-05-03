@@ -5,6 +5,9 @@ local function createESP(player)
     if player == LocalPlayer then return end
 
     local function setupCharacter(character)
+        -- Đợi một chút để server kịp gắn các tag bảo vệ sau khi hồi sinh
+        task.wait(1) 
+        
         local hrp = character:WaitForChild("HumanoidRootPart", 5)
         local humanoid = character:WaitForChild("Humanoid", 5)
         if not hrp or not humanoid then return end
@@ -40,25 +43,35 @@ local function createESP(player)
                 
                 local hp = math.floor(humanoid.Health)
                 
-                -- KIỂM TRA TRẠNG THÁI PVP TỪ FILE DATA CỦA BLOX FRUITS
+                -- MẶC ĐỊNH LÀ BẬT
                 local pvpStatusText = "<font color='rgb(255, 50, 50)'>[PVP: BẬT]</font>"
-                
+                local isSafe = false
+
+                -- 1. Quét file Data truyền thống
                 local playerData = player:FindFirstChild("Data")
                 if playerData then
-                    -- Quét file Pvp trong thư mục Data của người chơi
                     local pvpValue = playerData:FindFirstChild("Pvp") or playerData:FindFirstChild("PvP")
-                    
-                    if pvpValue then
-                        -- Trong Blox Fruits, value này thường là số (0 là tắt) hoặc bool (false là tắt)
-                        if pvpValue.Value == 0 or pvpValue.Value == false then
-                            pvpStatusText = "<font color='rgb(50, 255, 50)'>[PVP: TẮT]</font>"
-                        end
+                    if pvpValue and (pvpValue.Value == 0 or pvpValue.Value == false) then
+                        isSafe = true
                     end
                 end
 
-                -- Bổ sung: Báo thêm nếu họ đang đứng trong Safe Zone (vì lúc này PVP bật cũng vô dụng)
-                if player:GetAttribute("SafeZone") or (character:FindFirstChild("SafeZone")) then
-                    pvpStatusText = "<font color='rgb(50, 255, 50)'>[SAFE ZONE]</font>"
+                -- 2. Quét Attributes (Blox Fruits bản mới thường dùng cái này để đồng bộ server)
+                if player:GetAttribute("Pvp") == false or player:GetAttribute("PvpDisabled") == true then
+                    isSafe = true
+                end
+
+                -- 3. Quét các Tag ẩn trong nhân vật (Bảo vệ 15 phút hoặc SafeZone)
+                if character:FindFirstChild("SafeZone") or player:GetAttribute("SafeZone") then
+                    isSafe = true
+                end
+                if character:FindFirstChild("PvpDisabled") or character:FindFirstChild("Protection") then
+                    isSafe = true
+                end
+
+                -- Gắn kết quả
+                if isSafe then
+                    pvpStatusText = "<font color='rgb(50, 255, 50)'>[PVP: TẮT / BẢO VỆ]</font>"
                 end
 
                 if distance < 5000 then
