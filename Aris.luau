@@ -26,7 +26,7 @@ local function createESP(player)
         textLabel.Size = UDim2.new(1, 0, 1, 0)
         textLabel.Font = Enum.Font.Code
         textLabel.TextSize = 14
-        textLabel.RichText = true -- Bật RichText để đổi màu từng chữ
+        textLabel.RichText = true
         textLabel.TextStrokeTransparency = 0
 
         billboard.Parent = hrp
@@ -40,16 +40,28 @@ local function createESP(player)
                 
                 local hp = math.floor(humanoid.Health)
                 
-                -- KIỂM TRA TRẠNG THÁI PVP BẬT/TẮT
-                local pvpStatusText = "<font color='rgb(255, 50, 50)'>[PVP: BẬT]</font>" -- Mặc định là Đỏ (Bật)
+                -- KIỂM TRA TRẠNG THÁI PVP TỪ FILE DATA CỦA BLOX FRUITS
+                local pvpStatusText = "<font color='rgb(255, 50, 50)'>[PVP: BẬT]</font>"
                 
-                -- Kiểm tra khiên bảo vệ (mới hồi sinh) hoặc các tag SafeZone của Blox Fruits
-                if character:FindFirstChildOfClass("ForceField") or character:FindFirstChild("SafeZone") then
-                    pvpStatusText = "<font color='rgb(50, 255, 50)'>[PVP: TẮT]</font>" -- Xanh lá (Tắt/An toàn)
+                local playerData = player:FindFirstChild("Data")
+                if playerData then
+                    -- Quét file Pvp trong thư mục Data của người chơi
+                    local pvpValue = playerData:FindFirstChild("Pvp") or playerData:FindFirstChild("PvP")
+                    
+                    if pvpValue then
+                        -- Trong Blox Fruits, value này thường là số (0 là tắt) hoặc bool (false là tắt)
+                        if pvpValue.Value == 0 or pvpValue.Value == false then
+                            pvpStatusText = "<font color='rgb(50, 255, 50)'>[PVP: TẮT]</font>"
+                        end
+                    end
+                end
+
+                -- Bổ sung: Báo thêm nếu họ đang đứng trong Safe Zone (vì lúc này PVP bật cũng vô dụng)
+                if player:GetAttribute("SafeZone") or (character:FindFirstChild("SafeZone")) then
+                    pvpStatusText = "<font color='rgb(50, 255, 50)'>[SAFE ZONE]</font>"
                 end
 
                 if distance < 5000 then
-                    -- Hiển thị Tên, Máu và Trạng thái PVP
                     textLabel.Text = string.format(
                         "<font color='rgb(0, 255, 255)'>%s [%dm]</font>\nHP: %d\n%s", 
                         player.Name, distance, hp, pvpStatusText
@@ -59,7 +71,7 @@ local function createESP(player)
                     billboard.Enabled = false
                 end
 
-                task.wait(0.5) -- Giữ nguyên delay để chống lag cho Delta Mobile
+                task.wait(0.5) 
             end
             
             if billboard then billboard:Destroy() end
