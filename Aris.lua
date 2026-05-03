@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="FIX LAG TỤT FPS: Đã tối ưu vòng lặp & Giới hạn tầm nhìn NPC!",
+    Text="Đã thêm tính năng TP Player được chọn & List Player!",
     Duration=8
 })
 
@@ -49,12 +49,14 @@ _G.Config={
     TP_Speed = 500,
     Prediction_Enabled = false,
     Prediction = 1.0,
-    BlacklistedNPCs = {}
+    BlacklistedNPCs = {},
+    SelectedTargetPlayer = nil -- Biến lưu trữ Player được chọn thủ công
 }
 
 local TempSkipNPC = {}
+local TempSkipPlayer = {} -- Bỏ qua Player
 local ArisFakeBody = nil
-local MAX_NPC_RENDER_DISTANCE = 2500 -- GIỚI HẠN XỬ LÝ NPC ĐỂ CHỐNG LAG
+local MAX_NPC_RENDER_DISTANCE = 2500
 
 if CoreGui:FindFirstChild("ArisHUB_PRO") then
     CoreGui.ArisHUB_PRO:Destroy()
@@ -470,9 +472,6 @@ AddToggle("Misc","TEAM CHECK (ESP + HB + TP)","TeamCheck")
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
 
--- ==========================================
--- LOGIC WALKSPEED MỚI (Từ Buff Speed)
--- ==========================================
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) WSContainer.Size = UDim2.new(1, 0, 0, 115) WSContainer.BackgroundTransparency = 1
 local WSToggle = Instance.new("TextButton", WSContainer) WSToggle.Size = UDim2.new(1, -16, 0, 36) WSToggle.Text = "" WSToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled) CreateBorder(WSToggle) local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(WSToggle)
@@ -501,12 +500,6 @@ WSToggle.MouseButton1Click:Connect(function()
     _G.Config.WalkSpeedEnabled = not _G.Config.WalkSpeedEnabled 
     WSToggleTxt.Text = "WALKSPEED: " .. (_G.Config.WalkSpeedEnabled and "ON" or "OFF") 
     ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "ARIS HUB - WALKSPEED",
-        Text = _G.Config.WalkSpeedEnabled and ("BẬT - Tốc độ: " .. math.floor(_G.Config.WalkSpeed)) or "TẮT",
-        Duration = 2
-    })
 end)
 
 local draggingWS = false
@@ -518,7 +511,6 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateWS(16 + relX * (250 - 16)) 
     end 
 end)
--- ==========================================
 
 AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
 AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
@@ -588,19 +580,11 @@ for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
 Workspace.DescendantAdded:Connect(function(descendant) task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end) end)
 
 local function CleanupHitboxAttributes(hrp)
-    if hrp and hrp:GetAttribute("ArisHitboxActive") then
-        hrp:SetAttribute("ArisHitboxActive", nil)
-        hrp.Transparency = 1
-        hrp.CanCollide = true
-    end
+    if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
 end
 
 local function CleanupHitboxAttributesNPC(hrp)
-    if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then
-        hrp:SetAttribute("ArisHitboxActiveNPC", nil)
-        hrp.Transparency = 1
-        hrp.CanCollide = true
-    end
+    if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then hrp:SetAttribute("ArisHitboxActiveNPC", nil) hrp.Transparency = 1 hrp.CanCollide = true end
 end
 
 local function GetHealthColor(pct)
@@ -608,11 +592,7 @@ local function GetHealthColor(pct)
 end
 
 local function CleanupESP(playerName)
-    if ESP_Store[playerName]then
-        pcall(function()
-            if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end
-        end) ESP_Store[playerName]=nil
-    end
+    if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
     local p = Players:FindFirstChild(playerName)
     if p and p.Character then
         if p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
@@ -622,12 +602,7 @@ local function CleanupESP(playerName)
 end
 
 local function CleanupNPC(m)
-    if NPC_Store[m]then
-        pcall(function()
-            if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end
-            if NPC_Store[m].BoxBill then NPC_Store[m].BoxBill:Destroy() end
-        end); NPC_Store[m]=nil
-    end
+    if NPC_Store[m]then pcall(function() if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end if NPC_Store[m].BoxBill then NPC_Store[m].BoxBill:Destroy() end end); NPC_Store[m]=nil end
     if m then
         if m:FindFirstChild("ArisHL_NPC") then m.ArisHL_NPC:Destroy() end
         local hrp = m:FindFirstChild("HumanoidRootPart")
@@ -635,14 +610,10 @@ local function CleanupNPC(m)
     end
 end
 
-Workspace.DescendantRemoving:Connect(function(descendant)
-    if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end
-end)
+Workspace.DescendantRemoving:Connect(function(descendant) if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end end)
 
 local currentTween = nil local currentTarget = nil local noclipConnection = nil local charParts = {}
-local function updateCharParts()
-    charParts = {} if LocalPlayer.Character then for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then table.insert(charParts, v) end end end
-end
+local function updateCharParts() charParts = {} if LocalPlayer.Character then for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then table.insert(charParts, v) end end end end
 local function setCollision(state) for _, v in ipairs(charParts) do if v and v.Parent then v.CanCollide = state end end end
 local function toggleNoclip(active)
     if active then updateCharParts() if not noclipConnection then noclipConnection = RunService.Stepped:Connect(function() setCollision(false) end) end
@@ -668,13 +639,28 @@ local function doMagnetLoop()
                         end
                     end
                 elseif _G.Config.TP_Player then
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        if p ~= LocalPlayer and p.Character then
+                    if _G.Config.SelectedTargetPlayer and _G.Config.SelectedTargetPlayer ~= "" then
+                        local p = Players:FindFirstChild(_G.Config.SelectedTargetPlayer)
+                        if p and p.Character and p ~= LocalPlayer and not TempSkipPlayer[p.Name] then
                             local isSameTeam = (LocalPlayer.Team ~= nil and p.Team == LocalPlayer.Team)
                             if not (_G.Config.TeamCheck and isSameTeam) then
-                                local hum = p.Character:FindFirstChild("Humanoid") local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+                                local hum = p.Character:FindFirstChild("Humanoid")
+                                local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
                                 if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
-                                    local dist = (myRoot.Position - root.Position).Magnitude if dist < shortestDist then shortestDist = dist nearest = root end
+                                    shortestDist = (myRoot.Position - root.Position).Magnitude
+                                    nearest = root
+                                end
+                            end
+                        end
+                    else
+                        for _, p in ipairs(Players:GetPlayers()) do
+                            if p ~= LocalPlayer and p.Character and not TempSkipPlayer[p.Name] then
+                                local isSameTeam = (LocalPlayer.Team ~= nil and p.Team == LocalPlayer.Team)
+                                if not (_G.Config.TeamCheck and isSameTeam) then
+                                    local hum = p.Character:FindFirstChild("Humanoid") local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+                                    if hum and root and hum.Health > 0 and hum.MaxHealth > 0 and root:IsA("BasePart") then
+                                        local dist = (myRoot.Position - root.Position).Magnitude if dist < shortestDist then shortestDist = dist nearest = root end
+                                    end
                                 end
                             end
                         end
@@ -732,6 +718,93 @@ AddToggle("TP Player", "BẬT TWEEN/TP PLAYER", "TP_Player", function(val)
 end)
 AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
+-- ================= Thêm phần điều khiển List Player ở đây =================
+AddButton("TP Player", "⏭️ BỎ QUA PLAYER HIỆN TẠI (SKIP)", function()
+    if currentTarget and currentTarget.Parent then
+        local p = Players:GetPlayerFromCharacter(currentTarget.Parent)
+        if p then
+            TempSkipPlayer[p.Name] = true
+            currentTarget = nil
+            if currentTween then currentTween:Cancel() end
+            game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP PLAYER", Text="Đã bỏ qua: " .. p.Name, Duration=3 })
+        end
+    end
+end)
+
+local SelectedPlayerLabel = Instance.new("TextLabel", ContentFrames["TP Player"].Frame)
+SelectedPlayerLabel.Size = UDim2.new(1, -16, 0, 25)
+SelectedPlayerLabel.BackgroundTransparency = 1
+SelectedPlayerLabel.Text = "Đang chọn: Tự động (Gần nhất)"
+SelectedPlayerLabel.Font = Enum.Font.GothamBold
+SelectedPlayerLabel.TextSize = 13
+CreateTextGradient(SelectedPlayerLabel)
+
+local PlayerListContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame)
+PlayerListContainer.Size = UDim2.new(1, -16, 0, 0)
+PlayerListContainer.BackgroundTransparency = 1
+local pListLayout = Instance.new("UIListLayout", PlayerListContainer)
+pListLayout.Padding = UDim.new(0, 8)
+pListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
+end)
+
+AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
+    for _, child in ipairs(PlayerListContainer:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    local count = 0
+    local autoBtn = Instance.new("TextButton", PlayerListContainer)
+    autoBtn.Size = UDim2.new(1, 0, 0, 36)
+    autoBtn.Text = ""
+    autoBtn.BackgroundColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
+    ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
+    CreateBorder(autoBtn)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Tự động (Gần nhất)", Enum.Font.GothamBold, 12)
+    ApplyButtonAnimation(autoBtn)
+    
+    autoBtn.MouseButton1Click:Connect(function()
+        _G.Config.SelectedTargetPlayer = nil
+        SelectedPlayerLabel.Text = "Đang chọn: Tự động (Gần nhất)"
+        for _, child in ipairs(PlayerListContainer:GetChildren()) do
+            if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
+        end
+        ApplyToggleGradient(autoBtn, true)
+    end)
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p == LocalPlayer then continue end
+        count = count + 1
+        local btn = Instance.new("TextButton", PlayerListContainer)
+        btn.Size = UDim2.new(1, 0, 0, 36)
+        btn.Text = ""
+        btn.BackgroundColor3 = Color3.new(1,1,1)
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
+        
+        local isSelected = (_G.Config.SelectedTargetPlayer == p.Name)
+        ApplyToggleGradient(btn, isSelected)
+        CreateBorder(btn)
+        
+        local txt = CreateButtonText(btn, "👤 " .. p.Name, Enum.Font.GothamBold, 12)
+        if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
+        ApplyButtonAnimation(btn)
+        
+        btn.MouseButton1Click:Connect(function()
+            _G.Config.SelectedTargetPlayer = p.Name
+            SelectedPlayerLabel.Text = "Đang chọn: " .. p.Name
+            for _, child in ipairs(PlayerListContainer:GetChildren()) do
+                if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
+            end
+            ApplyToggleGradient(btn, true)
+            txt.TextColor3 = Color3.fromRGB(0,0,0)
+        end)
+    end
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " người chơi!", Duration=3 })
+end)
+-- ==============================================================================
+
 local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame) PredContainer.Size = UDim2.new(1, 0, 0, 115) PredContainer.BackgroundTransparency = 1
 local PredToggle = Instance.new("TextButton", PredContainer) PredToggle.Size = UDim2.new(1, -16, 0, 36) PredToggle.Text = "" PredToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) CreateBorder(PredToggle) local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(PredToggle)
 local PredSliderBg = Instance.new("Frame", PredContainer) PredSliderBg.Size = UDim2.new(1, -16, 0, 25) PredSliderBg.Position = UDim2.new(0, 0, 0, 48) PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
@@ -748,10 +821,6 @@ PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.U
 PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
 UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
 
--- ==========================================
--- [MẤU CHỐT TỐI ƯU] Trả lại vòng lặp Heartbeat (không chặn khung hình)
--- ĐÃ TÍCH HỢP ÉP TỐC ĐỘ (BẤT TỬ WALKSPEED) TỪ BUFF SPEED
--- ==========================================
 RunService.Heartbeat:Connect(function()
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     
