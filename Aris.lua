@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Thêm +- 1K Speed & SAFE Mode (TP 30km, Fly 1200, Fall Y=150)!",
+    Text="CẬP NHẬT: 12k dap dat",
     Duration=8
 })
 
