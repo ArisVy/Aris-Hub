@@ -1,3 +1,63 @@
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+
+local lp = Players.LocalPlayer
+
+-- ==========================================
+-- 1. TẠO GIAO DIỆN (GUI) NHỎ GỌN
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RawLogicFastM1"
+ScreenGui.Parent = pcall(function() return CoreGui end) and CoreGui or lp.PlayerGui
+
+local ToggleMenuBtn = Instance.new("TextButton")
+ToggleMenuBtn.Size = UDim2.new(0, 100, 0, 35)
+ToggleMenuBtn.Position = UDim2.new(0, 20, 0, 20)
+ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleMenuBtn.Font = Enum.Font.GothamBold
+ToggleMenuBtn.TextSize = 12
+ToggleMenuBtn.Text = "MỞ / ĐÓNG"
+ToggleMenuBtn.Parent = ScreenGui
+Instance.new("UICorner", ToggleMenuBtn).CornerRadius = UDim.new(0, 6)
+
+local MenuFrame = Instance.new("Frame")
+MenuFrame.Size = UDim2.new(0, 180, 0, 80)
+MenuFrame.Position = UDim2.new(0, 20, 0, 65)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MenuFrame.Parent = ScreenGui
+MenuFrame.Active = true
+MenuFrame.Draggable = true 
+Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 8)
+
+local AttackBtn = Instance.new("TextButton")
+AttackBtn.Size = UDim2.new(0, 150, 0, 40)
+AttackBtn.Position = UDim2.new(0, 15, 0, 20)
+AttackBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+AttackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AttackBtn.Font = Enum.Font.GothamBold
+AttackBtn.TextSize = 14
+AttackBtn.Text = "FAST M1: OFF"
+AttackBtn.Parent = MenuFrame
+Instance.new("UICorner", AttackBtn).CornerRadius = UDim.new(0, 6)
+
+-- ==========================================
+-- 2. ĐIỀU KHIỂN NÚT BẤM
+-- ==========================================
+ToggleMenuBtn.MouseButton1Click:Connect(function()
+    MenuFrame.Visible = not MenuFrame.Visible
+end)
+
+local isAttacking = false
+AttackBtn.MouseButton1Click:Connect(function()
+    isAttacking = not isAttacking
+    AttackBtn.Text = isAttacking and "FAST M1: ON" or "FAST M1: OFF"
+    AttackBtn.BackgroundColor3 = isAttacking and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+end)
+
+-- ==========================================
+-- 3. LOGIC FAST M1 + TĂNG RANGE (HITBOX)
+-- ==========================================
 task.spawn(function()
     while true do
         task.wait(0.01) 
@@ -7,37 +67,37 @@ task.spawn(function()
                 local char = lp.Character
                 if not char then return end
                 
-                -- ==========================================
-                -- TÍNH NĂNG TĂNG RANGE (HITBOX EXPANDER)
-                -- ==========================================
-                local RANGE_SIZE = 60 -- Chỉnh kích thước tầm đánh ở đây (60 là khoảng cách an toàn)
+                -- --- PHẦN TĂNG RANGE (HITBOX EXPANDER) ---
+                -- Bạn có thể chỉnh số 60 to hơn hoặc nhỏ hơn tùy ý (khuyên dùng 50-60 để không bị lỗi game)
+                local RANGE_SIZE = 60 
                 
-                -- Giả sử quái nằm trong workspace.Enemies (thư mục chuẩn của Blox Fruits)
-                -- Nếu đánh người thì thay bằng game:GetService("Players"):GetPlayers()
+                -- Tìm và phóng to quái (Áp dụng cho Blox Fruits: workspace.Enemies)
                 if workspace:FindFirstChild("Enemies") then
                     for _, enemy in pairs(workspace.Enemies:GetChildren()) do
                         local rootPart = enemy:FindFirstChild("HumanoidRootPart")
                         local humanoid = enemy:FindFirstChild("Humanoid")
                         
-                        -- Nếu quái còn sống và có RootPart
+                        -- Nếu quái còn sống
                         if rootPart and humanoid and humanoid.Health > 0 then
-                            -- Phóng to hitbox của quái
-                            rootPart.Size = Vector3.new(RANGE_SIZE, RANGE_SIZE, RANGE_SIZE)
-                            rootPart.Transparency = 0.9 -- Làm trong suốt để đỡ che màn hình
-                            rootPart.CanCollide = false -- Tắt va chạm để nhân vật không bị kẹt vào quái
+                            -- Kiểm tra khoảng cách, nếu quái ở gần thì mới phóng to (chống lag)
+                            local distance = (rootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                            if distance < 200 then
+                                rootPart.Size = Vector3.new(RANGE_SIZE, RANGE_SIZE, RANGE_SIZE)
+                                rootPart.Transparency = 0.9 -- Làm trong suốt để không che màn hình
+                                rootPart.CanCollide = false -- Tắt va chạm để không bị kẹt
+                            end
                         end
                     end
                 end
                 
-                -- ==========================================
-                -- LOGIC ĐÁNH (GỮI NGUYÊN BẢN CỦA BẠN)
-                -- ==========================================
+                -- --- PHẦN GỬI TÍN HIỆU ĐÁNH M1 ---
                 local tool = char:FindFirstChildOfClass("Tool")
                 if tool then
                     local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
                     
                     if remote then
                         local direction = Vector3.new(0, -0.9, 0.03)
+                        
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
                         elseif remote:IsA("RemoteFunction") then
