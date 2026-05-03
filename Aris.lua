@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Gộp hàng TP/Skip & Thêm chức năng SAFE (HP < 35%)!",
+    Text="CẬP NHẬT: Thêm +- 1K Speed & SAFE Mode (TP 30km, Fly 1200, Fall Y=150)!",
     Duration=8
 })
 
@@ -57,7 +57,6 @@ _G.Config={
 
 _G.IsFleeing = false
 _G.IsReturning = false
-_G.SafeReturnY = 0
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
@@ -827,6 +826,39 @@ end)
 AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) 
 AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
+-- Thêm Nút +- 1K Speed
+local speed1kFrame = Instance.new("Frame", tpPlayerTab)
+speed1kFrame.Size = UDim2.new(1, -16, 0, 36)
+speed1kFrame.BackgroundTransparency = 1
+
+local min1kBtn = Instance.new("TextButton", speed1kFrame)
+min1kBtn.Size = UDim2.new(0.48, 0, 1, 0)
+min1kBtn.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", min1kBtn).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(min1kBtn, false)
+CreateBorder(min1kBtn)
+CreateButtonText(min1kBtn, "-1000 Speed", Enum.Font.GothamBold, 11)
+ApplyButtonAnimation(min1kBtn)
+min1kBtn.MouseButton1Click:Connect(function() 
+    _G.Config.TP_Speed = math.clamp(_G.Config.TP_Speed - 1000, 50, 99999) 
+    for _, lblData in ipairs(AdjustLabels["TP_Speed"]) do lblData.Label.Text = lblData.Name..": ".._G.Config.TP_Speed end
+end)
+
+local plus1kBtn = Instance.new("TextButton", speed1kFrame)
+plus1kBtn.Size = UDim2.new(0.48, 0, 1, 0)
+plus1kBtn.Position = UDim2.new(0.52, 0, 0, 0)
+plus1kBtn.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", plus1kBtn).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(plus1kBtn, false)
+CreateBorder(plus1kBtn)
+CreateButtonText(plus1kBtn, "+1000 Speed", Enum.Font.GothamBold, 11)
+ApplyButtonAnimation(plus1kBtn)
+plus1kBtn.MouseButton1Click:Connect(function() 
+    _G.Config.TP_Speed = math.clamp(_G.Config.TP_Speed + 1000, 50, 99999) 
+    for _, lblData in ipairs(AdjustLabels["TP_Speed"]) do lblData.Label.Text = lblData.Name..": ".._G.Config.TP_Speed end
+end)
+
+
 local SelectedPlayerLabel = Instance.new("TextLabel", ContentFrames["TP Player"].Frame)
 SelectedPlayerLabel.Size = UDim2.new(1, -16, 0, 25)
 SelectedPlayerLabel.BackgroundTransparency = 1
@@ -952,7 +984,7 @@ RunService.Heartbeat:Connect(function(dt)
             
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
-                _G.SafeReturnY = hrp.Position.Y
+                -- TP thẳng lên 30km
                 hrp.CFrame = hrp.CFrame + Vector3.new(0, 30000, 0)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
@@ -963,7 +995,8 @@ RunService.Heartbeat:Connect(function(dt)
                 if not noclipConnection then toggleNoclip(true) end
                 
                 if hpPct < 0.65 then
-                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 2000 * dt, 0)
+                    -- Bay lên tiếp với tốc độ 1200
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 1200 * dt, 0)
                 else
                     _G.IsFleeing = false
                     _G.IsReturning = true
@@ -972,10 +1005,12 @@ RunService.Heartbeat:Connect(function(dt)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
                 
+                -- Lao xuống với tốc độ 6000
                 hrp.CFrame = hrp.CFrame - Vector3.new(0, 6000 * dt, 0)
                 
-                if hrp.Position.Y <= _G.SafeReturnY then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, _G.SafeReturnY, hrp.Position.Z)
+                -- Tắt fly khi Y <= 150
+                if hrp.Position.Y <= 150 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
                     _G.IsReturning = false
                     if noclipConnection and not isFarming then toggleNoclip(false) end
                 end
