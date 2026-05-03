@@ -1005,8 +1005,8 @@ RunService.Heartbeat:Connect(function(dt)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
                 
-                -- Lao xuống với tốc độ 6000
-                hrp.CFrame = hrp.CFrame - Vector3.new(0, 6000 * dt, 0)
+                -- Lao xuống với tốc độ 12000
+                hrp.CFrame = hrp.CFrame - Vector3.new(0, 12000 * dt, 0)
                 
                 -- Tắt fly khi Y <= 150
                 if hrp.Position.Y <= 150 then
