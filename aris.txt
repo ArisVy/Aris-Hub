@@ -1,0 +1,113 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local VirtualUser = game:GetService("VirtualUser")
+
+local lp = Players.LocalPlayer
+
+-- ==========================================
+-- 1. TẠO GIAO DIỆN (GUI) NHỎ GỌN
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SimpleFastM1"
+-- Đặt GUI vào CoreGui để tránh bị mất khi reset nhân vật
+ScreenGui.Parent = pcall(function() return CoreGui end) and CoreGui or lp.PlayerGui
+
+-- Nút Thu/Phóng Menu
+local ToggleMenuBtn = Instance.new("TextButton")
+ToggleMenuBtn.Size = UDim2.new(0, 100, 0, 35)
+ToggleMenuBtn.Position = UDim2.new(0, 20, 0, 20)
+ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleMenuBtn.Font = Enum.Font.GothamBold
+ToggleMenuBtn.TextSize = 12
+ToggleMenuBtn.Text = "MỞ / ĐÓNG"
+ToggleMenuBtn.Parent = ScreenGui
+
+local UICorner1 = Instance.new("UICorner")
+UICorner1.CornerRadius = UDim.new(0, 6)
+UICorner1.Parent = ToggleMenuBtn
+
+-- Khung Menu Chính
+local MenuFrame = Instance.new("Frame")
+MenuFrame.Size = UDim2.new(0, 180, 0, 80)
+MenuFrame.Position = UDim2.new(0, 20, 0, 65)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MenuFrame.Parent = ScreenGui
+MenuFrame.Active = true
+MenuFrame.Draggable = true -- Có thể kéo thả menu
+
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0, 8)
+UICorner2.Parent = MenuFrame
+
+-- Nút Bật/Tắt Fast Attack
+local AttackBtn = Instance.new("TextButton")
+AttackBtn.Size = UDim2.new(0, 150, 0, 40)
+AttackBtn.Position = UDim2.new(0, 15, 0, 20)
+AttackBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+AttackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AttackBtn.Font = Enum.Font.GothamBold
+AttackBtn.TextSize = 14
+AttackBtn.Text = "FAST M1: OFF"
+AttackBtn.Parent = MenuFrame
+
+local UICorner3 = Instance.new("UICorner")
+UICorner3.CornerRadius = UDim.new(0, 6)
+UICorner3.Parent = AttackBtn
+
+-- ==========================================
+-- 2. LOGIC ĐIỀU KHIỂN NÚT BẤM
+-- ==========================================
+-- Xử lý ẩn/hiện menu
+ToggleMenuBtn.MouseButton1Click:Connect(function()
+    MenuFrame.Visible = not MenuFrame.Visible
+end)
+
+-- Xử lý Bật/Tắt Đánh
+local isAttacking = false
+AttackBtn.MouseButton1Click:Connect(function()
+    isAttacking = not isAttacking
+    if isAttacking then
+        AttackBtn.Text = "FAST M1: ON"
+        AttackBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Màu xanh
+    else
+        AttackBtn.Text = "FAST M1: OFF"
+        AttackBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Màu đỏ
+    end
+end)
+
+-- ==========================================
+-- 3. LOGIC FAST ATTACK (M1) CHUNG CHO MỌI VŨ KHÍ
+-- ==========================================
+task.spawn(function()
+    while true do
+        task.wait(0.01) -- Chạy vòng lặp cực nhanh
+        
+        if isAttacking then
+            pcall(function()
+                local char = lp.Character
+                if not char then return end
+                
+                -- Tìm công cụ (Vũ khí/Trái/Melee) bạn ĐANG CẦM trên tay
+                local tool = char:FindFirstChildOfClass("Tool")
+                
+                if tool then
+                    -- 1. Kích hoạt đòn đánh tiêu chuẩn của Roblox
+                    tool:Activate()
+                    
+                    -- 2. Bắn Remote trực tiếp (Dành riêng cho cơ chế Blox Fruits để đạt tốc độ Hyper)
+                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction")
+                    if remote and remote:IsA("RemoteEvent") then
+                        -- Gửi tín hiệu click chuột ảo thẳng lên server
+                        remote:FireServer(Vector3.new(0, 0, 0), 1)
+                    end
+                    
+                    -- 3. Giả lập Click chuột trái như một con người click cực nhanh (dự phòng)
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(0, 0))
+                end
+            end)
+        end
+    end
+end)
