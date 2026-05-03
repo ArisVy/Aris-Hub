@@ -1,80 +1,79 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
--- Cấu hình hiển thị ESP
-local ESP_Settings = {
-    Enabled = true,
-    ShowName = true,
-    ShowHealth = true,
-    ShowPVP = true, 
-    TextColor = Color3.fromRGB(0, 255, 255) -- Màu xanh cyan dễ nhìn trên Mobile
-}
-
-local espObjects = {}
-
--- Tạo đối tượng Text trên màn hình
 local function createESP(player)
-    local text = Drawing.new("Text")
-    text.Visible = false
-    text.Center = true
-    text.Outline = true
-    text.Font = 2
-    text.Size = 16
-    text.Color = ESP_Settings.TextColor
-    espObjects[player] = text
-end
+    if player == LocalPlayer then return end
 
--- Cập nhật vị trí và thông tin liên tục
-local function updateESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if not espObjects[player] then
-                createESP(player)
-            end
+    local function setupCharacter(character)
+        local hrp = character:WaitForChild("HumanoidRootPart", 5)
+        local humanoid = character:WaitForChild("Humanoid", 5)
+        if not hrp or not humanoid then return end
 
-            local text = espObjects[player]
-            if ESP_Settings.Enabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-                local hrp = player.Character.HumanoidRootPart
-                local vector, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-
-                if onScreen then
-                    local distance = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude)
-                    local health = math.floor(player.Character.Humanoid.Health)
-                    local maxHealth = math.floor(player.Character.Humanoid.MaxHealth)
-
-                    -- Kiểm tra Bounty / Trạng thái cơ bản trong Blox Fruits
-                    local pvpStatus = "PVP: Đang cập nhật"
-                    if player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Bounty") then
-                        pvpStatus = "Bounty: " .. tostring(player.leaderstats.Bounty.Value)
-                    end
-
-                    local displayText = ""
-                    if ESP_Settings.ShowName then displayText = displayText .. player.Name .. " [" .. distance .. "m]\n" end
-                    if ESP_Settings.ShowHealth then displayText = displayText .. "HP: " .. health .. "/" .. maxHealth .. "\n" end
-                    if ESP_Settings.ShowPVP then displayText = displayText .. pvpStatus end
-
-                    text.Position = Vector2.new(vector.X, vector.Y)
-                    text.Text = displayText
-                    text.Visible = true
-                else
-                    text.Visible = false
-                end
-            else
-                if text then text.Visible = false end
-            end
+        if hrp:FindFirstChild("ESP_Mobile_Optimized") then
+            hrp.ESP_Mobile_Optimized:Destroy()
         end
+
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESP_Mobile_Optimized"
+        billboard.Adornee = hrp
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 3.5, 0)
+        billboard.AlwaysOnTop = true
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = billboard
+        textLabel.BackgroundTransparency = 1
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.Font = Enum.Font.Code
+        textLabel.TextSize = 14
+        textLabel.RichText = true -- Bật RichText để đổi màu từng chữ
+        textLabel.TextStrokeTransparency = 0
+
+        billboard.Parent = hrp
+
+        task.spawn(function()
+            while character and character.Parent and billboard.Parent and humanoid.Health > 0 do
+                local distance = 0
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude)
+                end
+                
+                local hp = math.floor(humanoid.Health)
+                
+                -- KIỂM TRA TRẠNG THÁI PVP BẬT/TẮT
+                local pvpStatusText = "<font color='rgb(255, 50, 50)'>[PVP: BẬT]</font>" -- Mặc định là Đỏ (Bật)
+                
+                -- Kiểm tra khiên bảo vệ (mới hồi sinh) hoặc các tag SafeZone của Blox Fruits
+                if character:FindFirstChildOfClass("ForceField") or character:FindFirstChild("SafeZone") then
+                    pvpStatusText = "<font color='rgb(50, 255, 50)'>[PVP: TẮT]</font>" -- Xanh lá (Tắt/An toàn)
+                end
+
+                if distance < 5000 then
+                    -- Hiển thị Tên, Máu và Trạng thái PVP
+                    textLabel.Text = string.format(
+                        "<font color='rgb(0, 255, 255)'>%s [%dm]</font>\nHP: %d\n%s", 
+                        player.Name, distance, hp, pvpStatusText
+                    )
+                    billboard.Enabled = true
+                else
+                    billboard.Enabled = false
+                end
+
+                task.wait(0.5) -- Giữ nguyên delay để chống lag cho Delta Mobile
+            end
+            
+            if billboard then billboard:Destroy() end
+        end)
     end
+
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+    player.CharacterAdded:Connect(setupCharacter)
 end
 
--- Vòng lặp render mượt mà
-RunService.RenderStepped:Connect(updateESP)
+for _, p in pairs(Players:GetPlayers()) do
+    createESP(p)
+end
 
--- Xóa ESP khi người chơi thoát server
-Players.PlayerRemoving:Connect(function(player)
-    if espObjects[player] then
-        espObjects[player]:Remove()
-        espObjects[player] = nil
-    end
-end)
+Players.PlayerAdded:Connect(createESP)
