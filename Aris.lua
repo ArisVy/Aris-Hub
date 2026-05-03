@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="FIX LỖI: Chế độ Lock-on dính mục tiêu như keo!",
+    Text="CẬP NHẬT: Đã tích hợp Fast M1 vào tab Misc!",
     Duration=8
 })
 
@@ -30,6 +30,7 @@ _G.Config={
     WalkSpeed=90,
     WalkSpeedEnabled=false,
     Show_Stats=true,
+    FastM1=false, -- Tích hợp Fast M1
     Hitbox_NPC=false,
     HitboxSize_NPC=20,
     Hitbox_Box_NPC=false,
@@ -54,7 +55,7 @@ _G.Config={
 }
 
 local TempSkipNPC = {}
-local TempSkipPlayer = {} -- Bỏ qua Player
+local TempSkipPlayer = {} 
 local ArisFakeBody = nil
 local MAX_NPC_RENDER_DISTANCE = 2500
 
@@ -471,6 +472,7 @@ AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 AddToggle("Misc","TEAM CHECK (ESP + HB + TP)","TeamCheck")
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
+AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1") -- Tích hợp Fast M1 vào tab Misc
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) WSContainer.Size = UDim2.new(1, 0, 0, 115) WSContainer.BackgroundTransparency = 1
@@ -620,9 +622,6 @@ local function toggleNoclip(active)
     else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end setCollision(true) end
 end
 
--- =========================================================
--- LOGIC VÒNG LẶP MAGNET CHÍNH THỨC (CÓ TARGET LOCK "DÍNH NHƯ KEO")
--- =========================================================
 local isFarming = false
 local function doMagnetLoop()
     if isFarming then return end isFarming = true
@@ -630,7 +629,6 @@ local function doMagnetLoop()
         while _G.Config.TP_NPC or _G.Config.TP_Player do
             local char = LocalPlayer.Character local myRoot = char and char:FindFirstChild("HumanoidRootPart")
             if myRoot then
-                -- KIỂM TRA MỤC TIÊU HIỆN TẠI CÓ CÒN HỢP LỆ KHÔNG ĐỂ GIỮ LẠI (DÍNH NHƯ KEO)
                 local keepCurrentTarget = false
                 if currentTarget and currentTarget.Parent then
                     local hum = currentTarget.Parent:FindFirstChild("Humanoid")
@@ -641,7 +639,7 @@ local function doMagnetLoop()
                                 if _G.Config.SelectedTargetPlayer and _G.Config.SelectedTargetPlayer ~= "" then
                                     if p.Name == _G.Config.SelectedTargetPlayer then keepCurrentTarget = true end
                                 else
-                                    keepCurrentTarget = true -- Chế độ Auto Player: Đã dính là dính mãi đến khi chết hoặc ấn Skip
+                                    keepCurrentTarget = true
                                 end
                             end
                         elseif _G.Config.TP_NPC then
@@ -652,7 +650,6 @@ local function doMagnetLoop()
                     end
                 end
 
-                -- NẾU MỤC TIÊU CŨ KHÔNG CÒN HỢP LỆ (Bị Skip/Chết/Đổi người trong list), BẮT ĐẦU QUÉT TÌM MỤC TIÊU MỚI
                 if not keepCurrentTarget then
                     local nearest = nil local shortestDist = 5000
                     if _G.Config.TP_NPC then
@@ -696,7 +693,6 @@ local function doMagnetLoop()
                     if currentTween then currentTween:Cancel() end
                 end
                 
-                -- THỰC HIỆN BAY TỚI MỤC TIÊU ĐANG KHÓA
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
                     local targetPos = currentTarget.CFrame * CFrame.new(0, _G.Config.TP_Height, 0)
@@ -711,7 +707,6 @@ local function doMagnetLoop()
         if noclipConnection then toggleNoclip(false) end isFarming = false
     end)
 end
--- =========================================================
 
 AddToggle("TP NPC", "BẬT TWEEN/TP NPC", "TP_NPC", function(val)
     if val then 
@@ -720,7 +715,7 @@ AddToggle("TP NPC", "BẬT TWEEN/TP NPC", "TP_NPC", function(val)
         if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end 
         doMagnetLoop()
     else 
-        TempSkipNPC = {} -- XÓA DANH SÁCH SKIP NPC KHI TẮT
+        TempSkipNPC = {} 
         if not _G.Config.TP_Player then 
             currentTarget = nil 
             if currentTween then currentTween:Cancel() end 
@@ -757,7 +752,7 @@ AddToggle("TP Player", "BẬT TWEEN/TP PLAYER", "TP_Player", function(val)
         if b then b.Txt.Text = b.Name..": OFF" ApplyToggleGradient(b.Btn, false) end 
         doMagnetLoop()
     else 
-        TempSkipPlayer = {} -- XÓA DANH SÁCH SKIP PLAYER KHI TẮT
+        TempSkipPlayer = {} 
         if not _G.Config.TP_Player then 
             currentTarget = nil 
             if currentTween then currentTween:Cancel() end 
@@ -867,6 +862,35 @@ local draggingPred = false
 PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = true end end)
 PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
 UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
+
+-- =========================================================
+-- LOGIC FAST M1
+-- =========================================================
+task.spawn(function()
+    while task.wait(0.01) do
+        if _G.Config.FastM1 then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then
+                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
+                    
+                    if remote then
+                        local direction = Vector3.new(0, -0.9, 0.03)
+                        
+                        if remote:IsA("RemoteEvent") then
+                            remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
+                        elseif remote:IsA("RemoteFunction") then
+                            remote:InvokeServer()
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
 
 RunService.Heartbeat:Connect(function()
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
