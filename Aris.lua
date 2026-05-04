@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="FIX LỖI: Chống dìm nước, luôn ở trên đầu mục tiêu!",
+    Text="FIX LỖI: Bản hoàn chỉnh, full chức năng!",
     Duration=8
 })
 
@@ -80,10 +80,6 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = CoreGui
-
-local pvpEspFolder = Instance.new("Folder")
-pvpEspFolder.Name = "Aris_PVP_ESP"
-pvpEspFolder.Parent = ScreenGui
 
 local StatsFrame = Instance.new("Frame", ScreenGui)
 StatsFrame.Size = UDim2.new(0, 150, 0, 26)
@@ -595,7 +591,7 @@ pvpCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", pvpCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(pvpCBtn, _G.Config.PVPCheck)
 CreateBorder(pvpCBtn)
-local pvpCTxt = CreateButtonText(pvpCBtn, "PVP CHECK: OFF", Enum.Font.GothamBold, 11)
+local pvpCTxt = CreateButtonText(pvpCBtn, "PVP CHECK: ON", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(pvpCBtn)
 ToggleButtons["PVPCheck"] = {Btn = pvpCBtn, Txt = pvpCTxt, Name = "PVP CHECK"}
 pvpCBtn.MouseButton1Click:Connect(function()
@@ -608,6 +604,7 @@ AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
 AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1")
 
+-- ==================== WALKSPEED ====================
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
 WSContainer.Size = UDim2.new(1, 0, 0, 115) 
@@ -674,6 +671,65 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateWS(16 + relX * (250 - 16)) 
     end 
 end)
+
+AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
+AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
+AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
+AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
+AddToggle("NPC","ESP NPC BOX 2D","ESP_NPC_Box")
+AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
+
+-- ==================== CHỈNH SỬA UI TAB DESYNC ====================
+local RefreshFloatBtn
+
+local desyncTab = ContentFrames["Desync"].Frame
+local ModeFrame = Instance.new("Frame", desyncTab) ModeFrame.Size = UDim2.new(1, -16, 0, 36) ModeFrame.BackgroundTransparency = 1
+local modeLabel = Instance.new("TextLabel", ModeFrame) modeLabel.Size = UDim2.new(0.2, 0, 1, 0) modeLabel.BackgroundTransparency = 1 modeLabel.Text = "MODE:" modeLabel.Font = Enum.Font.GothamBold modeLabel.TextSize = 13 CreateTextGradient(modeLabel)
+
+local function createModeBtn(text, posScale, modeStr)
+    local btn = Instance.new("TextButton", ModeFrame) btn.Size = UDim2.new(0.25, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16) CreateBorder(btn) local txt = CreateButtonText(btn, text, Enum.Font.GothamBold, 12) ApplyButtonAnimation(btn)
+    local function UpdateState() ApplyToggleGradient(btn, _G.Config.Desync_Mode == modeStr) end UpdateState()
+    btn.MouseButton1Click:Connect(function()
+        if desyncState then game:GetService("StarterGui"):SetCore("SendNotification",{ Title="CẢNH BÁO", Text="Vui lòng TẮT Desync trước khi đổi chế độ!", Duration=2 }) return end
+        _G.Config.Desync_Mode = modeStr
+        for _, child in ipairs(ModeFrame:GetChildren()) do if child:IsA("TextButton") then ApplyToggleGradient(child, child:GetAttribute("ModeStr") == _G.Config.Desync_Mode) end end
+        if RefreshFloatBtn then RefreshFloatBtn() end
+    end)
+    btn:SetAttribute("ModeStr", modeStr) return btn
+end
+createModeBtn("Normal", 0.22, "Normal") createModeBtn("Fast", 0.49, "Fast") createModeBtn("Fix", 0.76, "Fix")
+
+local floatGui = Instance.new("ScreenGui", CoreGui) floatGui.Name = "ArisFloatToggle" floatGui.ResetOnSpawn = false floatGui.DisplayOrder = 1000 floatGui.Enabled = _G.Config.Desync_ShowFloat
+local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
+local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 130, 0, 40) floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
+local btnGradient = Instance.new("UIGradient", floatBtn) btnGradient.Color = cyanPinkColors btnGradient.Enabled = false
+local floatStroke = Instance.new("UIStroke", floatBtn) floatStroke.Thickness = 2.5 floatStroke.Color = Color3.fromRGB(255, 255, 255) floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local strokeGradient = Instance.new("UIGradient", floatStroke) strokeGradient.Color = cyanPinkColors
+local floatText = Instance.new("TextLabel", floatBtn) floatText.Size = UDim2.new(1, 0, 1, 0) floatText.BackgroundTransparency = 1 floatText.Text = "DeSync : Off" floatText.TextColor3 = Color3.fromRGB(255, 255, 255) floatText.TextSize = 13 floatText.Font = Enum.Font.GothamBold
+local textGradient = Instance.new("UIGradient", floatText) textGradient.Color = cyanPinkColors textGradient.Enabled = true
+
+local function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Desync_FloatX / 100, 0, _G.Config.Desync_FloatY / 100, 0) end UpdateFloatPosition()
+
+RefreshFloatBtn = function()
+    if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
+        floatText.Text = "N/A ⚠️" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
+    end
+    strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
+    if desyncState then floatText.Text = "DeSync : On" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : Off" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
+end
+
+floatBtn.MouseButton1Click:Connect(function()
+    if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
+    desyncState = not desyncState RefreshFloatBtn()
+    local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
+    if desyncState then if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() else ActivateDesyncNormal() end else ToggleDesync(false) for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end HideDesyncMarker() end
+end)
+
+AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddToggle("Desync", "HIỆN NÚT DESYNC NỔI", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
+AddAdjust("Desync", "TỌA ĐỘ X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
+AddAdjust("Desync", "TỌA ĐỘ Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
+
 
 local function toggleNoclip(active)
     if active then 
@@ -804,17 +860,13 @@ local function doMagnetLoop()
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
                     
-                    -- LẤY TỌA ĐỘ THEO TRỤC CỦA THẾ GIỚI (WORLD SPACE) ĐỂ CHỐNG LỖI CẮM ĐẦU XUỐNG ĐẤT/NƯỚC KHI TARGET BỊ NGÃ
                     local tPos = currentTarget.Position
                     if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then 
                         local vel = currentTarget.AssemblyLinearVelocity 
-                        -- Loại bỏ vector Y của vận tốc để không bị kéo xuống khi mục tiêu rớt
                         tPos = tPos + Vector3.new(vel.X, 0, vel.Z) * _G.Config.Prediction 
                     end
                     
                     local finalPos = tPos + Vector3.new(0, _G.Config.TP_Height, 0)
-                    
-                    -- GIỚI HẠN CHỐNG DÌM NƯỚC (Y < 30 THÌ ÉP LÊN Y = 30)
                     if finalPos.Y < 30 then
                         finalPos = Vector3.new(finalPos.X, 30, finalPos.Z)
                     end
@@ -832,7 +884,6 @@ local function doMagnetLoop()
     end)
 end
 
--- ==================== CHỈNH SỬA UI TAB TP NPC ====================
 local tpNPCTab = ContentFrames["TP NPC"].Frame
 local dualRowNPC = Instance.new("Frame", tpNPCTab)
 dualRowNPC.Size = UDim2.new(1, -16, 0, 36)
@@ -1032,7 +1083,6 @@ AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
 end)
 
 
--- ==================== CHỈNH SỬA UI TAB TP PLAYER ====================
 local tpPlayerTab = ContentFrames["TP Player"].Frame
 local dualRow = Instance.new("Frame", tpPlayerTab)
 dualRow.Size = UDim2.new(1, -16, 0, 36)
@@ -1134,7 +1184,6 @@ plus1kBtn.MouseButton1Click:Connect(function()
     for _, lblData in ipairs(AdjustLabels["TP_Speed"]) do lblData.Label.Text = lblData.Name..": ".._G.Config.TP_Speed end
 end)
 
-
 local SelectedPlayerLabel = Instance.new("TextLabel", ContentFrames["TP Player"].Frame)
 SelectedPlayerLabel.Size = UDim2.new(1, -16, 0, 25)
 SelectedPlayerLabel.BackgroundTransparency = 1
@@ -1207,6 +1256,37 @@ AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
         end)
     end
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " người chơi!", Duration=3 })
+end)
+
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    while true do
+        RunService.Heartbeat:Wait() 
+        if _G.Config.FastM1 then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then
+                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
+                    
+                    if remote then
+                        local direction = Vector3.new(0, -0.9, 0.03)
+                        for i = 1, 3 do
+                            if remote:IsA("RemoteEvent") then
+                                remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
+                            elseif remote:IsA("RemoteFunction") then
+                                task.spawn(function()
+                                    remote:InvokeServer()
+                                end)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
 end)
 
 RunService.Heartbeat:Connect(function(dt)
