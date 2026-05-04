@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Gộp ESP PVP Status đồng bộ vào ESP chính!",
+    Text="CẬP NHẬT: Gộp ESP PVP Status đồng bộ vào ESP chính! nha",
     Duration=8
 })
 
@@ -20,14 +20,14 @@ _G.Config={
     ESP_Health_P=true,
     ESP_Chams_P=true,
     ESP_Distance_P=true,
-    ESP_PVP=false, 
+    ESP_PVP=true, 
     Hitbox_P=false,
     HitboxSize=150,
     Hitbox_WallCheck=false,
     Hitbox_Box=false,
     ESP_2D_Hitbox=false, 
     TeamCheck=true,
-    PVPCheck=false,
+    PVPCheck=true,
     LowHP_KS=false,
     Show_Stats=true,
     FastM1=false,
