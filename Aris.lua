@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Giao diện ESP 2 cột & Auto TP PVP Check!",
+    Text="CẬP NHẬT: Gộp ESP PVP Status đồng bộ vào ESP chính!",
     Duration=8
 })
 
@@ -27,10 +27,8 @@ _G.Config={
     Hitbox_Box=false,
     ESP_2D_Hitbox=false, 
     TeamCheck=true,
-    PVPCheck=false, -- Thêm PVP Check
+    PVPCheck=false,
     LowHP_KS=false,
-    WalkSpeed=90,
-    WalkSpeedEnabled=false,
     Show_Stats=true,
     FastM1=false,
     Hitbox_NPC=false,
@@ -58,6 +56,8 @@ _G.Config={
     SafeMode = false
 }
 
+_G.WalkSpeed = 90
+_G.WalkSpeedEnabled = false
 _G.IsFleeing = false
 _G.IsReturning = false
 
@@ -78,10 +78,6 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = CoreGui
-
-local pvpEspFolder = Instance.new("Folder")
-pvpEspFolder.Name = "Aris_PVP_ESP"
-pvpEspFolder.Parent = ScreenGui
 
 local StatsFrame = Instance.new("Frame", ScreenGui)
 StatsFrame.Size = UDim2.new(0, 150, 0, 26)
@@ -109,6 +105,13 @@ StatsGrad.Color = ColorSequence.new({
 local FPS_Frames = 0
 RunService.RenderStepped:Connect(function()
     FPS_Frames = FPS_Frames + 1
+    
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16
+        end
+    end
 end)
 
 task.spawn(function()
@@ -202,14 +205,14 @@ local function ApplyButtonAnimation(btn)
     btn.MouseButton1Up:Connect(function() ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.05}):Play() end)
 end
 
--- LOGIC LẤY TRẠNG THÁI PVP
+-- LOGIC LẤY TRẠNG THÁI PVP (TrẢ VỀ BOOLEAN ĐỂ TIỆN XỬ LÝ FORMAT RICH TEXT)
 local function GetTrueStatus(target)
-    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return nil end
+    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return false end
     local char = target.Character
     local pos = char.HumanoidRootPart.Position
 
     if char:FindFirstChildOfClass("ForceField") then
-        return "SAFE / PVP OFF", Color3.fromRGB(0, 255, 150)
+        return false -- Đang có khiên -> TẮT PVP
     end
 
     local safeZones = workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("SafeZones")
@@ -218,17 +221,17 @@ local function GetTrueStatus(target)
             if zone:IsA("Part") or zone:IsA("MeshPart") then
                 local distance = (zone.Position - pos).Magnitude
                 if distance <= (zone.Size.X / 2 + 10) or distance <= (zone.Size.Z / 2 + 10) then
-                    return "IN SAFE ZONE", Color3.fromRGB(0, 255, 255)
+                    return false -- Đứng trong Safezone -> TẮT PVP
                 end
             end
         end
     end
 
     if target:GetAttribute("PvpDisabled") == true then
-        return "PVP: OFF", Color3.fromRGB(200, 200, 200)
+        return false -- Bị disable -> TẮT PVP
     end
 
-    return "PVP: ON", Color3.fromRGB(255, 40, 40)
+    return true -- PVP ON
 end
 
 local desyncState = false
@@ -527,7 +530,7 @@ AddGridToggle(espGrid, "HEALTH", "ESP_Health_P")
 AddGridToggle(espGrid, "DISTANCE", "ESP_Distance_P")
 AddGridToggle(espGrid, "BOX 2D", "ESP_Box_P")
 AddGridToggle(espGrid, "CHAMS", "ESP_Chams_P")
-AddGridToggle(espGrid, "PVP ESP", "ESP_PVP") -- Chuyển ESP PVP sang tab ESP
+AddGridToggle(espGrid, "PVP ESP", "ESP_PVP") 
 
 -- ==================== CÁC TAB KHÁC ====================
 local function AddToggle(tab,name,key,cb)
@@ -593,7 +596,7 @@ local WSToggle = Instance.new("TextButton", WSContainer)
 WSToggle.Size = UDim2.new(1, -16, 0, 36) 
 WSToggle.Text = "" WSToggle.BackgroundColor3 = Color3.new(1,1,1) 
 Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20) 
-ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled) 
+ApplyToggleGradient(WSToggle, _G.WalkSpeedEnabled) 
 CreateBorder(WSToggle) 
 local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: OFF", Enum.Font.GothamBold, 14) 
 ApplyButtonAnimation(WSToggle)
@@ -603,14 +606,14 @@ WSSliderBg.Position = UDim2.new(0, 0, 0, 48)
 WSSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
 Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 20)
 local WSSliderFill = Instance.new("Frame", WSSliderBg) 
-WSSliderFill.Size = UDim2.new((_G.Config.WalkSpeed - 16) / (250 - 16), 0, 1, 0) 
+WSSliderFill.Size = UDim2.new((_G.WalkSpeed - 16) / (250 - 16), 0, 1, 0) 
 WSSliderFill.BackgroundColor3 = Color3.new(1,1,1) 
 Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 20) 
 ApplyToggleGradient(WSSliderFill, true)
 local WSValLabel = Instance.new("TextLabel", WSSliderBg) 
 WSValLabel.Size = UDim2.new(1, 0, 1, 0) 
 WSValLabel.BackgroundTransparency = 1 
-WSValLabel.Text = "Speed: " .. _G.Config.WalkSpeed 
+WSValLabel.Text = "Speed: " .. _G.WalkSpeed 
 WSValLabel.Font = Enum.Font.GothamBold 
 WSValLabel.TextSize = 12 CreateTextGradient(WSValLabel)
 local WSBtnFrame = Instance.new("Frame", WSContainer) 
@@ -625,21 +628,21 @@ end
 local m10 = createWSBtn("-10", 0) local m5 = createWSBtn("-5", btnW + gap) local p5 = createWSBtn("+5", (btnW + gap) * 2) local p10 = createWSBtn("+10", (btnW + gap) * 3)
 
 local function UpdateWS(val) 
-    _G.Config.WalkSpeed = math.clamp(val, 16, 250) 
-    local ratio = (_G.Config.WalkSpeed - 16) / (250 - 16) 
+    _G.WalkSpeed = math.clamp(val, 16, 250) 
+    local ratio = (_G.WalkSpeed - 16) / (250 - 16) 
     WSSliderFill.Size = UDim2.new(ratio, 0, 1, 0) 
-    WSValLabel.Text = "Speed: " .. math.floor(_G.Config.WalkSpeed) 
+    WSValLabel.Text = "Speed: " .. math.floor(_G.WalkSpeed) 
 end
 
-m10.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed - 10) end) 
-m5.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed - 5) end) 
-p5.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed + 5) end) 
-p10.MouseButton1Click:Connect(function() UpdateWS(_G.Config.WalkSpeed + 10) end)
+m10.MouseButton1Click:Connect(function() UpdateWS(_G.WalkSpeed - 10) end) 
+m5.MouseButton1Click:Connect(function() UpdateWS(_G.WalkSpeed - 5) end) 
+p5.MouseButton1Click:Connect(function() UpdateWS(_G.WalkSpeed + 5) end) 
+p10.MouseButton1Click:Connect(function() UpdateWS(_G.WalkSpeed + 10) end)
 
 WSToggle.MouseButton1Click:Connect(function() 
-    _G.Config.WalkSpeedEnabled = not _G.Config.WalkSpeedEnabled 
-    WSToggleTxt.Text = "WALKSPEED: " .. (_G.Config.WalkSpeedEnabled and "ON" or "OFF") 
-    ApplyToggleGradient(WSToggle, _G.Config.WalkSpeedEnabled)
+    _G.WalkSpeedEnabled = not _G.WalkSpeedEnabled 
+    WSToggleTxt.Text = "WALKSPEED: " .. (_G.WalkSpeedEnabled and "ON" or "OFF") 
+    ApplyToggleGradient(WSToggle, _G.WalkSpeedEnabled)
 end)
 
 local draggingWS = false
@@ -752,12 +755,27 @@ end
 
 Workspace.DescendantRemoving:Connect(function(descendant) if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end end)
 
-local currentTween = nil local currentTarget = nil local noclipConnection = nil local charParts = {}
-local function updateCharParts() charParts = {} if LocalPlayer.Character then for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then table.insert(charParts, v) end end end end
-local function setCollision(state) for _, v in ipairs(charParts) do if v and v.Parent then v.CanCollide = state end end end
+local currentTween = nil local currentTarget = nil local noclipConnection = nil 
+
 local function toggleNoclip(active)
-    if active then updateCharParts() if not noclipConnection then noclipConnection = RunService.Stepped:Connect(function() setCollision(false) end) end
-    else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end setCollision(true) end
+    if active then 
+        if not noclipConnection then 
+            noclipConnection = RunService.Stepped:Connect(function() 
+                if LocalPlayer.Character then
+                    for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do 
+                        if v:IsA("BasePart") and v.CanCollide then 
+                            v.CanCollide = false 
+                        end 
+                    end 
+                end
+            end) 
+        end
+    else 
+        if noclipConnection then 
+            noclipConnection:Disconnect() 
+            noclipConnection = nil 
+        end 
+    end
 end
 
 local isFarming = false
@@ -781,8 +799,8 @@ local function doMagnetLoop()
                             if p and not TempSkipPlayer[p.Name] then
                                 local validToKeep = true
                                 if _G.Config.PVPCheck then
-                                    local stat = GetTrueStatus(p)
-                                    if stat ~= "PVP: ON" then validToKeep = false end
+                                    local isPvpOn = GetTrueStatus(p)
+                                    if not isPvpOn then validToKeep = false end
                                 end
                                 
                                 if validToKeep then
@@ -828,8 +846,8 @@ local function doMagnetLoop()
                                 if not (_G.Config.TeamCheck and isSameTeam) then
                                     local passPVP = true
                                     if _G.Config.PVPCheck then
-                                        local stat = GetTrueStatus(p)
-                                        if stat ~= "PVP: ON" then passPVP = false end
+                                        local isPvpOn = GetTrueStatus(p)
+                                        if not isPvpOn then passPVP = false end
                                     end
                                     if passPVP then
                                         local hum = p.Character:FindFirstChild("Humanoid")
@@ -847,8 +865,8 @@ local function doMagnetLoop()
                                     if not (_G.Config.TeamCheck and isSameTeam) then
                                         local passPVP = true
                                         if _G.Config.PVPCheck then
-                                            local stat = GetTrueStatus(p)
-                                            if stat ~= "PVP: ON" then passPVP = false end
+                                            local isPvpOn = GetTrueStatus(p)
+                                            if not isPvpOn then passPVP = false end
                                         end
                                         if passPVP then
                                             local hum = p.Character:FindFirstChild("Humanoid") local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
@@ -1305,7 +1323,6 @@ task.spawn(function()
 end)
 
 RunService.Heartbeat:Connect(function(dt)
-    -- ==================== LOGIC SAFE MODE TỰ ĐỘNG ====================
     if _G.Config.SafeMode and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
         local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1314,7 +1331,6 @@ RunService.Heartbeat:Connect(function(dt)
             
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
-                -- TP thẳng lên 100km (Y + 100000)
                 hrp.CFrame = hrp.CFrame + Vector3.new(0, 100000, 0)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
@@ -1325,7 +1341,6 @@ RunService.Heartbeat:Connect(function(dt)
                 if not noclipConnection then toggleNoclip(true) end
                 
                 if hpPct < 0.55 then
-                    -- Bay lên tiếp với tốc độ 10k
                     hrp.CFrame = hrp.CFrame + Vector3.new(0, 10000 * dt, 0)
                 else
                     _G.IsFleeing = false
@@ -1335,10 +1350,8 @@ RunService.Heartbeat:Connect(function(dt)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
                 
-                -- Lao xuống với tốc độ 30k
                 hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
                 
-                -- Tắt fly khi Y <= 150
                 if hrp.Position.Y <= 150 then
                     hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
                     _G.IsReturning = false
@@ -1350,61 +1363,9 @@ RunService.Heartbeat:Connect(function(dt)
         _G.IsFleeing = false
         _G.IsReturning = false
     end
-    -- =================================================================
-
-    -- ==================== LOGIC ĐỒNG BỘ ESP PVP GIẤU TRONG COREGUI ====================
-    if _G.Config.ESP_PVP then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") then
-                local head = plr.Character.Head
-                local statText, statColor = GetTrueStatus(plr)
-
-                if statText then
-                    local bill = pvpEspFolder:FindFirstChild(plr.Name)
-                    if not bill then
-                        bill = Instance.new("BillboardGui")
-                        bill.Name = plr.Name
-                        bill.Parent = pvpEspFolder
-                        bill.Adornee = head
-                        bill.Size = UDim2.new(0, 200, 0, 50)
-                        bill.StudsOffset = Vector3.new(0, 3.5, 0)
-                        bill.AlwaysOnTop = true
-
-                        local txt = Instance.new("TextLabel")
-                        txt.Name = "Tag"
-                        txt.Parent = bill
-                        txt.Size = UDim2.new(1, 0, 1, 0)
-                        txt.BackgroundTransparency = 1
-                        txt.Font = Enum.Font.GothamBold
-                        txt.TextSize = 14
-                        txt.TextStrokeTransparency = 0.3
-                        txt.TextStrokeColor3 = Color3.new(0, 0, 0)
-                    end
-                    bill.Adornee = head
-                    bill.Tag.Text = string.format("%s\n[%s]", plr.Name, statText)
-                    bill.Tag.TextColor3 = statColor
-                end
-            end
-        end
-    else
-        pvpEspFolder:ClearAllChildren()
-    end
-    -- Xóa các tag PVP ESP của người chơi đã thoát game
-    for _, tag in pairs(pvpEspFolder:GetChildren()) do
-        if not Players:FindFirstChild(tag.Name) then
-            tag:Destroy()
-        end
-    end
-    -- ===================================================================================
 
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = _G.Config.WalkSpeedEnabled and _G.Config.WalkSpeed or 16
-        end
-    end
-
+    
     local rgb = GetRGB()
     local shift = tick() * 0.15
 
@@ -1476,7 +1437,7 @@ RunService.Heartbeat:Connect(function(dt)
             if not hbBox then hbBox = Instance.new("SelectionBox", hrp); hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp end hbBox.SurfaceColor3 = rgb
         else if hbBox then hbBox:Destroy() end end
 
-        if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P then
+        if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P or _G.Config.ESP_PVP then
             if not ESP_Store[p.Name] then
                 local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4.2,0,5.8,0); boxBill.AlwaysOnTop = true
                 local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1
@@ -1489,7 +1450,9 @@ RunService.Heartbeat:Connect(function(dt)
                 local vLine = Instance.new("Frame", boxBill); vLine.Size = UDim2.new(0,1,0.5,0); vLine.Position = UDim2.new(0.5,0,0.25,0); vLine.BackgroundColor3 = Color3.new(1,1,1); vLine.BackgroundTransparency = 0.5; vLine.BorderSizePixel=0
                 
                 local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
-                local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12 txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+                local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12 
+                txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+                txt.RichText = true -- Bật RichText cho phép đổi màu chữ dòng cuối
                 ESP_Store[p.Name]={BoxBill=boxBill, Grad=grad, TextBill=textB, Text=txt}
             end
             local s=ESP_Store[p.Name]
@@ -1499,9 +1462,20 @@ RunService.Heartbeat:Connect(function(dt)
             if s.Grad then s.Grad.Rotation = (tick() * 150) % 360 end
             if isHitboxActive and _G.Config.ESP_2D_Hitbox then s.BoxBill.Size = UDim2.new(_G.Config.HitboxSize, 0, _G.Config.HitboxSize, 0) else s.BoxBill.Size = UDim2.new(4.2, 0, 5.8, 0) end
          
-            s.Text.Text=table.concat({_G.Config.ESP_Name_P and p.Name or "", _G.Config.ESP_Health_P and ("HP: "..math.floor(hum.Health)) or "", _G.Config.ESP_Distance_P and (dist ~= math.huge) and ("Dist: "..math.floor(dist).."m") or ""}, "\n")
-            s.Text.TextColor3=GetHealthColor(hp_percent)
-            s.TextBill.Enabled = (_G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P)
+            local espLines = {}
+            if _G.Config.ESP_Name_P then table.insert(espLines, p.Name) end
+            if _G.Config.ESP_Health_P then table.insert(espLines, "HP: "..math.floor(hum.Health)) end
+            if _G.Config.ESP_Distance_P and (dist ~= math.huge) then table.insert(espLines, "Dist: "..math.floor(dist).."m") end
+            if _G.Config.ESP_PVP then
+                if GetTrueStatus(p) then
+                    table.insert(espLines, "Status: <font color='#00A2FF'>PVP ON</font>") -- Xanh dương (Dodger Blue)
+                else
+                    table.insert(espLines, "Status: <font color='#A0A0A0'>PVP OFF</font>") -- Xám (Silver)
+                end
+            end
+            s.Text.Text = table.concat(espLines, "\n")
+            s.Text.TextColor3 = GetHealthColor(hp_percent)
+            s.TextBill.Enabled = (_G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_PVP)
         else CleanupESP(p.Name) end
     end
 
