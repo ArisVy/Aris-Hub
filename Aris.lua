@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Gộp ESP PVP Status đồng bộ vào ESP chính! nha",
+    Text="FIX LỖI: Chống dìm nước, luôn ở trên đầu mục tiêu!",
     Duration=8
 })
 
@@ -53,13 +53,15 @@ _G.Config={
     BlacklistedNPCs = {},
     SelectedTargetPlayer = nil,
     SelectedTargetNPC = nil,
-    SafeMode = false
+    SafeMode = false,
+    FastDrop = false
 }
 
 _G.WalkSpeed = 90
 _G.WalkSpeedEnabled = false
 _G.IsFleeing = false
 _G.IsReturning = false
+_G.IsFastDropping = false
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
@@ -78,6 +80,10 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = CoreGui
+
+local pvpEspFolder = Instance.new("Folder")
+pvpEspFolder.Name = "Aris_PVP_ESP"
+pvpEspFolder.Parent = ScreenGui
 
 local StatsFrame = Instance.new("Frame", ScreenGui)
 StatsFrame.Size = UDim2.new(0, 150, 0, 26)
@@ -205,15 +211,12 @@ local function ApplyButtonAnimation(btn)
     btn.MouseButton1Up:Connect(function() ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.05}):Play() end)
 end
 
--- LOGIC LẤY TRẠNG THÁI PVP (TrẢ VỀ BOOLEAN ĐỂ TIỆN XỬ LÝ FORMAT RICH TEXT)
 local function GetTrueStatus(target)
     if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return false end
     local char = target.Character
     local pos = char.HumanoidRootPart.Position
 
-    if char:FindFirstChildOfClass("ForceField") then
-        return false -- Đang có khiên -> TẮT PVP
-    end
+    if char:FindFirstChildOfClass("ForceField") then return false end
 
     local safeZones = workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("SafeZones")
     if safeZones then
@@ -221,17 +224,14 @@ local function GetTrueStatus(target)
             if zone:IsA("Part") or zone:IsA("MeshPart") then
                 local distance = (zone.Position - pos).Magnitude
                 if distance <= (zone.Size.X / 2 + 10) or distance <= (zone.Size.Z / 2 + 10) then
-                    return false -- Đứng trong Safezone -> TẮT PVP
+                    return false
                 end
             end
         end
     end
 
-    if target:GetAttribute("PvpDisabled") == true then
-        return false -- Bị disable -> TẮT PVP
-    end
-
-    return true -- PVP ON
+    if target:GetAttribute("PvpDisabled") == true then return false end
+    return true
 end
 
 local desyncState = false
@@ -401,7 +401,7 @@ MainFrame.Visible = false
 Instance.new("UICorner",MainFrame).CornerRadius = UDim.new(0,20)
 CreateBorder(MainFrame)
 
--- ==================== NÚT RESET & SAFE ====================
+-- ==================== NÚT RESET & SAFE & DROP ====================
 local ResetBtn = Instance.new("TextButton",MainFrame)
 ResetBtn.Size = UDim2.new(0,36,0,32)
 ResetBtn.Position = UDim2.new(0,12,0,7)
@@ -419,20 +419,44 @@ end)
 
 local SafeBtn = Instance.new("TextButton",MainFrame)
 SafeBtn.Size = UDim2.new(0,45,0,32)
-SafeBtn.Position = UDim2.new(1,-55,0,7)
+SafeBtn.Position = UDim2.new(1,-110,0,7)
 SafeBtn.Text = ""
 SafeBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner",SafeBtn).CornerRadius = UDim.new(0,16)
 ApplyToggleGradient(SafeBtn, _G.Config.SafeMode) CreateBorder(SafeBtn) CreateButtonText(SafeBtn, "SAFE", Enum.Font.GothamBold, 11) ApplyButtonAnimation(SafeBtn)
 
+local DropBtn = Instance.new("TextButton",MainFrame)
+DropBtn.Size = UDim2.new(0,45,0,32)
+DropBtn.Position = UDim2.new(1,-55,0,7)
+DropBtn.Text = ""
+DropBtn.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",DropBtn).CornerRadius = UDim.new(0,16)
+ApplyToggleGradient(DropBtn, _G.Config.FastDrop) CreateBorder(DropBtn) CreateButtonText(DropBtn, "DROP", Enum.Font.GothamBold, 11) ApplyButtonAnimation(DropBtn)
+
+DropBtn.MouseButton1Click:Connect(function()
+    _G.Config.FastDrop = not _G.Config.FastDrop
+    ApplyToggleGradient(DropBtn, _G.Config.FastDrop)
+end)
+
 SafeBtn.MouseButton1Click:Connect(function()
     _G.Config.SafeMode = not _G.Config.SafeMode
     ApplyToggleGradient(SafeBtn, _G.Config.SafeMode)
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Bay 100km khi HP <35%!" or "Đã TẮT!", Duration=3 })
+    
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if not _G.Config.SafeMode and _G.Config.FastDrop and hrp and hrp.Position.Y > 40000 then
+        _G.IsFastDropping = true
+        _G.IsFleeing = false
+        _G.IsReturning = false
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="FAST DROP", Text="Đang cắm đầu rơi với tốc độ 50k!", Duration=3 })
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Bay 100km khi HP <35%!" or "Đã TẮT!", Duration=3 })
+    end
 end)
 
 local Title = Instance.new("TextLabel",MainFrame)
-Title.Size = UDim2.new(1,-120,0,45)
+Title.Size = UDim2.new(1,-170,0,45)
 Title.Position = UDim2.new(0,60,0,0)
 Title.Text = "ARIS HUB V53 PRO"
 Title.Font = Enum.Font.GothamBlack
@@ -494,7 +518,6 @@ local function AddAdjust(tab,name,key,step,minV,maxV,cb)
     plus.MouseButton1Click:Connect(function() _G.Config[key] = math.clamp(_G.Config[key]+step, minVal, maxVal) for _, lblData in ipairs(AdjustLabels[key]) do lblData.Label.Text = lblData.Name..": ".._G.Config[key] end if cb then cb() end end)
 end
 
--- ==================== CHỈNH SỬA UI TAB ESP (GRID 2 CỘT) ====================
 local espTab = ContentFrames["ESP"].Frame
 local espGrid = Instance.new("Frame", espTab)
 espGrid.Size = UDim2.new(1, -16, 0, 0)
@@ -532,7 +555,6 @@ AddGridToggle(espGrid, "BOX 2D", "ESP_Box_P")
 AddGridToggle(espGrid, "CHAMS", "ESP_Chams_P")
 AddGridToggle(espGrid, "PVP ESP", "ESP_PVP") 
 
--- ==================== CÁC TAB KHÁC ====================
 local function AddToggle(tab,name,key,cb)
     local content = ContentFrames[tab].Frame
     local btn = Instance.new("TextButton",content) btn.Size = UDim2.new(1,-16,0,36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,20)
@@ -547,7 +569,6 @@ AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
--- ==================== CHỈNH SỬA UI TAB MISC (TEAM CHECK & PVP CHECK) ====================
 local dualRowMisc = Instance.new("Frame", ContentFrames["Misc"].Frame)
 dualRowMisc.Size = UDim2.new(1, -16, 0, 36)
 dualRowMisc.BackgroundTransparency = 1
@@ -587,7 +608,6 @@ AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
 AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1")
 
--- ==================== WALKSPEED ====================
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
 WSContainer.Size = UDim2.new(1, 0, 0, 115) 
@@ -655,108 +675,6 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
-AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
-AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
-AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
-AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
-AddToggle("NPC","ESP NPC BOX 2D","ESP_NPC_Box")
-AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
-
-local RefreshFloatBtn
-
-local desyncTab = ContentFrames["Desync"].Frame
-local ModeFrame = Instance.new("Frame", desyncTab) ModeFrame.Size = UDim2.new(1, -16, 0, 36) ModeFrame.BackgroundTransparency = 1
-local modeLabel = Instance.new("TextLabel", ModeFrame) modeLabel.Size = UDim2.new(0.2, 0, 1, 0) modeLabel.BackgroundTransparency = 1 modeLabel.Text = "MODE:" modeLabel.Font = Enum.Font.GothamBold modeLabel.TextSize = 13 CreateTextGradient(modeLabel)
-
-local function createModeBtn(text, posScale, modeStr)
-    local btn = Instance.new("TextButton", ModeFrame) btn.Size = UDim2.new(0.25, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16) CreateBorder(btn) local txt = CreateButtonText(btn, text, Enum.Font.GothamBold, 12) ApplyButtonAnimation(btn)
-    local function UpdateState() ApplyToggleGradient(btn, _G.Config.Desync_Mode == modeStr) end UpdateState()
-    btn.MouseButton1Click:Connect(function()
-        if desyncState then game:GetService("StarterGui"):SetCore("SendNotification",{ Title="CẢNH BÁO", Text="Vui lòng TẮT Desync trước khi đổi chế độ!", Duration=2 }) return end
-        _G.Config.Desync_Mode = modeStr
-        for _, child in ipairs(ModeFrame:GetChildren()) do if child:IsA("TextButton") then ApplyToggleGradient(child, child:GetAttribute("ModeStr") == _G.Config.Desync_Mode) end end
-        if RefreshFloatBtn then RefreshFloatBtn() end
-    end)
-    btn:SetAttribute("ModeStr", modeStr) return btn
-end
-createModeBtn("Normal", 0.22, "Normal") createModeBtn("Fast", 0.49, "Fast") createModeBtn("Fix", 0.76, "Fix")
-
-local floatGui = Instance.new("ScreenGui", CoreGui) floatGui.Name = "ArisFloatToggle" floatGui.ResetOnSpawn = false floatGui.DisplayOrder = 1000 floatGui.Enabled = _G.Config.Desync_ShowFloat
-local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
-local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 130, 0, 40) floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
-local btnGradient = Instance.new("UIGradient", floatBtn) btnGradient.Color = cyanPinkColors btnGradient.Enabled = false
-local floatStroke = Instance.new("UIStroke", floatBtn) floatStroke.Thickness = 2.5 floatStroke.Color = Color3.fromRGB(255, 255, 255) floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local strokeGradient = Instance.new("UIGradient", floatStroke) strokeGradient.Color = cyanPinkColors
-local floatText = Instance.new("TextLabel", floatBtn) floatText.Size = UDim2.new(1, 0, 1, 0) floatText.BackgroundTransparency = 1 floatText.Text = "DeSync : Off" floatText.TextColor3 = Color3.fromRGB(255, 255, 255) floatText.TextSize = 13 floatText.Font = Enum.Font.GothamBold
-local textGradient = Instance.new("UIGradient", floatText) textGradient.Color = cyanPinkColors textGradient.Enabled = true
-
-local function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Desync_FloatX / 100, 0, _G.Config.Desync_FloatY / 100, 0) end UpdateFloatPosition()
-
-RefreshFloatBtn = function()
-    if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
-        floatText.Text = "N/A ⚠️" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
-    end
-    strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
-    if desyncState then floatText.Text = "DeSync : On" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : Off" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
-end
-
-floatBtn.MouseButton1Click:Connect(function()
-    if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
-    desyncState = not desyncState RefreshFloatBtn()
-    local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
-    if desyncState then if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() else ActivateDesyncNormal() end else ToggleDesync(false) for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end HideDesyncMarker() end
-end)
-
-AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
-AddToggle("Desync", "HIỆN NÚT DESYNC NỔI", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
-AddAdjust("Desync", "TỌA ĐỘ X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
-AddAdjust("Desync", "TỌA ĐỘ Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
-
-local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
-
-local function CheckAndCacheNPC(obj)
-    if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
-        if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then CachedNPCs[obj] = true end
-    end
-end
-for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
-Workspace.DescendantAdded:Connect(function(descendant) task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end) end)
-
-local function CleanupHitboxAttributes(hrp)
-    if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
-end
-
-local function CleanupHitboxAttributesNPC(hrp)
-    if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then hrp:SetAttribute("ArisHitboxActiveNPC", nil) hrp.Transparency = 1 hrp.CanCollide = true end
-end
-
-local function GetHealthColor(pct)
-    if pct>0.7 then return Color3.new(0,1,0) elseif pct>0.5 then return Color3.new(1,1,0) elseif pct>0.3 then return Color3.new(1,0.5,0) else return Color3.new(1,0,0) end
-end
-
-local function CleanupESP(playerName)
-    if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
-    local p = Players:FindFirstChild(playerName)
-    if p and p.Character then
-        if p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
-        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
-    end
-end
-
-local function CleanupNPC(m)
-    if NPC_Store[m]then pcall(function() if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end if NPC_Store[m].BoxBill then NPC_Store[m].BoxBill:Destroy() end end); NPC_Store[m]=nil end
-    if m then
-        if m:FindFirstChild("ArisHL_NPC") then m.ArisHL_NPC:Destroy() end
-        local hrp = m:FindFirstChild("HumanoidRootPart")
-        if hrp then if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end CleanupHitboxAttributesNPC(hrp) end
-    end
-end
-
-Workspace.DescendantRemoving:Connect(function(descendant) if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end end)
-
-local currentTween = nil local currentTarget = nil local noclipConnection = nil 
-
 local function toggleNoclip(active)
     if active then 
         if not noclipConnection then 
@@ -783,7 +701,7 @@ local function doMagnetLoop()
     if isFarming then return end isFarming = true
     task.spawn(function()
         while _G.Config.TP_NPC or _G.Config.TP_Player do
-            if _G.IsFleeing or _G.IsReturning then
+            if _G.IsFleeing or _G.IsReturning or _G.IsFastDropping then
                 task.wait(0.1)
                 continue
             end
@@ -885,8 +803,24 @@ local function doMagnetLoop()
                 
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
-                    local targetPos = currentTarget.CFrame * CFrame.new(0, _G.Config.TP_Height, 0)
-                    if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then local vel = currentTarget.AssemblyLinearVelocity targetPos = targetPos + (vel * _G.Config.Prediction) end
+                    
+                    -- LẤY TỌA ĐỘ THEO TRỤC CỦA THẾ GIỚI (WORLD SPACE) ĐỂ CHỐNG LỖI CẮM ĐẦU XUỐNG ĐẤT/NƯỚC KHI TARGET BỊ NGÃ
+                    local tPos = currentTarget.Position
+                    if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then 
+                        local vel = currentTarget.AssemblyLinearVelocity 
+                        -- Loại bỏ vector Y của vận tốc để không bị kéo xuống khi mục tiêu rớt
+                        tPos = tPos + Vector3.new(vel.X, 0, vel.Z) * _G.Config.Prediction 
+                    end
+                    
+                    local finalPos = tPos + Vector3.new(0, _G.Config.TP_Height, 0)
+                    
+                    -- GIỚI HẠN CHỐNG DÌM NƯỚC (Y < 30 THÌ ÉP LÊN Y = 30)
+                    if finalPos.Y < 30 then
+                        finalPos = Vector3.new(finalPos.X, 30, finalPos.Z)
+                    end
+                    
+                    local targetPos = CFrame.new(finalPos)
+                    
                     local dist = (myRoot.Position - targetPos.Position).Magnitude
                     if dist <= 100 then if currentTween then currentTween:Cancel() end myRoot.CFrame = targetPos else
                         local duration = dist / _G.Config.TP_Speed if duration < 0.05 then duration = 0.05 end currentTween = TweenService:Create(myRoot, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetPos}) currentTween:Play()
@@ -1229,7 +1163,7 @@ AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
     local autoBtn = Instance.new("TextButton", PlayerListContainer)
     autoBtn.Size = UDim2.new(1, 0, 0, 36)
     autoBtn.Text = ""
-    autoBtn.BackgroundColor3 = Color3.new(1, 1, 1)
+    autoBtn.BackgroundColor3 = Color3.new(1, 0, 0)
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
@@ -1275,53 +1209,6 @@ AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " người chơi!", Duration=3 })
 end)
 
-local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame) PredContainer.Size = UDim2.new(1, 0, 0, 115) PredContainer.BackgroundTransparency = 1
-local PredToggle = Instance.new("TextButton", PredContainer) PredToggle.Size = UDim2.new(1, -16, 0, 36) PredToggle.Text = "" PredToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) CreateBorder(PredToggle) local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(PredToggle)
-local PredSliderBg = Instance.new("Frame", PredContainer) PredSliderBg.Size = UDim2.new(1, -16, 0, 25) PredSliderBg.Position = UDim2.new(0, 0, 0, 48) PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
-local PredSliderFill = Instance.new("Frame", PredSliderBg) PredSliderFill.Size = UDim2.new(_G.Config.Prediction / 10, 0, 1, 0) PredSliderFill.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredSliderFill).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredSliderFill, true)
-local PredValLabel = Instance.new("TextLabel", PredSliderBg) PredValLabel.Size = UDim2.new(1, 0, 1, 0) PredValLabel.BackgroundTransparency = 1 PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" PredValLabel.Font = Enum.Font.GothamBold PredValLabel.TextSize = 12 CreateTextGradient(PredValLabel)
-local PredBtnFrame = Instance.new("Frame", PredContainer) PredBtnFrame.Size = UDim2.new(1, -16, 0, 32) PredBtnFrame.Position = UDim2.new(0, 0, 0, 82) PredBtnFrame.BackgroundTransparency = 1
-local function createPredBtn(text, posScale) local btn = Instance.new("TextButton", PredBtnFrame) btn.Size = UDim2.new(0.22, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, text, Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn) return btn end
-local pm1 = createPredBtn("-1", 0) local pm01 = createPredBtn("-0.1", 0.26) local pp01 = createPredBtn("+0.1", 0.52) local pp1 = createPredBtn("+1", 0.78)
-local function UpdatePred(val) _G.Config.Prediction = math.clamp(val, 0, 10) local ratio = _G.Config.Prediction / 10 PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0) PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" end
-pm1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 1) end) pm01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.1) end) pp01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.1) end) pp1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 1) end)
-PredToggle.MouseButton1Click:Connect(function() _G.Config.Prediction_Enabled = not _G.Config.Prediction_Enabled PredToggleTxt.Text = "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF") ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) end)
-local draggingPred = false
-PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = true end end)
-PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
-UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
-
-task.spawn(function()
-    local RunService = game:GetService("RunService")
-    while true do
-        RunService.Heartbeat:Wait() 
-        if _G.Config.FastM1 then
-            pcall(function()
-                local char = LocalPlayer.Character
-                if not char then return end
-                
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool then
-                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
-                    
-                    if remote then
-                        local direction = Vector3.new(0, -0.9, 0.03)
-                        for i = 1, 3 do
-                            if remote:IsA("RemoteEvent") then
-                                remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
-                            elseif remote:IsA("RemoteFunction") then
-                                task.spawn(function()
-                                    remote:InvokeServer()
-                                end)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
 RunService.Heartbeat:Connect(function(dt)
     if _G.Config.SafeMode and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
@@ -1362,6 +1249,23 @@ RunService.Heartbeat:Connect(function(dt)
     else
         _G.IsFleeing = false
         _G.IsReturning = false
+    end
+    
+    if _G.IsFastDropping and LocalPlayer.Character then
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            if currentTween then currentTween:Cancel() end
+            if not noclipConnection then toggleNoclip(true) end
+            
+            hrp.CFrame = hrp.CFrame - Vector3.new(0, 50000 * dt, 0)
+            
+            if hrp.Position.Y <= 150 then
+                hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
+                _G.IsFastDropping = false
+                if noclipConnection and not isFarming then toggleNoclip(false) end
+                game:GetService("StarterGui"):SetCore("SendNotification", { Title="FAST DROP", Text="Đã hạ cánh an toàn ở Y=150!", Duration=3 })
+            end
+        end
     end
 
     local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1452,7 +1356,7 @@ RunService.Heartbeat:Connect(function(dt)
                 local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
                 local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12 
                 txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
-                txt.RichText = true -- Bật RichText cho phép đổi màu chữ dòng cuối
+                txt.RichText = true 
                 ESP_Store[p.Name]={BoxBill=boxBill, Grad=grad, TextBill=textB, Text=txt}
             end
             local s=ESP_Store[p.Name]
@@ -1468,9 +1372,9 @@ RunService.Heartbeat:Connect(function(dt)
             if _G.Config.ESP_Distance_P and (dist ~= math.huge) then table.insert(espLines, "Dist: "..math.floor(dist).."m") end
             if _G.Config.ESP_PVP then
                 if GetTrueStatus(p) then
-                    table.insert(espLines, "Status: <font color='#00A2FF'>PVP ON</font>") -- Xanh dương (Dodger Blue)
+                    table.insert(espLines, "Status: <font color='#00A2FF'>PVP ON</font>") 
                 else
-                    table.insert(espLines, "Status: <font color='#A0A0A0'>PVP OFF</font>") -- Xám (Silver)
+                    table.insert(espLines, "Status: <font color='#A0A0A0'>PVP OFF</font>") 
                 end
             end
             s.Text.Text = table.concat(espLines, "\n")
