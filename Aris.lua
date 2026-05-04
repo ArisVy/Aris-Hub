@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: WaterWalk, Chống đuối nước & Drop an toàn!",
+    Text="CẬP NHẬT: Fix Teleport Safe Mode & Chống trượt WaterWalk!",
     Duration=8
 })
 
@@ -64,11 +64,11 @@ _G.IsFleeing = false
 _G.IsReturning = false
 _G.IsForcedDropping = false
 
--- TẠO MẶT PHẲNG WATERWALK
+-- TẠO MẶT PHẲNG WATERWALK KÍCH THƯỚC CHUẨN (DI CHUYỂN THEO NGƯỜI CHƠI)
 local WaterWalkPart = Instance.new("Part")
 WaterWalkPart.Name = "ArisWaterWalk"
-WaterWalkPart.Size = Vector3.new(100000, 2, 100000) -- Bán kính 50km
-WaterWalkPart.Position = Vector3.new(0, 5, 0) -- Độ dày Y=4->6
+WaterWalkPart.Size = Vector3.new(1000, 2, 1000) -- Kích thước lớn nhưng an toàn với Roblox Physics
+WaterWalkPart.Position = Vector3.new(0, 5, 0) -- Độ dày Y=4->6, bề mặt là 6
 WaterWalkPart.Anchored = true
 WaterWalkPart.CanCollide = false
 WaterWalkPart.CastShadow = false -- Chống giật lag
@@ -577,7 +577,7 @@ AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
--- ==================== CHỈNH SỬA UI TAB MISC (TEAM CHECK & PVP CHECK) ====================
+-- ==================== CHỈNH SỬA UI TAB MISC ====================
 local dualRowMisc = Instance.new("Frame", ContentFrames["Misc"].Frame)
 dualRowMisc.Size = UDim2.new(1, -16, 0, 36)
 dualRowMisc.BackgroundTransparency = 1
@@ -719,7 +719,7 @@ end
 createModeBtn("Normal", 0.22, "Normal") createModeBtn("Fast", 0.49, "Fast") createModeBtn("Fix", 0.76, "Fix")
 
 local floatGui = Instance.new("ScreenGui", CoreGui) floatGui.Name = "ArisFloatToggle" floatGui.ResetOnSpawn = false floatGui.DisplayOrder = 1000 floatGui.Enabled = _G.Config.Desync_ShowFloat
-local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
+local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, 230, 255), ColorSequenceKeypoint.new(1, 255, 50, 200) })
 local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 130, 0, 40) floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
 local btnGradient = Instance.new("UIGradient", floatBtn) btnGradient.Color = cyanPinkColors btnGradient.Enabled = false
 local floatStroke = Instance.new("UIStroke", floatBtn) floatStroke.Thickness = 2.5 floatStroke.Color = Color3.fromRGB(255, 255, 255) floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -925,7 +925,6 @@ local function doMagnetLoop()
                     local targetPos = currentTarget.CFrame * CFrame.new(0, _G.Config.TP_Height, 0)
                     if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then local vel = currentTarget.AssemblyLinearVelocity targetPos = targetPos + (vel * _G.Config.Prediction) end
                     
-                    -- LOGIC CẤT CÁNH CAO CHỐNG CHÌM NƯỚC KHI TP
                     local flatDist = Vector2.new(myRoot.Position.X - targetPos.Position.X, myRoot.Position.Z - targetPos.Position.Z).Magnitude
                     if flatDist > 150 then
                         targetPos = CFrame.new(targetPos.Position.X, math.max(targetPos.Position.Y + 300, myRoot.Position.Y + 100), targetPos.Position.Z)
@@ -1367,6 +1366,13 @@ task.spawn(function()
 end)
 
 RunService.Heartbeat:Connect(function(dt)
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+    -- CẬP NHẬT TỌA ĐỘ WATER WALK THEO BƯỚC CHÂN NGƯỜI CHƠI ĐỂ KHÔNG BAO GIỜ TRƯỢT MẶT PHẲNG
+    if _G.Config.WaterWalk and myRoot and WaterWalkPart then
+        WaterWalkPart.CFrame = CFrame.new(myRoot.Position.X, 5, myRoot.Position.Z)
+    end
+
     if _G.Config.SafeMode and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
         local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1375,9 +1381,12 @@ RunService.Heartbeat:Connect(function(dt)
             
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, 100000, 0)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
+                
+                -- DỊCH CHUYỂN NGAY LẬP TỨC LÊN TỌA ĐỘ Y = 100,000 (100km)
+                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
+                hrp.AssemblyLinearVelocity = Vector3.new(0,0,0) -- Ép gia tốc bằng 0 để tránh game kéo ngược lại
             end
             
             if _G.IsFleeing then
@@ -1385,7 +1394,9 @@ RunService.Heartbeat:Connect(function(dt)
                 if not noclipConnection then toggleNoclip(true) end
                 
                 if hpPct < 0.55 then
-                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 10000 * dt, 0)
+                    -- TIẾP TỤC BAY LÊN CAO HƠN NỮA
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 5000 * dt, 0)
+                    hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
                 else
                     _G.IsFleeing = false
                     _G.IsReturning = true
@@ -1408,8 +1419,6 @@ RunService.Heartbeat:Connect(function(dt)
         _G.IsReturning = false
     end
 
-    -- LOGIC AUTO DROP (Ép rơi nếu kẹt trên cao)
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if myRoot then
         if _G.Config.AutoDrop and not _G.Config.SafeMode then
             if myRoot.Position.Y > 40000 and not _G.IsFleeing and not _G.IsReturning then
