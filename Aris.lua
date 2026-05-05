@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Bay ổn định, Anti-Teleport & Fix Desync!",
+    Text="CẬP NHẬT: Bay ổn định, Anti-Teleport & Fix Desync! 13do",
     Duration=8
 })
 
@@ -1425,7 +1425,7 @@ task.spawn(function()
                     
                     if remote then
                         local direction = Vector3.new(0, -0.9, 0.03)
-                        for i = 1, 3 do
+                        for i = 1, 13 do
                             if remote:IsA("RemoteEvent") then
                                 remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
                             elseif remote:IsA("RemoteFunction") then
