@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Bay ổn định, Anti-Teleport & Fix Desync! 13do",
+    Text="CẬP NHẬT: Bay ổn định, Anti-Teleport & Fix Desync! 7do",
     Duration=8
 })
 
