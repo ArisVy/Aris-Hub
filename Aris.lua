@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Bay ổn định, Anti-Teleport & Fix Desync! 7do",
+    Text="CẬP NHẬT: Fast Attack BF, TP Y>30k, Anti-Teleport!",
     Duration=8
 })
 
@@ -20,14 +20,14 @@ _G.Config={
     ESP_Health_P=true,
     ESP_Chams_P=true,
     ESP_Distance_P=true,
-    ESP_PVP=true, 
+    ESP_PVP=false, 
     Hitbox_P=false,
     HitboxSize=150,
     Hitbox_WallCheck=false,
     Hitbox_Box=false,
     ESP_2D_Hitbox=false, 
     TeamCheck=true,
-    PVPCheck=true,
+    PVPCheck=false,
     LowHP_KS=false,
     Show_Stats=true,
     FastM1=false,
@@ -661,7 +661,7 @@ end)
 
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1")
+AddToggle("Misc","FAST M1 (BLOXFRUITS)","FastM1")
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
@@ -975,7 +975,6 @@ local function doMagnetLoop()
                         currentTargetId = currentTarget
                     end
 
-                    -- Bắt buộc CFrame.new theo Position thuần để thẳng đứng 100% (không chéo theo góc target)
                     local targetPos = CFrame.new(currentTarget.Position + Vector3.new(0, _G.Config.TP_Height, 0))
                     
                     if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then 
@@ -985,15 +984,14 @@ local function doMagnetLoop()
                     
                     local currentTargetPos = currentTarget.Position
                     local targetTeleported = lastTargetPos and (currentTargetPos - lastTargetPos).Magnitude > 80
+                    local isTargetHighInSky = currentTargetPos.Y > 30000
 
-                    -- Cất cánh bay cao chống chìm
                     local flatDist = Vector2.new(myRoot.Position.X - targetPos.Position.X, myRoot.Position.Z - targetPos.Position.Z).Magnitude
-                    if flatDist > 150 and not targetTeleported then
+                    if flatDist > 150 and not targetTeleported and not isTargetHighInSky then
                         targetPos = CFrame.new(targetPos.Position.X, math.max(targetPos.Position.Y + 300, myRoot.Position.Y + 100), targetPos.Position.Z)
                     end
 
-                    -- Hủy Tween TP thẳng nếu đối tượng xài Teleport hoặc Dash
-                    if targetTeleported then
+                    if targetTeleported or isTargetHighInSky then
                         if currentTween then currentTween:Cancel() end
                         myRoot.CFrame = targetPos
                     else
@@ -1412,29 +1410,22 @@ UserInputService.InputChanged:Connect(function(input) if draggingPred and (input
 
 task.spawn(function()
     local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+
     while true do
         RunService.Heartbeat:Wait() 
         if _G.Config.FastM1 then
             pcall(function()
-                local char = LocalPlayer.Character
-                if not char then return end
+                local CombatFramework = require(LocalPlayer.PlayerScripts:WaitForChild("CombatFramework"))
+                local activeController = CombatFramework.activeController
                 
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool then
-                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
-                    
-                    if remote then
-                        local direction = Vector3.new(0, -0.9, 0.03)
-                        for i = 1, 7 do
-                            if remote:IsA("RemoteEvent") then
-                                remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
-                            elseif remote:IsA("RemoteFunction") then
-                                task.spawn(function()
-                                    remote:InvokeServer()
-                                end)
-                            end
-                        end
-                    end
+                if activeController then
+                    activeController.timeToNextAttack = 0
+                    activeController.timeToNextBlock = 0
+                    activeController.hitboxMagnitude = 60
+                    activeController.increment = 3 
+                    activeController:attack()
                 end
             end)
         end
