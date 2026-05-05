@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Desync Mới & Bỏ WaterWalk!",
+    Text="CẬP NHẬT: Fix Teleport Safe Mode & Chống trượt WaterWalk!",
     Duration=8
 })
 
@@ -54,7 +54,8 @@ _G.Config={
     SelectedTargetPlayer = nil,
     SelectedTargetNPC = nil,
     SafeMode = false,
-    AutoDrop = false
+    AutoDrop = false,
+    WaterWalk = false
 }
 
 _G.WalkSpeed = 90
@@ -62,6 +63,19 @@ _G.WalkSpeedEnabled = false
 _G.IsFleeing = false
 _G.IsReturning = false
 _G.IsForcedDropping = false
+
+-- TẠO MẶT PHẲNG WATERWALK KÍCH THƯỚC CHUẨN (DI CHUYỂN THEO NGƯỜI CHƠI)
+local WaterWalkPart = Instance.new("Part")
+WaterWalkPart.Name = "ArisWaterWalk"
+WaterWalkPart.Size = Vector3.new(1000, 2, 1000) -- Kích thước lớn nhưng an toàn với Roblox Physics
+WaterWalkPart.Position = Vector3.new(0, 5, 0) -- Độ dày Y=4->6, bề mặt là 6
+WaterWalkPart.Anchored = true
+WaterWalkPart.CanCollide = false
+WaterWalkPart.CastShadow = false -- Chống giật lag
+WaterWalkPart.Transparency = 1 -- Mặc định tàng hình
+WaterWalkPart.Color = Color3.fromRGB(173, 216, 230) -- Màu xanh dương nhẹ
+WaterWalkPart.Material = Enum.Material.SmoothPlastic
+WaterWalkPart.Parent = workspace
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
@@ -236,53 +250,22 @@ local function GetTrueStatus(target)
     return true
 end
 
--- ===============================================================
--- THAY THẾ LOGIC DESYNC TỪ FILE DESYNC1
--- ===============================================================
-local GENV = getgenv()
-GENV.DesyncNormal = GENV.DesyncNormal or false
-GENV.DesyncFast = GENV.DesyncFast or false
-GENV.DesyncFix = GENV.DesyncFix or false
-
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 local function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
 
 local NumericFlags = {
-    {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"},
-    {"TimestepArbiterVelocityCriteriaThresholdTwoDt","2147483646"},
-    {"S2PhysicsSenderRate","15000"},
-    {"MaxDataPacketPerSend","2147483647"},
-    {"PhysicsSenderMaxBandwidthBps","20000"},
-    {"CheckPVCachedVelThresholdPercent","10"},
-    {"MaxMissedWorldStepsRemembered","-2147483648"},
-    {"CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth","1"},
-    {"StreamJobNOUVolumeLengthCap","2147483647"},
-    {"DebugSendDistInSteps","-2147483648"},
-    {"GameNetDontSendRedundantNumTimes","1"},
-    {"CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent","1"},
-    {"CheckPVCachedRotVelThresholdPercent","10"},
-    {"ReplicationFocusNouExtentsSizeCutoffForPauseStuds","2147483647"},
-    {"CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth","1"},
-    {"GameNetDontSendRedundantDeltaPositionMillionth","1"},
-    {"InterpolationFrameVelocityThresholdMillionth","5"},
-    {"StreamJobNOUVolumeCap","2147483647"},
-    {"InterpolationFrameRotVelocityThresholdMillionth","5"},
-    {"WorldStepMax","30"},
-    {"TimestepArbiterHumanoidLinearVelThreshold","1"},
-    {"InterpolationFramePositionThresholdMillionth","5"},
-    {"TimestepArbiterHumanoidTurningVelThreshold","1"},
-    {"GameNetPVHeaderLinearVelocityZeroCutoffExponent","-5000"},
-    {"SimOwnedNOUCountThresholdMillionth","2147483647"},
-    {"TimestepArbiterOmegaThou","1073741823"},
-    {"MaxAcceptableUpdateDelay","1"}
+    {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"}, {"TimestepArbiterVelocityCriteriaThresholdTwoDt","2147483646"},
+    {"S2PhysicsSenderRate","15000"}, {"MaxDataPacketPerSend","2147483647"}, {"PhysicsSenderMaxBandwidthBps","20000"},
+    {"CheckPVCachedVelThresholdPercent","10"}, {"MaxMissedWorldStepsRemembered","-2147483648"}, {"StreamJobNOUVolumeLengthCap","2147483647"},
+    {"WorldStepMax","30"}, {"MaxAcceptableUpdateDelay","1"}
 }
 
 local AnimationLib = {}
 function AnimationLib.CreateParticleEffect(position, color, duration)
     local part = Instance.new("Part") part.Size = Vector3.new(2, 2, 2) part.Anchored = true part.CanCollide = false part.Material = Enum.Material.Neon part.Color = color part.CFrame = CFrame.new(position) part.Transparency = 0.3 part.Parent = workspace
     local light = Instance.new("PointLight") light.Color = color light.Range = 15 light.Brightness = 2 light.Parent = part
-    local tween = TweenService:Create(part, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = Vector3.new(0.5, 0.5, 0.5), Transparency = 1, CFrame = CFrame.new(position) * CFrame.new(math.random(-5, 5), math.random(5, 10), math.random(-5, 5)) })
+    local tween = game:GetService("TweenService"):Create(part, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = Vector3.new(0.5, 0.5, 0.5), Transparency = 1, CFrame = CFrame.new(position) * CFrame.new(math.random(-5, 5), math.random(5, 10), math.random(-5, 5)) })
     tween:Play() tween.Completed:Connect(function() part:Destroy() end) return part
 end
 
@@ -298,7 +281,7 @@ end
 function AnimationLib.DesyncTeleportEffect(position)
     for i = 1, 8 do task.spawn(function() AnimationLib.CreateParticleEffect(position + Vector3.new(math.random(-3, 3), 0, math.random(-3, 3)), Color3.fromRGB(0, 150, 255), 0.8) end) task.wait(0.05) end
     local wave = Instance.new("Part") wave.Size = Vector3.new(1, 1, 1) wave.Anchored = true wave.CanCollide = false wave.Transparency = 0.7 wave.Color = Color3.fromRGB(0, 100, 255) wave.Material = Enum.Material.Neon wave.CFrame = CFrame.new(position) wave.Parent = workspace
-    local tween = TweenService:Create(wave, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(20, 0.1, 20), Transparency = 1})
+    local tween = game:GetService("TweenService"):Create(wave, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(20, 0.1, 20), Transparency = 1})
     tween:Play() tween.Completed:Connect(function() wave:Destroy() end)
 end
 
@@ -306,642 +289,104 @@ local desyncPart, lastSafeCF, lastTeleportCheck
 
 local function CreateDesyncMarker(pos)
     if desyncPart then desyncPart:Destroy() desyncPart = nil end
-    desyncPart = Instance.new("Part") desyncPart.Name = "DesyncMarker" desyncPart.Anchored = true desyncPart.CanCollide = false desyncPart.Size = Vector3.newDưới đây là mã nguồn đã được chỉnh sửa theo đúng yêu cầu của bạn: loại bỏ hoàn toàn chức năng `WaterWalk` và thay thế toàn bộ logic Desync trong file `aris` bằng logic chuẩn xác nhất từ file `desync1` (bao gồm cả các hiệu ứng mới, danh sách NumericFlags bản Fix V2, logic hồi sinh và hệ thống bảo mật Admin).
-
-```lua
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-
-game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="CẬP NHẬT: Tích hợp logic Desync V2, Đã xóa WaterWalk!",
-    Duration=8
-})
-
-_G.Config={
-    ESP_Box_P=true,
-    ESP_Name_P=true,
-    ESP_Health_P=true,
-    ESP_Chams_P=true,
-    ESP_Distance_P=true,
-    ESP_PVP=false, 
-    Hitbox_P=false,
-    HitboxSize=150,
-    Hitbox_WallCheck=false,
-    Hitbox_Box=false,
-    ESP_2D_Hitbox=false, 
-    TeamCheck=true,
-    PVPCheck=false,
-    LowHP_KS=false,
-    Show_Stats=true,
-    FastM1=false,
-    Hitbox_NPC=false,
-    HitboxSize_NPC=20,
-    Hitbox_Box_NPC=false,
-    ESP_NPC_Name=false,
-    ESP_NPC_Box=false,
-    ESP_NPC_Chams=false,
-    TeamCheck_NPC=false,
-    MenuOpen=false,
-    Desync_HideAuto = false,
-    Desync_ShowFloat = false,
-    Desync_FloatX = 70,
-    Desync_FloatY = 20,
-    Desync_Mode = "Fix",
-    TP_NPC = false,
-    TP_Player = false,
-    TP_Height = 15,
-    TP_Speed = 500,
-    Prediction_Enabled = false,
-    Prediction = 1.0,
-    BlacklistedNPCs = {},
-    SelectedTargetPlayer = nil,
-    SelectedTargetNPC = nil,
-    SafeMode = false,
-    AutoDrop = false
-}
-
-_G.WalkSpeed = 90
-_G.WalkSpeedEnabled = false
-_G.IsFleeing = false
-_G.IsReturning = false
-_G.IsForcedDropping = false
-
-local TempSkipNPC = {}
-local TempSkipPlayer = {} 
-local MAX_NPC_RENDER_DISTANCE = 2500
-
-if CoreGui:FindFirstChild("ArisHUB_PRO") then
-    CoreGui.ArisHUB_PRO:Destroy()
-end
-if CoreGui:FindFirstChild("ArisFloatToggle") then
-    CoreGui.ArisFloatToggle:Destroy()
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ArisHUB_PRO"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 99999
-ScreenGui.Parent = CoreGui
-
-local StatsFrame = Instance.new("Frame", ScreenGui)
-StatsFrame.Size = UDim2.new(0, 150, 0, 26)
-StatsFrame.Position = UDim2.new(0, 15, 0, 60)
-StatsFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-StatsFrame.BackgroundTransparency = 0.5
-StatsFrame.BorderSizePixel = 0
-StatsFrame.Visible = _G.Config.Show_Stats
-Instance.new("UICorner", StatsFrame).CornerRadius = UDim.new(0, 6)
-
-local StatsText = Instance.new("TextLabel", StatsFrame)
-StatsText.Size = UDim2.new(1, 0, 1, 0)
-StatsText.BackgroundTransparency = 1
-StatsText.Text = "FPS: 0 | PING: 0ms"
-StatsText.Font = Enum.Font.GothamBold
-StatsText.TextSize = 13
-StatsText.TextColor3 = Color3.new(1,1,1)
-
-local StatsGrad = Instance.new("UIGradient", StatsText)
-StatsGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200))
-})
-
-local FPS_Frames = 0
-RunService.RenderStepped:Connect(function()
-    FPS_Frames = FPS_Frames + 1
-    
-    if LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16
-        end
-    end
-end)
-
-task.spawn(function()
-    while task.wait(1) do
-        local ping = 0
-        pcall(function() ping = math.floor(LocalPlayer:GetNetworkPing() * 1000) end)
-        if ping == 0 then
-            pcall(function() ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) end)
-        end
-        if StatsFrame.Visible then StatsText.Text = string.format("FPS: %d  |  PING: %dms", FPS_Frames, ping) end
-        FPS_Frames = 0
-    end
-end)
-
-local UIGradientList = {}
-local TextGradientList = {}
-local BtnGradientList = {}
-local ToggleButtons = {}
-local AdjustLabels = {}
-
-local function GetRGB() return Color3.fromHSV(tick() % 5 / 5, 1, 1) end
-
-local Palettes = {
-    On = { Color3.fromRGB(0, 240, 255), Color3.fromRGB(130, 100, 255), Color3.fromRGB(255, 150, 255), Color3.fromRGB(0, 240, 255) },
-    Off = { Color3.fromRGB(12, 12, 12), Color3.fromRGB(180, 20, 20), Color3.fromRGB(12, 12, 12) },
-    Text = { Color3.fromRGB(0, 150, 255), Color3.fromRGB(255, 0, 150), Color3.fromRGB(0, 150, 255) },
-    Border = { Color3.fromRGB(255, 0, 0), Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 0, 0) }
-}
-
-local function GetMovingColorSequence(palette, shift)
-    local keypoints = {}
-    for step = 0, 5 do
-        local i = step / 5
-        local t = (i - shift) % 1
-        if t < 0 then t = t + 1 end
-        local segments = #palette - 1
-        local scaled = t * segments
-        local index = math.floor(scaled) + 1
-        local fraction = scaled - (index - 1)
-        local color
-        if index >= #palette then color = palette[#palette] else color = palette[index]:Lerp(palette[index + 1], fraction) end
-        table.insert(keypoints, ColorSequenceKeypoint.new(i, color))
-    end
-    return ColorSequence.new(keypoints)
-end
-
-local function CreateBorder(parent)
-    local stroke = Instance.new("UIStroke", parent) stroke.Thickness = 1.8 stroke.Color = Color3.new(1, 1, 1)
-    local grad = Instance.new("UIGradient", stroke) grad.Rotation = 90 table.insert(UIGradientList, grad)
-end
-
-local function CreateTextGradient(parent)
-    parent.TextColor3 = Color3.new(1, 1, 1) parent.TextStrokeTransparency = 1
-    local txtStroke = Instance.new("UIStroke", parent) txtStroke.Thickness = 0.5 txtStroke.Color = Color3.new(0, 0, 0)
-    local grad = Instance.new("UIGradient", parent) grad.Rotation = 90 table.insert(TextGradientList, grad)
-end
-
-local function ApplyToggleGradient(parent, isOn)
-    local grad = parent:FindFirstChild("ToggleGrad")
-    if not grad then
-        grad = Instance.new("UIGradient", parent) grad.Name = "ToggleGrad" grad.Rotation = 90 table.insert(BtnGradientList, grad)
-    end
-    parent:SetAttribute("IsOn", isOn)
-    local txt = parent:FindFirstChildOfClass("TextLabel")
-    if txt then
-        local txtGrad = txt:FindFirstChildOfClass("UIGradient")
-        if isOn then
-            if txtGrad then 
-                txtGrad.Enabled = true
-                txtGrad.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)) })
-                txtGrad:SetAttribute("CustomOnColor", true) 
-            end
-            txt.TextColor3 = Color3.fromRGB(255, 255, 255) 
-        else
-            if txtGrad then txtGrad.Enabled = true txtGrad:SetAttribute("CustomOnColor", false) end
-            txt.TextColor3 = Color3.fromRGB(255, 255, 255) 
-        end
-    end
-end
-
-local function CreateButtonText(parent, text, font, size)
-    local txt = Instance.new("TextLabel", parent) txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.Text = text txt.Font = font txt.TextSize = size CreateTextGradient(txt) return txt
-end
-
-local function ApplyButtonAnimation(btn)
-    local ts = game:GetService("TweenService")
-    local scale = Instance.new("UIScale", btn) scale.Scale = 1
-    btn.MouseEnter:Connect(function() ts:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.05}):Play() end)
-    btn.MouseLeave:Connect(function() ts:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.0}):Play() end)
-    btn.MouseButton1Down:Connect(function() ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0.9}):Play() end)
-    btn.MouseButton1Up:Connect(function() ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.05}):Play() end)
-end
-
--- LOGIC LẤY TRẠNG THÁI PVP
-local function GetTrueStatus(target)
-    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return false end
-    local char = target.Character
-    local pos = char.HumanoidRootPart.Position
-
-    if char:FindFirstChildOfClass("ForceField") then
-        return false 
-    end
-
-    local safeZones = workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("SafeZones")
-    if safeZones then
-        for _, zone in pairs(safeZones:GetChildren()) do
-            if zone:IsA("Part") or zone:IsA("MeshPart") then
-                local distance = (zone.Position - pos).Magnitude
-                if distance <= (zone.Size.X / 2 + 10) or distance <= (zone.Size.Z / 2 + 10) then
-                    return false
-                end
-            end
-        end
-    end
-
-    if target:GetAttribute("PvpDisabled") == true then
-        return false
-    end
-
-    return true
-end
-
--- ==================== BẮT ĐẦU: THAY THẾ LOGIC DESYNC TỪ DESYNC1 ====================
-local GENV = getgenv()
-GENV.DesyncNormal = GENV.DesyncNormal or false
-GENV.DesyncFast = GENV.DesyncFast or false
-GENV.DesyncFix = GENV.DesyncFix or false
-
-local desyncState = false
-local replicatesignal = getgenv().replicatesignal or function(...) return ... end
-
-local function ToggleDesync(state)
-    pcall(function()
-        if raknet and type(raknet.desync) == "function" then
-             raknet.desync(state)
-        end
-    end)
-end
-
-local NumericFlags = {
-    {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"},
-    {"TimestepArbiterVelocityCriteriaThresholdTwoDt","2147483646"},
-    {"S2PhysicsSenderRate","15000"},
-    {"MaxDataPacketPerSend","2147483647"},
-    {"PhysicsSenderMaxBandwidthBps","20000"},
-    {"CheckPVCachedVelThresholdPercent","10"},
-    {"MaxMissedWorldStepsRemembered","-2147483648"},
-    {"CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth","1"},
-    {"StreamJobNOUVolumeLengthCap","2147483647"},
-    {"DebugSendDistInSteps","-2147483648"},
-    {"GameNetDontSendRedundantNumTimes","1"},
-    {"CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent","1"},
-    {"CheckPVCachedRotVelThresholdPercent","10"},
-    {"ReplicationFocusNouExtentsSizeCutoffForPauseStuds","2147483647"},
-    {"CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth","1"},
-    {"GameNetDontSendRedundantDeltaPositionMillionth","1"},
-    {"InterpolationFrameVelocityThresholdMillionth","5"},
-    {"StreamJobNOUVolumeCap","2147483647"},
-    {"InterpolationFrameRotVelocityThresholdMillionth","5"},
-    {"WorldStepMax","30"},
-    {"TimestepArbiterHumanoidLinearVelThreshold","1"},
-    {"InterpolationFramePositionThresholdMillionth","5"},
-    {"TimestepArbiterHumanoidTurningVelThreshold","1"},
-    {"GameNetPVHeaderLinearVelocityZeroCutoffExponent","-5000"},
-    {"SimOwnedNOUCountThresholdMillionth","2147483647"},
-    {"TimestepArbiterOmegaThou","1073741823"},
-    {"MaxAcceptableUpdateDelay","1"}
-}
-
-local AnimationLib = {}
-
-function AnimationLib.CreateParticleEffect(position, color, duration)
-	local part = Instance.new("Part")
-	part.Size = Vector3.new(2, 2, 2)
-	part.Anchored = true
-	part.CanCollide = false
-	part.Material = Enum.Material.Neon
-	part.Color = color
-	part.CFrame = CFrame.new(position)
-	part.Transparency = 0.3
-	part.Parent = workspace
-
-	local light = Instance.new("PointLight")
-	light.Color = color
-	light.Range = 15
-	light.Brightness = 2
-	light.Parent = part
-
-	local tween = TweenService:Create(part, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = Vector3.new(0.5, 0.5, 0.5),
-		Transparency = 1,
-		CFrame = CFrame.new(position) * CFrame.new(math.random(-5, 5), math.random(5, 10), math.random(-5, 5))
-	})
-	tween:Play()
-	tween.Completed:Connect(function() part:Destroy() end)
-	return part
-end
-
-function AnimationLib.CreateBeam(startPos, endPos, color, duration)
-	local attachment1 = Instance.new("Attachment")
-	attachment1.Position = Vector3.new(0, 0, 0)
-	local attachment2 = Instance.new("Attachment")
-	attachment2.Position = endPos - startPos
-
-	local beam = Instance.new("Beam")
-	beam.Attachment0 = attachment1
-	beam.Attachment1 = attachment2
-	beam.Color = ColorSequence.new(color)
-	beam.Width0 = 0.5
-	beam.Width1 = 0.5
-	beam.FaceCamera = true
-
-	local part = Instance.new("Part")
-	part.Size = Vector3.new(1, 1, 1)
-	part.Anchored = true
-	part.CanCollide = false
-	part.Transparency = 1
-	part.CFrame = CFrame.new(startPos)
-	part.Parent = workspace
-
-	attachment1.Parent = part
-	attachment2.Parent = part
-	beam.Parent = part
-
-	task.delay(duration, function()
-		beam:Destroy()
-		attachment1:Destroy()
-		attachment2:Destroy()
-		part:Destroy()
-	end)
-	return beam
-end
-
-function AnimationLib.DesyncTeleportEffect(position)
-	for i = 1, 8 do
-		task.spawn(function()
-			AnimationLib.CreateParticleEffect(
-				position + Vector3.new(math.random(-3, 3), 0, math.random(-3, 3)),
-				Color3.fromRGB(0, 150, 255),
-				0.8
-			)
-		end)
-		task.wait(0.05)
-	end
-	
-	local wave = Instance.new("Part")
-	wave.Size = Vector3.new(1, 1, 1)
-	wave.Anchored = true
-	wave.CanCollide = false
-	wave.Transparency = 0.7
-	wave.Color = Color3.fromRGB(0, 100, 255)
-	wave.Material = Enum.Material.Neon
-	wave.CFrame = CFrame.new(position)
-	wave.Parent = workspace
-
-	local tween = TweenService:Create(wave, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = Vector3.new(20, 0.1, 20),
-		Transparency = 1
-	})
-	tween:Play()
-	tween.Completed:Connect(function() wave:Destroy() end)
-end
-
-local function FastRespawnUserLogic(plr, isHide)
-    ToggleDesync(true)
-    local char = plr.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local ogpos = hrp.CFrame
-    local ogpos2 = workspace.CurrentCamera.CFrame
-    
-    local hum = char:FindFirstChildWhichIsA("Humanoid")
-    if hum then hum.Health = 0 end
-
+    desyncPart = Instance.new("Part") desyncPart.Name = "DesyncMarker" desyncPart.Anchored = true desyncPart.CanCollide = false desyncPart.Size = Vector3.new(4, 4, 4) desyncPart.Transparency = 0.5 desyncPart.Color = Color3.fromRGB(0, 150, 255) desyncPart.Material = Enum.Material.Neon desyncPart.CFrame = pos desyncPart.Parent = workspace
+    lastSafeCF = pos
+    local bbGui = Instance.new("BillboardGui") bbGui.Size = UDim2.new(10, 0, 4, 0) bbGui.AlwaysOnTop = true bbGui.Adornee = desyncPart bbGui.Parent = desyncPart
+    local frame = Instance.new("Frame") frame.Size = UDim2.new(1, 0, 1, 0) frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) frame.BackgroundTransparency = 0.7 frame.Parent = bbGui Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+    local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.Text = "ARIS DESYNC POINT" txt.TextColor3 = Color3.fromRGB(255, 255, 255) txt.TextScaled = true txt.Font = Enum.Font.GothamBold txt.TextStrokeTransparency = 0.8 txt.Parent = frame
     task.spawn(function()
-        local newChar = plr.CharacterAdded:Wait()
-        local newHrp = newChar:WaitForChild("HumanoidRootPart", 10)
-        if not newHrp then return end
-        
-        if isHide then
-            local vheight = math.random(5000, 9888)
-            newHrp.CFrame = ogpos + Vector3.new(0, vheight, 0)
-            workspace.CurrentCamera.CFrame = ogpos2
-            task.wait(0.5) 
-            newHrp.CFrame = ogpos
-        else
-            newHrp.CFrame = ogpos
-            workspace.CurrentCamera.CFrame = ogpos2
+        while desyncPart and desyncPart.Parent do
+            local t1 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4.5, 4.5, 4.5)}) t1:Play() t1.Completed:Wait()
+            if desyncPart then local t2 = game:GetService("TweenService"):Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4, 4, 4)}) t2:Play() t2.Completed:Wait() end
         end
     end)
-end
-
-local function CustomRespawnFix(plr)
-	local char = plr.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	AnimationLib.DesyncTeleportEffect(hrp.Position)
-
-	local ogpos = hrp.CFrame
-	local ogpos2 = workspace.CurrentCamera.CFrame
-
-    replicatesignal(plr.ConnectDiedSignalBackend)
-    task.wait(Players.RespawnTime - 0.1)
-    replicatesignal(plr.Kill)
-
-	return plr.CharacterAdded:Wait(), ogpos, ogpos2
-end
-
-local function SetNormal(state)
-	GENV.DesyncNormal = state
-    if not state then ToggleDesync(false) end
-end
-
-local function SetFast(state)
-	GENV.DesyncFast = state
-    if not state then ToggleDesync(false) end
-end
-
-local function SetFixV2_Logic(state)
-    GENV.DesyncFix = state
-    ToggleDesync(state)
-    
-    if state then
-        for _, flagData in ipairs(NumericFlags) do
-            pcall(function() setfflag(flagData[1], flagData[2]) end)
-        end
-    end
-end
-
-local desyncPart
-local lastSafeCF = nil
-local lastTeleportCheck = nil
-
-local function CreateDesyncMarker(pos)
-	if desyncPart then desyncPart:Destroy() desyncPart = nil end
-	desyncPart = Instance.new("Part")
-	desyncPart.Name = "DesyncMarker"
-	desyncPart.Anchored = true
-	desyncPart.CanCollide = false
-	desyncPart.Size = Vector3.new(4, 4, 4)
-	desyncPart.Transparency = 0.5
-	desyncPart.Color = Color3.fromRGB(0, 150, 255)
-	desyncPart.Material = Enum.Material.Neon
-	desyncPart.CFrame = pos
-	desyncPart.Parent = workspace
-	lastSafeCF = pos
-
-	local bbGui = Instance.new("BillboardGui")
-	bbGui.Size = UDim2.new(10, 0, 4, 0) 
-	bbGui.AlwaysOnTop = true
-	bbGui.Adornee = desyncPart
-	bbGui.Parent = desyncPart
-
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 1, 0)
-	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	frame.BackgroundTransparency = 0.7
-	frame.Parent = bbGui
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-
-	local txt = Instance.new("TextLabel")
-	txt.Size = UDim2.new(1, 0, 1, 0)
-	txt.BackgroundTransparency = 1
-	txt.Text = "ARIS DESYNC POINT"
-	txt.TextColor3 = Color3.fromRGB(255, 255, 255)
-	txt.TextScaled = true
-	txt.Font = Enum.Font.GothamBold
-	txt.TextStrokeTransparency = 0.8
-	txt.Parent = frame
-
-	task.spawn(function()
-		while desyncPart and desyncPart.Parent do
-			local t1 = TweenService:Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4.5, 4.5, 4.5)})
-			t1:Play() t1.Completed:Wait()
-			if desyncPart then
-				local t2 = TweenService:Create(desyncPart, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = Vector3.new(4, 4, 4)})
-				t2:Play() t2.Completed:Wait()
-			end
-		end
-	end)
-
-	AnimationLib.DesyncTeleportEffect(pos.Position)
-	return desyncPart
+    AnimationLib.DesyncTeleportEffect(pos.Position) return desyncPart
 end
 
 local function UpdateDesyncMarker(pos)
-	if not desyncPart then CreateDesyncMarker(pos) return end
-	if lastTeleportCheck then
-		local delta = (pos.Position - lastTeleportCheck.Position).Magnitude
-        local isTeleport = delta > 1.5 
-		if isTeleport then
-			AnimationLib.DesyncTeleportEffect(desyncPart.Position)
-			AnimationLib.CreateBeam(desyncPart.Position, pos.Position, Color3.fromRGB(0, 150, 255), 0.3)
-			desyncPart.CFrame = pos 
-			lastSafeCF = pos
-		end
-	end
-	lastTeleportCheck = pos
+    if not desyncPart then CreateDesyncMarker(pos) return end
+    if lastTeleportCheck then
+        local delta = (pos.Position - lastTeleportCheck.Position).Magnitude
+        if delta > 1.5 then AnimationLib.DesyncTeleportEffect(desyncPart.Position) AnimationLib.CreateBeam(desyncPart.Position, pos.Position, Color3.fromRGB(0, 150, 255), 0.3) desyncPart.CFrame = pos lastSafeCF = pos end
+    end
+    lastTeleportCheck = pos
 end
 
 local function ForceUpdateMarker(pos)
     if not desyncPart then CreateDesyncMarker(pos) return end
-    AnimationLib.DesyncTeleportEffect(desyncPart.Position)
-    desyncPart.CFrame = pos
-    lastSafeCF = pos
-    lastTeleportCheck = pos
+    AnimationLib.DesyncTeleportEffect(desyncPart.Position) desyncPart.CFrame = pos lastSafeCF = pos lastTeleportCheck = pos
 end
 
 local function HideDesyncMarker()
-	if desyncPart then
-		AnimationLib.DesyncTeleportEffect(desyncPart.Position)
-		desyncPart:Destroy()
-		desyncPart = nil
-		lastSafeCF = nil
-		lastTeleportCheck = nil
-	end
+    if desyncPart then AnimationLib.DesyncTeleportEffect(desyncPart.Position) desyncPart:Destroy() desyncPart = nil lastSafeCF = nil lastTeleportCheck = nil end
 end
 
 LocalPlayer.CharacterAdded:Connect(function(char)
-	local hrp = char:WaitForChild("HumanoidRootPart", 10)
-	if not hrp then return end
+    local hrp = char:WaitForChild("HumanoidRootPart", 10) if not hrp then return end
     task.wait(0.1)
-	if desyncState then
-        if desyncPart then
-		    AnimationLib.CreateBeam(desyncPart.Position, hrp.Position, Color3.fromRGB(0, 150, 255), 0.5)
-        end
-		ForceUpdateMarker(hrp.CFrame)
-	end
+    if desyncState then
+        if desyncPart then AnimationLib.CreateBeam(desyncPart.Position, hrp.Position, Color3.fromRGB(0, 150, 255), 0.5) end
+        ForceUpdateMarker(hrp.CFrame)
+    end
 end)
 
-local function DoHideNormal()
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-    
-	local originalCF = hrp.CFrame
-	local originalCam = workspace.CurrentCamera.CFrame
-    
+local function FastRespawnUserLogic(plr, isHide)
     ToggleDesync(true)
-	AnimationLib.DesyncTeleportEffect(hrp.Position)
-    UpdateDesyncMarker(originalCF)
-	
-	local vheight = math.random(5000, 9888)
-	hrp.CFrame = originalCF + Vector3.new(0, vheight, 0)
-    workspace.CurrentCamera.CFrame = originalCam
-	
-	task.wait(0.5)
-	GENV.DesyncNormal = true
-	hrp.CFrame = originalCF
-	workspace.CurrentCamera.CFrame = originalCam
-    
-	AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3)
-	AnimationLib.DesyncTeleportEffect(originalCF.Position)
+    local char = plr.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local ogpos = hrp.CFrame local ogpos2 = workspace.CurrentCamera.CFrame
+    local hum = char:FindFirstChildWhichIsA("Humanoid") if hum then hum.Health = 0 end
+    task.spawn(function()
+        local newChar = plr.CharacterAdded:Wait()
+        local newHrp = newChar:WaitForChild("HumanoidRootPart", 10) if not newHrp then return end
+        if isHide then local vheight = math.random(5000, 9888) newHrp.CFrame = ogpos + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = ogpos2 else newHrp.CFrame = ogpos workspace.CurrentCamera.CFrame = ogpos2 end
+    end)
+end
+
+local function CustomRespawnFix(plr)
+    local char = plr.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    AnimationLib.DesyncTeleportEffect(hrp.Position)
+    local ogpos = hrp.CFrame local ogpos2 = workspace.CurrentCamera.CFrame
+    replicatesignal(plr.ConnectDiedSignalBackend) task.wait(Players.RespawnTime - 0.1) replicatesignal(plr.Kill)
+    return plr.CharacterAdded:Wait(), ogpos, ogpos2
+end
+
+local function DoHideNormal()
+    local char = LocalPlayer.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local originalCF = hrp.CFrame local originalCam = workspace.CurrentCamera.CFrame
+    local vheight = math.random(5000, 9888) 
+    hrp.CFrame = originalCF + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = originalCam
+    task.wait(0.15) ToggleDesync(true)
+    hrp.CFrame = originalCF workspace.CurrentCamera.CFrame = originalCam
+    UpdateDesyncMarker(originalCF) AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) AnimationLib.DesyncTeleportEffect(originalCF.Position)
 end
 
 local function ActivateDesyncNormal()
-	local char = LocalPlayer.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-    
-	if _G.Config.Desync_HideAuto then 
-        DoHideNormal() 
-    else
-        ToggleDesync(true)
-		GENV.DesyncNormal = true
-		UpdateDesyncMarker(hrp.CFrame)
-		AnimationLib.DesyncTeleportEffect(hrp.Position)
-	end
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    if _G.Config.Desync_HideAuto then DoHideNormal() else ToggleDesync(true) UpdateDesyncMarker(hrp.CFrame) AnimationLib.DesyncTeleportEffect(hrp.Position) end
 end
 
 local function DoFastDesync()
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-    
-    local savedCFrame = hrp.CFrame
-    UpdateDesyncMarker(savedCFrame)
-    FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
-	SetFast(true)
-    
-    local newChar = LocalPlayer.Character
-    if newChar then
-        local newHrp = newChar:WaitForChild("HumanoidRootPart", 5)
-        if newHrp then
-            UpdateDesyncMarker(savedCFrame)
-        end
-    end
+    local char = LocalPlayer.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    local savedCFrame = hrp.CFrame UpdateDesyncMarker(savedCFrame) FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
+    local newChar = LocalPlayer.Character if newChar then local newHrp = newChar:WaitForChild("HumanoidRootPart", 5) if newHrp then UpdateDesyncMarker(savedCFrame) end end
 end
 
 local function DoFixDesync(isHide)
-    local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	SetFixV2_Logic(true)
-	UpdateDesyncMarker(hrp.CFrame)
-	
-	local newChar, originalCF, originalCam = CustomRespawnFix(LocalPlayer)
-	local newHrp = newChar:WaitForChild("HumanoidRootPart")
-	
-	if isHide then
-		local randomY = math.random(8000, 9000)
-		newHrp.CFrame = CFrame.new(newHrp.Position.X, randomY, newHrp.Position.Z)
-		workspace.CurrentCamera.CFrame = newHrp.CFrame
-		task.wait(0.15)
-	end
-	
-	SetFixV2_Logic(true)
-	UpdateDesyncMarker(newHrp.CFrame)
+    local char = LocalPlayer.Character if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+    ToggleDesync(true) 
+    for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+    UpdateDesyncMarker(hrp.CFrame)
+    local newChar, originalCF, originalCam = CustomRespawnFix(LocalPlayer) 
+    local newHrp = newChar:WaitForChild("HumanoidRootPart")
+    if isHide then local randomY = math.random(8000, 9000) newHrp.CFrame = CFrame.new(newHrp.Position.X, randomY, newHrp.Position.Z) workspace.CurrentCamera.CFrame = newHrp.CFrame task.wait(0.15) end
+    UpdateDesyncMarker(newHrp.CFrame)
 end
--- ==================== KẾT THÚC LOGIC DESYNC TỪ DESYNC1 ====================
 
 local function MakeDraggable(f)
     local d=false;local i,s
@@ -1132,7 +577,7 @@ AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
--- ==================== CHỈNH SỬA UI TAB MISC (TEAM CHECK & PVP CHECK) ====================
+-- ==================== CHỈNH SỬA UI TAB MISC ====================
 local dualRowMisc = Instance.new("Frame", ContentFrames["Misc"].Frame)
 dualRowMisc.Size = UDim2.new(1, -16, 0, 36)
 dualRowMisc.BackgroundTransparency = 1
@@ -1166,6 +611,13 @@ pvpCBtn.MouseButton1Click:Connect(function()
     _G.Config.PVPCheck = not _G.Config.PVPCheck
     pvpCTxt.Text = "PVP CHECK: " .. (_G.Config.PVPCheck and "ON" or "OFF")
     ApplyToggleGradient(pvpCBtn, _G.Config.PVPCheck)
+end)
+
+AddToggle("Misc", "WATER WALK", "WaterWalk", function(v)
+    if WaterWalkPart then
+        WaterWalkPart.CanCollide = v
+        WaterWalkPart.Transparency = v and 0.5 or 1
+    end
 end)
 
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
@@ -1267,7 +719,7 @@ end
 createModeBtn("Normal", 0.22, "Normal") createModeBtn("Fast", 0.49, "Fast") createModeBtn("Fix", 0.76, "Fix")
 
 local floatGui = Instance.new("ScreenGui", CoreGui) floatGui.Name = "ArisFloatToggle" floatGui.ResetOnSpawn = false floatGui.DisplayOrder = 1000 floatGui.Enabled = _G.Config.Desync_ShowFloat
-local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
+local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, 230, 255), ColorSequenceKeypoint.new(1, 255, 50, 200) })
 local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 130, 0, 40) floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
 local btnGradient = Instance.new("UIGradient", floatBtn) btnGradient.Color = cyanPinkColors btnGradient.Enabled = false
 local floatStroke = Instance.new("UIStroke", floatBtn) floatStroke.Thickness = 2.5 floatStroke.Color = Color3.fromRGB(255, 255, 255) floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -1285,64 +737,11 @@ RefreshFloatBtn = function()
     if desyncState then floatText.Text = "DeSync : On" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : Off" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
 end
 
-local adminUserId = 4216777620 
-
 floatBtn.MouseButton1Click:Connect(function()
-    local isAdminInServer = false
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p.UserId == adminUserId then
-            isAdminInServer = true
-            break
-        end
-    end
-
-    if isAdminInServer and LocalPlayer.UserId ~= adminUserId then
-        game:GetService("StarterGui"):SetCore("SendNotification", { 
-            Title="SYSTEM ALERT", 
-            Text="Desync creator is here, all desync functions are disabled.", 
-            Duration=5 
-        })
-        return
-    end
-
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
     desyncState = not desyncState RefreshFloatBtn()
     local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
-    if desyncState then 
-        if _G.Config.Desync_Mode == "Fix" then 
-            DoFixDesync(_G.Config.Desync_HideAuto) 
-        elseif _G.Config.Desync_Mode == "Fast" then 
-            DoFastDesync() 
-        else 
-            ActivateDesyncNormal() 
-        end 
-    else 
-        SetFast(false) 
-        SetNormal(false) 
-        SetFixV2_Logic(false)
-        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end 
-        HideDesyncMarker() 
-    end
-end)
-
-Players.PlayerAdded:Connect(function(player)
-    if player.UserId == adminUserId and LocalPlayer.UserId ~= adminUserId then
-        if desyncState then
-            desyncState = false 
-            RefreshFloatBtn()
-            SetFast(false) 
-            SetNormal(false) 
-            SetFixV2_Logic(false) 
-            for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
-            HideDesyncMarker()
-            
-            game:GetService("StarterGui"):SetCore("SendNotification", { 
-                Title="SYSTEM ALERT", 
-                Text="Desync creator is here, all desync functions are disabled.", 
-                Duration=5 
-            })
-        end
-    end
+    if desyncState then if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() else ActivateDesyncNormal() end else ToggleDesync(false) for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end HideDesyncMarker() end
 end)
 
 AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
@@ -1967,6 +1366,13 @@ task.spawn(function()
 end)
 
 RunService.Heartbeat:Connect(function(dt)
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+    -- CẬP NHẬT TỌA ĐỘ WATER WALK THEO BƯỚC CHÂN NGƯỜI CHƠI ĐỂ KHÔNG BAO GIỜ TRƯỢT MẶT PHẲNG
+    if _G.Config.WaterWalk and myRoot and WaterWalkPart then
+        WaterWalkPart.CFrame = CFrame.new(myRoot.Position.X, 5, myRoot.Position.Z)
+    end
+
     if _G.Config.SafeMode and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
         local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1975,9 +1381,12 @@ RunService.Heartbeat:Connect(function(dt)
             
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, 100000, 0)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
+                
+                -- DỊCH CHUYỂN NGAY LẬP TỨC LÊN TỌA ĐỘ Y = 100,000 (100km)
+                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
+                hrp.AssemblyLinearVelocity = Vector3.new(0,0,0) -- Ép gia tốc bằng 0 để tránh game kéo ngược lại
             end
             
             if _G.IsFleeing then
@@ -1985,7 +1394,9 @@ RunService.Heartbeat:Connect(function(dt)
                 if not noclipConnection then toggleNoclip(true) end
                 
                 if hpPct < 0.55 then
-                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 10000 * dt, 0)
+                    -- TIẾP TỤC BAY LÊN CAO HƠN NỮA
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 5000 * dt, 0)
+                    hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
                 else
                     _G.IsFleeing = false
                     _G.IsReturning = true
@@ -2008,8 +1419,6 @@ RunService.Heartbeat:Connect(function(dt)
         _G.IsReturning = false
     end
 
-    -- LOGIC AUTO DROP (Ép rơi nếu kẹt trên cao)
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if myRoot then
         if _G.Config.AutoDrop and not _G.Config.SafeMode then
             if myRoot.Position.Y > 40000 and not _G.IsFleeing and not _G.IsReturning then
