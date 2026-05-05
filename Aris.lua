@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Fast Attack BF, TP Y>30k, Anti-Teleport!",
+    Text="CẬP NHẬT: Trả Fast Attack gốc, thêm nút 75K!",
     Duration=8
 })
 
@@ -235,9 +235,6 @@ local function GetTrueStatus(target)
     return true
 end
 
--- ==========================================
--- LOGIC DESYNC TỪ BẢN ARIS SPECIAL
--- ==========================================
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 local function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
@@ -436,7 +433,8 @@ local function CheckAdmin()
     for _, p in ipairs(Players:GetPlayers()) do if p.UserId == adminUserId then return true end end
     return false
 end
--- ==========================================
+
+local currentTween = nil local currentTarget = nil local noclipConnection = nil 
 
 local function MakeDraggable(f)
     local d=false;local i,s
@@ -496,9 +494,27 @@ SafeBtn.MouseButton1Click:Connect(function()
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Bay 100km khi HP <35%!" or "Đã TẮT!", Duration=3 })
 end)
 
+local Btn75K = Instance.new("TextButton",MainFrame)
+Btn75K.Size = UDim2.new(0,45,0,32)
+Btn75K.Position = UDim2.new(1,-105,0,7)
+Btn75K.Text = ""
+Btn75K.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",Btn75K).CornerRadius = UDim.new(0,16)
+ApplyToggleGradient(Btn75K, false) CreateBorder(Btn75K) CreateButtonText(Btn75K, "75K", Enum.Font.GothamBold, 11) ApplyButtonAnimation(Btn75K)
+
+Btn75K.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        if currentTween then currentTween:Cancel() end
+        hrp.CFrame = CFrame.new(hrp.Position.X, 75000, hrp.Position.Z)
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="TELEPORT", Text="Bay thẳng lên Y: 75,000!", Duration=3 })
+    end
+end)
+
 local DropBtn = Instance.new("TextButton",MainFrame)
 DropBtn.Size = UDim2.new(0,45,0,32)
-DropBtn.Position = UDim2.new(1,-105,0,7)
+DropBtn.Position = UDim2.new(1,-155,0,7)
 DropBtn.Text = ""
 DropBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner",DropBtn).CornerRadius = UDim.new(0,16)
@@ -511,7 +527,7 @@ DropBtn.MouseButton1Click:Connect(function()
 end)
 
 local Title = Instance.new("TextLabel",MainFrame)
-Title.Size = UDim2.new(1,-120,0,45)
+Title.Size = UDim2.new(1,-215,0,45)
 Title.Position = UDim2.new(0,60,0,0)
 Title.Text = "ARIS HUB V1.0"
 Title.Font = Enum.Font.GothamBlack
@@ -661,7 +677,7 @@ end)
 
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-AddToggle("Misc","FAST M1 (BLOXFRUITS)","FastM1")
+AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1")
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
@@ -835,8 +851,6 @@ local function CleanupNPC(m)
 end
 
 Workspace.DescendantRemoving:Connect(function(descendant) if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end end)
-
-local currentTween = nil local currentTarget = nil local noclipConnection = nil 
 
 local function toggleNoclip(active)
     if active then 
@@ -1410,22 +1424,29 @@ UserInputService.InputChanged:Connect(function(input) if draggingPred and (input
 
 task.spawn(function()
     local RunService = game:GetService("RunService")
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-
     while true do
         RunService.Heartbeat:Wait() 
         if _G.Config.FastM1 then
             pcall(function()
-                local CombatFramework = require(LocalPlayer.PlayerScripts:WaitForChild("CombatFramework"))
-                local activeController = CombatFramework.activeController
+                local char = LocalPlayer.Character
+                if not char then return end
                 
-                if activeController then
-                    activeController.timeToNextAttack = 0
-                    activeController.timeToNextBlock = 0
-                    activeController.hitboxMagnitude = 60
-                    activeController.increment = 3 
-                    activeController:attack()
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then
+                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
+                    
+                    if remote then
+                        local direction = Vector3.new(0, -0.9, 0.03)
+                        for i = 1, 3 do
+                            if remote:IsA("RemoteEvent") then
+                                remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
+                            elseif remote:IsA("RemoteFunction") then
+                                task.spawn(function()
+                                    remote:InvokeServer()
+                                end)
+                            end
+                        end
+                    end
                 end
             end)
         end
