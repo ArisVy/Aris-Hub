@@ -9,8 +9,8 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V53 PRO + DESYNC + TP",
-    Text="Cáº¬P NHáº¬T: WaterWalk, Chá»‘ng Ä‘uá»‘i nÆ°á»›c & Drop an toÃ n!",
+    Title="ARIS HUB V1.0 + DESYNC + TP",
+    Text="CẬP NHẬT: Bay ổn định, Anti-Teleport & Fix Desync!",
     Duration=8
 })
 
@@ -54,8 +54,7 @@ _G.Config={
     SelectedTargetPlayer = nil,
     SelectedTargetNPC = nil,
     SafeMode = false,
-    AutoDrop = false,
-    WaterWalk = false
+    AutoDrop = false
 }
 
 _G.WalkSpeed = 90
@@ -63,19 +62,6 @@ _G.WalkSpeedEnabled = false
 _G.IsFleeing = false
 _G.IsReturning = false
 _G.IsForcedDropping = false
-
--- Táº O Máº¶T PHáº²NG WATERWALK
-local WaterWalkPart = Instance.new("Part")
-WaterWalkPart.Name = "ArisWaterWalk"
-WaterWalkPart.Size = Vector3.new(100000, 2, 100000) -- BÃ¡n kÃ­nh 50km
-WaterWalkPart.Position = Vector3.new(0, 5, 0) -- Äá»™ dÃ y Y=4->6
-WaterWalkPart.Anchored = true
-WaterWalkPart.CanCollide = false
-WaterWalkPart.CastShadow = false -- Chá»‘ng giáº­t lag
-WaterWalkPart.Transparency = 1 -- Máº·c Ä‘á»‹nh tÃ ng hÃ¬nh
-WaterWalkPart.Color = Color3.fromRGB(173, 216, 230) -- MÃ u xanh dÆ°Æ¡ng nháº¹
-WaterWalkPart.Material = Enum.Material.SmoothPlastic
-WaterWalkPart.Parent = workspace
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
@@ -221,7 +207,6 @@ local function ApplyButtonAnimation(btn)
     btn.MouseButton1Up:Connect(function() ts:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.05}):Play() end)
 end
 
--- LOGIC Láº¤Y TRáº NG THÃI PVP
 local function GetTrueStatus(target)
     if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return false end
     local char = target.Character
@@ -250,15 +235,41 @@ local function GetTrueStatus(target)
     return true
 end
 
+-- ==========================================
+-- LOGIC DESYNC TỪ BẢN ARIS SPECIAL
+-- ==========================================
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 local function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
 
 local NumericFlags = {
-    {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"}, {"TimestepArbiterVelocityCriteriaThresholdTwoDt","2147483646"},
-    {"S2PhysicsSenderRate","15000"}, {"MaxDataPacketPerSend","2147483647"}, {"PhysicsSenderMaxBandwidthBps","20000"},
-    {"CheckPVCachedVelThresholdPercent","10"}, {"MaxMissedWorldStepsRemembered","-2147483648"}, {"StreamJobNOUVolumeLengthCap","2147483647"},
-    {"WorldStepMax","30"}, {"MaxAcceptableUpdateDelay","1"}
+    {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"},
+    {"TimestepArbiterVelocityCriteriaThresholdTwoDt","2147483646"},
+    {"S2PhysicsSenderRate","15000"},
+    {"MaxDataPacketPerSend","2147483647"},
+    {"PhysicsSenderMaxBandwidthBps","20000"},
+    {"CheckPVCachedVelThresholdPercent","10"},
+    {"MaxMissedWorldStepsRemembered","-2147483648"},
+    {"CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth","1"},
+    {"StreamJobNOUVolumeLengthCap","2147483647"},
+    {"DebugSendDistInSteps","-2147483648"},
+    {"GameNetDontSendRedundantNumTimes","1"},
+    {"CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent","1"},
+    {"CheckPVCachedRotVelThresholdPercent","10"},
+    {"ReplicationFocusNouExtentsSizeCutoffForPauseStuds","2147483647"},
+    {"CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth","1"},
+    {"GameNetDontSendRedundantDeltaPositionMillionth","1"},
+    {"InterpolationFrameVelocityThresholdMillionth","5"},
+    {"StreamJobNOUVolumeCap","2147483647"},
+    {"InterpolationFrameRotVelocityThresholdMillionth","5"},
+    {"WorldStepMax","30"},
+    {"TimestepArbiterHumanoidLinearVelThreshold","1"},
+    {"InterpolationFramePositionThresholdMillionth","5"},
+    {"TimestepArbiterHumanoidTurningVelThreshold","1"},
+    {"GameNetPVHeaderLinearVelocityZeroCutoffExponent","-5000"},
+    {"SimOwnedNOUCountThresholdMillionth","2147483647"},
+    {"TimestepArbiterOmegaThou","1073741823"},
+    {"MaxAcceptableUpdateDelay","1"}
 }
 
 local AnimationLib = {}
@@ -307,7 +318,13 @@ local function UpdateDesyncMarker(pos)
     if not desyncPart then CreateDesyncMarker(pos) return end
     if lastTeleportCheck then
         local delta = (pos.Position - lastTeleportCheck.Position).Magnitude
-        if delta > 1.5 then AnimationLib.DesyncTeleportEffect(desyncPart.Position) AnimationLib.CreateBeam(desyncPart.Position, pos.Position, Color3.fromRGB(0, 150, 255), 0.3) desyncPart.CFrame = pos lastSafeCF = pos end
+        local isTeleport = delta > 1.5
+        if isTeleport then 
+            AnimationLib.DesyncTeleportEffect(desyncPart.Position) 
+            AnimationLib.CreateBeam(desyncPart.Position, pos.Position, Color3.fromRGB(0, 150, 255), 0.3) 
+            desyncPart.CFrame = pos 
+            lastSafeCF = pos 
+        end
     end
     lastTeleportCheck = pos
 end
@@ -339,7 +356,16 @@ local function FastRespawnUserLogic(plr, isHide)
     task.spawn(function()
         local newChar = plr.CharacterAdded:Wait()
         local newHrp = newChar:WaitForChild("HumanoidRootPart", 10) if not newHrp then return end
-        if isHide then local vheight = math.random(5000, 9888) newHrp.CFrame = ogpos + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = ogpos2 else newHrp.CFrame = ogpos workspace.CurrentCamera.CFrame = ogpos2 end
+        if isHide then 
+            local vheight = math.random(5000, 9888) 
+            newHrp.CFrame = ogpos + Vector3.new(0, vheight, 0) 
+            workspace.CurrentCamera.CFrame = ogpos2 
+            task.wait(0.5)
+            newHrp.CFrame = ogpos
+        else 
+            newHrp.CFrame = ogpos 
+            workspace.CurrentCamera.CFrame = ogpos2 
+        end
     end)
 end
 
@@ -348,7 +374,10 @@ local function CustomRespawnFix(plr)
     local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     AnimationLib.DesyncTeleportEffect(hrp.Position)
     local ogpos = hrp.CFrame local ogpos2 = workspace.CurrentCamera.CFrame
-    replicatesignal(plr.ConnectDiedSignalBackend) task.wait(Players.RespawnTime - 0.1) replicatesignal(plr.Kill)
+    local replicatesig = getgenv().replicatesignal or function() end
+    replicatesig(plr.ConnectDiedSignalBackend) 
+    task.wait(Players.RespawnTime - 0.1) 
+    replicatesig(plr.Kill)
     return plr.CharacterAdded:Wait(), ogpos, ogpos2
 end
 
@@ -356,23 +385,37 @@ local function DoHideNormal()
     local char = LocalPlayer.Character if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     local originalCF = hrp.CFrame local originalCam = workspace.CurrentCamera.CFrame
+    
+    ToggleDesync(true)
+    AnimationLib.DesyncTeleportEffect(hrp.Position)
+    UpdateDesyncMarker(originalCF)
+    
     local vheight = math.random(5000, 9888) 
-    hrp.CFrame = originalCF + Vector3.new(0, vheight, 0) workspace.CurrentCamera.CFrame = originalCam
-    task.wait(0.15) ToggleDesync(true)
-    hrp.CFrame = originalCF workspace.CurrentCamera.CFrame = originalCam
-    UpdateDesyncMarker(originalCF) AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) AnimationLib.DesyncTeleportEffect(originalCF.Position)
+    hrp.CFrame = originalCF + Vector3.new(0, vheight, 0) 
+    workspace.CurrentCamera.CFrame = originalCam
+    task.wait(0.5) 
+    
+    hrp.CFrame = originalCF 
+    workspace.CurrentCamera.CFrame = originalCam
+    AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) 
+    AnimationLib.DesyncTeleportEffect(originalCF.Position)
 end
 
 local function ActivateDesyncNormal()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart") if not hrp then return end
-    if _G.Config.Desync_HideAuto then DoHideNormal() else ToggleDesync(true) UpdateDesyncMarker(hrp.CFrame) AnimationLib.DesyncTeleportEffect(hrp.Position) end
+    if _G.Config.Desync_HideAuto then DoHideNormal() else 
+        ToggleDesync(true) 
+        UpdateDesyncMarker(hrp.CFrame) 
+        AnimationLib.DesyncTeleportEffect(hrp.Position) 
+    end
 end
 
 local function DoFastDesync()
     local char = LocalPlayer.Character if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
-    local savedCFrame = hrp.CFrame UpdateDesyncMarker(savedCFrame) FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
+    local savedCFrame = hrp.CFrame UpdateDesyncMarker(savedCFrame) 
+    FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
     local newChar = LocalPlayer.Character if newChar then local newHrp = newChar:WaitForChild("HumanoidRootPart", 5) if newHrp then UpdateDesyncMarker(savedCFrame) end end
 end
 
@@ -387,6 +430,13 @@ local function DoFixDesync(isHide)
     if isHide then local randomY = math.random(8000, 9000) newHrp.CFrame = CFrame.new(newHrp.Position.X, randomY, newHrp.Position.Z) workspace.CurrentCamera.CFrame = newHrp.CFrame task.wait(0.15) end
     UpdateDesyncMarker(newHrp.CFrame)
 end
+
+local adminUserId = 4216777620
+local function CheckAdmin()
+    for _, p in ipairs(Players:GetPlayers()) do if p.UserId == adminUserId then return true end end
+    return false
+end
+-- ==========================================
 
 local function MakeDraggable(f)
     local d=false;local i,s
@@ -417,7 +467,6 @@ MainFrame.Visible = false
 Instance.new("UICorner",MainFrame).CornerRadius = UDim.new(0,20)
 CreateBorder(MainFrame)
 
--- ==================== NÃšT RESET, SAFE & DROP ====================
 local ResetBtn = Instance.new("TextButton",MainFrame)
 ResetBtn.Size = UDim2.new(0,36,0,32)
 ResetBtn.Position = UDim2.new(0,12,0,7)
@@ -444,7 +493,7 @@ ApplyToggleGradient(SafeBtn, _G.Config.SafeMode) CreateBorder(SafeBtn) CreateBut
 SafeBtn.MouseButton1Click:Connect(function()
     _G.Config.SafeMode = not _G.Config.SafeMode
     ApplyToggleGradient(SafeBtn, _G.Config.SafeMode)
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "Báº¬T: Bay 100km khi HP <35%!" or "ÄÃ£ Táº®T!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Bay 100km khi HP <35%!" or "Đã TẮT!", Duration=3 })
 end)
 
 local DropBtn = Instance.new("TextButton",MainFrame)
@@ -458,13 +507,13 @@ ApplyToggleGradient(DropBtn, _G.Config.AutoDrop) CreateBorder(DropBtn) CreateBut
 DropBtn.MouseButton1Click:Connect(function()
     _G.Config.AutoDrop = not _G.Config.AutoDrop
     ApplyToggleGradient(DropBtn, _G.Config.AutoDrop)
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="DROP MODE", Text=_G.Config.AutoDrop and "Báº¬T: Ã‰p rá»›t xuá»‘ng khi káº¹t trÃªn trá»i (SAFE Táº®T)!" or "ÄÃ£ Táº®T!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="DROP MODE", Text=_G.Config.AutoDrop and "BẬT: Ép rớt xuống khi kẹt trên trời (SAFE TẮT)!" or "Đã TẮT!", Duration=3 })
 end)
 
 local Title = Instance.new("TextLabel",MainFrame)
 Title.Size = UDim2.new(1,-120,0,45)
 Title.Position = UDim2.new(0,60,0,0)
-Title.Text = "ARIS HUB V53 PRO"
+Title.Text = "ARIS HUB V1.0"
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 20
 Title.BackgroundTransparency = 1
@@ -524,7 +573,6 @@ local function AddAdjust(tab,name,key,step,minV,maxV,cb)
     plus.MouseButton1Click:Connect(function() _G.Config[key] = math.clamp(_G.Config[key]+step, minVal, maxVal) for _, lblData in ipairs(AdjustLabels[key]) do lblData.Label.Text = lblData.Name..": ".._G.Config[key] end if cb then cb() end end)
 end
 
--- ==================== CHá»ˆNH Sá»¬A UI TAB ESP (GRID 2 Cá»˜T) ====================
 local espTab = ContentFrames["ESP"].Frame
 local espGrid = Instance.new("Frame", espTab)
 espGrid.Size = UDim2.new(1, -16, 0, 0)
@@ -562,7 +610,6 @@ AddGridToggle(espGrid, "BOX 2D", "ESP_Box_P")
 AddGridToggle(espGrid, "CHAMS", "ESP_Chams_P")
 AddGridToggle(espGrid, "PVP ESP", "ESP_PVP") 
 
--- ==================== CÃC TAB KHÃC ====================
 local function AddToggle(tab,name,key,cb)
     local content = ContentFrames[tab].Frame
     local btn = Instance.new("TextButton",content) btn.Size = UDim2.new(1,-16,0,36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,20)
@@ -577,7 +624,6 @@ AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
--- ==================== CHá»ˆNH Sá»¬A UI TAB MISC (TEAM CHECK & PVP CHECK) ====================
 local dualRowMisc = Instance.new("Frame", ContentFrames["Misc"].Frame)
 dualRowMisc.Size = UDim2.new(1, -16, 0, 36)
 dualRowMisc.BackgroundTransparency = 1
@@ -613,18 +659,10 @@ pvpCBtn.MouseButton1Click:Connect(function()
     ApplyToggleGradient(pvpCBtn, _G.Config.PVPCheck)
 end)
 
-AddToggle("Misc", "WATER WALK", "WaterWalk", function(v)
-    if WaterWalkPart then
-        WaterWalkPart.CanCollide = v
-        WaterWalkPart.Transparency = v and 0.5 or 1
-    end
-end)
-
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
-AddToggle("Misc","HIá»†N FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
+AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
 AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1")
 
--- ==================== WALKSPEED ====================
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
 WSContainer.Size = UDim2.new(1, 0, 0, 115) 
@@ -709,7 +747,7 @@ local function createModeBtn(text, posScale, modeStr)
     local btn = Instance.new("TextButton", ModeFrame) btn.Size = UDim2.new(0.25, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16) CreateBorder(btn) local txt = CreateButtonText(btn, text, Enum.Font.GothamBold, 12) ApplyButtonAnimation(btn)
     local function UpdateState() ApplyToggleGradient(btn, _G.Config.Desync_Mode == modeStr) end UpdateState()
     btn.MouseButton1Click:Connect(function()
-        if desyncState then game:GetService("StarterGui"):SetCore("SendNotification",{ Title="Cáº¢NH BÃO", Text="Vui lÃ²ng Táº®T Desync trÆ°á»›c khi Ä‘á»•i cháº¿ Ä‘á»™!", Duration=2 }) return end
+        if desyncState then game:GetService("StarterGui"):SetCore("SendNotification",{ Title="CẢNH BÁO", Text="Vui lòng TẮT Desync trước khi đổi chế độ!", Duration=2 }) return end
         _G.Config.Desync_Mode = modeStr
         for _, child in ipairs(ModeFrame:GetChildren()) do if child:IsA("TextButton") then ApplyToggleGradient(child, child:GetAttribute("ModeStr") == _G.Config.Desync_Mode) end end
         if RefreshFloatBtn then RefreshFloatBtn() end
@@ -731,23 +769,29 @@ local function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Des
 
 RefreshFloatBtn = function()
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
-        floatText.Text = "N/A âš ï¸" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
+        floatText.Text = "N/A ⚠️" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
     end
     strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
     if desyncState then floatText.Text = "DeSync : On" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : Off" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
 end
 
 floatBtn.MouseButton1Click:Connect(function()
+    local isAdminInServer = CheckAdmin()
+    if isAdminInServer and LocalPlayer.UserId ~= adminUserId then
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="SYSTEM ALERT", Text="Desync creator is here, all desync functions are disabled.", Duration=5 })
+        return
+    end
+
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
     desyncState = not desyncState RefreshFloatBtn()
     local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
     if desyncState then if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() else ActivateDesyncNormal() end else ToggleDesync(false) for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end HideDesyncMarker() end
 end)
 
-AddToggle("Desync", "GHOST MODE (ðŸ‘»)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
-AddToggle("Desync", "HIá»†N NÃšT DESYNC Ná»”I", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
-AddAdjust("Desync", "Tá»ŒA Äá»˜ X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
-AddAdjust("Desync", "Tá»ŒA Äá»˜ Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
+AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddToggle("Desync", "HIỆN NÚT DESYNC NỔI", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
+AddAdjust("Desync", "TỌA ĐỘ X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
+AddAdjust("Desync", "TỌA ĐỘ Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
 
 local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
 
@@ -816,6 +860,9 @@ local function toggleNoclip(active)
 end
 
 local isFarming = false
+local lastTargetPos = nil
+local currentTargetId = nil
+
 local function doMagnetLoop()
     if isFarming then return end isFarming = true
     task.spawn(function()
@@ -922,27 +969,57 @@ local function doMagnetLoop()
                 
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
-                    local targetPos = currentTarget.CFrame * CFrame.new(0, _G.Config.TP_Height, 0)
-                    if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then local vel = currentTarget.AssemblyLinearVelocity targetPos = targetPos + (vel * _G.Config.Prediction) end
                     
-                    -- LOGIC Cáº¤T CÃNH CAO CHá»NG CHÃŒM NÆ¯á»šC KHI TP
+                    if currentTarget ~= currentTargetId then
+                        lastTargetPos = currentTarget.Position
+                        currentTargetId = currentTarget
+                    end
+
+                    -- Bắt buộc CFrame.new theo Position thuần để thẳng đứng 100% (không chéo theo góc target)
+                    local targetPos = CFrame.new(currentTarget.Position + Vector3.new(0, _G.Config.TP_Height, 0))
+                    
+                    if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then 
+                        local vel = currentTarget.AssemblyLinearVelocity 
+                        targetPos = targetPos + (vel * _G.Config.Prediction) 
+                    end
+                    
+                    local currentTargetPos = currentTarget.Position
+                    local targetTeleported = lastTargetPos and (currentTargetPos - lastTargetPos).Magnitude > 80
+
+                    -- Cất cánh bay cao chống chìm
                     local flatDist = Vector2.new(myRoot.Position.X - targetPos.Position.X, myRoot.Position.Z - targetPos.Position.Z).Magnitude
-                    if flatDist > 150 then
+                    if flatDist > 150 and not targetTeleported then
                         targetPos = CFrame.new(targetPos.Position.X, math.max(targetPos.Position.Y + 300, myRoot.Position.Y + 100), targetPos.Position.Z)
                     end
 
-                    local dist = (myRoot.Position - targetPos.Position).Magnitude
-                    if dist <= 100 then if currentTween then currentTween:Cancel() end myRoot.CFrame = targetPos else
-                        local duration = dist / _G.Config.TP_Speed if duration < 0.05 then duration = 0.05 end currentTween = TweenService:Create(myRoot, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetPos}) currentTween:Play()
+                    -- Hủy Tween TP thẳng nếu đối tượng xài Teleport hoặc Dash
+                    if targetTeleported then
+                        if currentTween then currentTween:Cancel() end
+                        myRoot.CFrame = targetPos
+                    else
+                        local dist = (myRoot.Position - targetPos.Position).Magnitude
+                        if dist <= 100 then 
+                            if currentTween then currentTween:Cancel() end 
+                            myRoot.CFrame = targetPos 
+                        else
+                            local duration = dist / _G.Config.TP_Speed 
+                            if duration < 0.05 then duration = 0.05 end 
+                            currentTween = TweenService:Create(myRoot, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetPos}) 
+                            currentTween:Play()
+                        end
                     end
-                else if noclipConnection then toggleNoclip(false) end end
+                    lastTargetPos = currentTargetPos
+                else 
+                    lastTargetPos = nil
+                    currentTargetId = nil
+                    if noclipConnection then toggleNoclip(false) end 
+                end
             end task.wait(0.1)
         end
         if noclipConnection then toggleNoclip(false) end isFarming = false
     end)
 end
 
--- ==================== CHá»ˆNH Sá»¬A UI TAB TP NPC ====================
 local tpNPCTab = ContentFrames["TP NPC"].Frame
 local dualRowNPC = Instance.new("Frame", tpNPCTab)
 dualRowNPC.Size = UDim2.new(1, -16, 0, 36)
@@ -954,23 +1031,23 @@ tpSelNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
 CreateBorder(tpSelNPCBtn)
-local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "ðŸŽ¯ Báº¬T TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "🎯 BẬT TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelNPCBtn)
-ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "ðŸŽ¯ Báº¬T TP"}
+ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "🎯 BẬT TP"}
 
 tpSelNPCBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_NPC = not _G.Config.TP_NPC
     ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
-    tpSelNPCTxt.Text = "ðŸŽ¯ Báº¬T TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
+    tpSelNPCTxt.Text = "🎯 BẬT TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
     if _G.Config.TP_NPC then
         _G.Config.TP_Player = false
         local b = ToggleButtons["TP_Player"]
-        if b then b.Txt.Text = "ðŸŽ¯ Báº¬T TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "🎯 BẬT TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipNPC = {}
         if not _G.Config.TP_NPC then currentTarget = nil if currentTween then currentTween:Cancel() end end
-        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="ÄÃ£ xÃ³a danh sÃ¡ch NPC bá»‹ bá» qua!", Duration=3 })
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Đã xóa danh sách NPC bị bỏ qua!", Duration=3 })
     end
 end)
 
@@ -981,7 +1058,7 @@ skipNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipNPCBtn, false)
 CreateBorder(skipNPCBtn)
-CreateButtonText(skipNPCBtn, "â­ï¸ SKIP NPC", Enum.Font.GothamBold, 11)
+CreateButtonText(skipNPCBtn, "⏭️ SKIP NPC", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipNPCBtn)
 
 skipNPCBtn.MouseButton1Click:Connect(function()
@@ -989,12 +1066,12 @@ skipNPCBtn.MouseButton1Click:Connect(function()
         TempSkipNPC[currentTarget.Parent] = true 
         currentTarget = nil 
         if currentTween then currentTween:Cancel() end 
-        game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP NPC", Text="ÄÃ£ táº¡m thá»i bá» qua NPC nÃ y!", Duration=3 }) 
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP NPC", Text="Đã tạm thời bỏ qua NPC này!", Duration=3 }) 
     end
 end)
 
-AddAdjust("TP NPC", "Äá»˜ CAO (Y)", "TP_Height", 5) 
-AddAdjust("TP NPC", "Tá»C Äá»˜ BAY", "TP_Speed", 50)
+AddAdjust("TP NPC", "ĐỘ CAO (Y)", "TP_Height", 5) 
+AddAdjust("TP NPC", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
 local speed1kNPCFrame = Instance.new("Frame", tpNPCTab)
 speed1kNPCFrame.Size = UDim2.new(1, -16, 0, 36)
@@ -1044,7 +1121,7 @@ end)
 local SelectedNPCLabel = Instance.new("TextLabel", tpNPCTab)
 SelectedNPCLabel.Size = UDim2.new(1, -16, 0, 25)
 SelectedNPCLabel.BackgroundTransparency = 1
-SelectedNPCLabel.Text = "Äang chá»n: Tá»± Ä‘á»™ng (Gáº§n nháº¥t)"
+SelectedNPCLabel.Text = "Đang chọn: Tự động (Gần nhất)"
 SelectedNPCLabel.Font = Enum.Font.GothamBold
 SelectedNPCLabel.TextSize = 13
 CreateTextGradient(SelectedNPCLabel)
@@ -1060,7 +1137,7 @@ nListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     NPCListContainer.Size = UDim2.new(1, -16, 0, nListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP NPC", "ðŸ”„ LÃ€M Má»šI DANH SÃCH NPC", function()
+AddButton("TP NPC", "🔄 LÀM MỚI DANH SÁCH NPC", function()
     for _, child in ipairs(NPCListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1073,12 +1150,12 @@ AddButton("TP NPC", "ðŸ”„ LÃ€M Má»šI DANH SÃCH NPC", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetNPC == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Tá»± Ä‘á»™ng", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Tự động", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
         _G.Config.SelectedTargetNPC = nil
-        SelectedNPCLabel.Text = "Äang chá»n: Tá»± Ä‘á»™ng (Gáº§n nháº¥t)"
+        SelectedNPCLabel.Text = "Đang chọn: Tự động (Gần nhất)"
         for _, child in ipairs(NPCListContainer:GetChildren()) do
             if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
         end
@@ -1102,13 +1179,13 @@ AddButton("TP NPC", "ðŸ”„ LÃ€M Má»šI DANH SÃCH NPC", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "ðŸ‘¹ " .. npcName, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "👹 " .. npcName, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
         btn.MouseButton1Click:Connect(function()
             _G.Config.SelectedTargetNPC = npcName
-            SelectedNPCLabel.Text = "Äang chá»n: " .. npcName
+            SelectedNPCLabel.Text = "Đang chọn: " .. npcName
             for _, child in ipairs(NPCListContainer:GetChildren()) do
                 if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
             end
@@ -1116,7 +1193,7 @@ AddButton("TP NPC", "ðŸ”„ LÃ€M Má»šI DANH SÃCH NPC", function()
             txt.TextColor3 = Color3.fromRGB(0,0,0)
         end)
     end
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÃ€M Má»šI DANH SÃCH", Text="ÄÃ£ táº£i " .. count .. " loáº¡i NPC!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " loại NPC!", Duration=3 })
 end)
 
 local BlacklistContainer = Instance.new("Frame", tpNPCTab) 
@@ -1127,7 +1204,7 @@ blLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
 blLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
 blLayout.SortOrder = Enum.SortOrder.LayoutOrder
 blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
-AddButton("TP NPC", "ðŸ”„ LÃ€M Má»šI BLACKLIST (1KM)", function()
+AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
     for _, child in ipairs(BlacklistContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end
     local foundNPCs = {} for npc, _ in pairs(CachedNPCs) do if npc and npc.Parent then local root = npc:FindFirstChild("HumanoidRootPart") if root and (root.Position - myRoot.Position).Magnitude <= 1000 then foundNPCs[npc.Name] = true end end end
@@ -1135,14 +1212,12 @@ AddButton("TP NPC", "ðŸ”„ LÃ€M Má»šI BLACKLIST (1KM)", function()
     for npcName, _ in pairs(foundNPCs) do
         count = count + 1 local btn = Instance.new("TextButton", BlacklistContainer) btn.Size = UDim2.new(1, 0, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
         local isBlacklisted = _G.Config.BlacklistedNPCs[npcName] or false ApplyToggleGradient(btn, isBlacklisted) CreateBorder(btn)
-        local txt = CreateButtonText(btn, "ðŸš« BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
+        local txt = CreateButtonText(btn, "🚫 BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
         btn.MouseButton1Click:Connect(function() _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName] local state = _G.Config.BlacklistedNPCs[npcName] ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1) end)
     end
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="TÃŒM KIáº¾M NPC", Text="PhÃ¡t hiá»‡n " .. count .. " loáº¡i NPC trong 1km!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="TÌM KIẾM NPC", Text="Phát hiện " .. count .. " loại NPC trong 1km!", Duration=3 })
 end)
 
-
--- ==================== CHá»ˆNH Sá»¬A UI TAB TP PLAYER ====================
 local tpPlayerTab = ContentFrames["TP Player"].Frame
 local dualRow = Instance.new("Frame", tpPlayerTab)
 dualRow.Size = UDim2.new(1, -16, 0, 36)
@@ -1154,23 +1229,23 @@ tpSelBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
 CreateBorder(tpSelBtn)
-local tpSelTxt = CreateButtonText(tpSelBtn, "ðŸŽ¯ Báº¬T TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelTxt = CreateButtonText(tpSelBtn, "🎯 BẬT TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelBtn)
-ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "ðŸŽ¯ Báº¬T TP"}
+ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "🎯 BẬT TP"}
 
 tpSelBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_Player = not _G.Config.TP_Player
     ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
-    tpSelTxt.Text = "ðŸŽ¯ Báº¬T TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
+    tpSelTxt.Text = "🎯 BẬT TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
     if _G.Config.TP_Player then
         _G.Config.TP_NPC = false
         local b = ToggleButtons["TP_NPC"]
-        if b then b.Txt.Text = "ðŸŽ¯ Báº¬T TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "🎯 BẬT TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipPlayer = {}
         if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end
-        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="ÄÃ£ xÃ³a danh sÃ¡ch Player bá»‹ bá» qua!", Duration=3 })
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Đã xóa danh sách Player bị bỏ qua!", Duration=3 })
     end
 end)
 
@@ -1181,7 +1256,7 @@ skipBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipBtn, false)
 CreateBorder(skipBtn)
-CreateButtonText(skipBtn, "â­ï¸ SKIP PLAYER", Enum.Font.GothamBold, 11)
+CreateButtonText(skipBtn, "⏭️ SKIP PLAYER", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipBtn)
 
 skipBtn.MouseButton1Click:Connect(function()
@@ -1191,13 +1266,13 @@ skipBtn.MouseButton1Click:Connect(function()
             TempSkipPlayer[p.Name] = true
             currentTarget = nil
             if currentTween then currentTween:Cancel() end
-            game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP PLAYER", Text="ÄÃ£ bá» qua: " .. p.Name, Duration=3 })
+            game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP PLAYER", Text="Đã bỏ qua: " .. p.Name, Duration=3 })
         end
     end
 end)
 
-AddAdjust("TP Player", "Äá»˜ CAO (Y)", "TP_Height", 5) 
-AddAdjust("TP Player", "Tá»C Äá»˜ BAY", "TP_Speed", 50)
+AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) 
+AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
 
 local speed1kFrame = Instance.new("Frame", tpPlayerTab)
 speed1kFrame.Size = UDim2.new(1, -16, 0, 36)
@@ -1248,7 +1323,7 @@ end)
 local SelectedPlayerLabel = Instance.new("TextLabel", ContentFrames["TP Player"].Frame)
 SelectedPlayerLabel.Size = UDim2.new(1, -16, 0, 25)
 SelectedPlayerLabel.BackgroundTransparency = 1
-SelectedPlayerLabel.Text = "Äang chá»n: Tá»± Ä‘á»™ng (Gáº§n nháº¥t)"
+SelectedPlayerLabel.Text = "Đang chọn: Tự động (Gần nhất)"
 SelectedPlayerLabel.Font = Enum.Font.GothamBold
 SelectedPlayerLabel.TextSize = 13
 CreateTextGradient(SelectedPlayerLabel)
@@ -1264,7 +1339,7 @@ pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP Player", "ðŸ”„ LÃ€M Má»šI DANH SÃCH PLAYER", function()
+AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
     for _, child in ipairs(PlayerListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1277,12 +1352,12 @@ AddButton("TP Player", "ðŸ”„ LÃ€M Má»šI DANH SÃCH PLAYER", functi
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Tá»± Ä‘á»™ng", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Tự động", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
         _G.Config.SelectedTargetPlayer = nil
-        SelectedPlayerLabel.Text = "Äang chá»n: Tá»± Ä‘á»™ng (Gáº§n nháº¥t)"
+        SelectedPlayerLabel.Text = "Đang chọn: Tự động (Gần nhất)"
         for _, child in ipairs(PlayerListContainer:GetChildren()) do
             if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
         end
@@ -1302,13 +1377,13 @@ AddButton("TP Player", "ðŸ”„ LÃ€M Má»šI DANH SÃCH PLAYER", functi
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "ðŸ‘¤ " .. p.Name, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "👤 " .. p.Name, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
         btn.MouseButton1Click:Connect(function()
             _G.Config.SelectedTargetPlayer = p.Name
-            SelectedPlayerLabel.Text = "Äang chá»n: " .. p.Name
+            SelectedPlayerLabel.Text = "Đang chọn: " .. p.Name
             for _, child in ipairs(PlayerListContainer:GetChildren()) do
                 if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
             end
@@ -1316,18 +1391,18 @@ AddButton("TP Player", "ðŸ”„ LÃ€M Má»šI DANH SÃCH PLAYER", functi
             txt.TextColor3 = Color3.fromRGB(0,0,0)
         end)
     end
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÃ€M Má»šI DANH SÃCH", Text="ÄÃ£ táº£i " .. count .. " ngÆ°á»i chÆ¡i!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " người chơi!", Duration=3 })
 end)
 
 local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame) PredContainer.Size = UDim2.new(1, 0, 0, 115) PredContainer.BackgroundTransparency = 1
 local PredToggle = Instance.new("TextButton", PredContainer) PredToggle.Size = UDim2.new(1, -16, 0, 36) PredToggle.Text = "" PredToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) CreateBorder(PredToggle) local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(PredToggle)
 local PredSliderBg = Instance.new("Frame", PredContainer) PredSliderBg.Size = UDim2.new(1, -16, 0, 25) PredSliderBg.Position = UDim2.new(0, 0, 0, 48) PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
 local PredSliderFill = Instance.new("Frame", PredSliderBg) PredSliderFill.Size = UDim2.new(_G.Config.Prediction / 10, 0, 1, 0) PredSliderFill.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredSliderFill).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredSliderFill, true)
-local PredValLabel = Instance.new("TextLabel", PredSliderBg) PredValLabel.Size = UDim2.new(1, 0, 1, 0) PredValLabel.BackgroundTransparency = 1 PredValLabel.Text = "Thá»i gian Ä‘oÃ¡n: " .. string.format("%.1f", _G.Config.Prediction) .. "s" PredValLabel.Font = Enum.Font.GothamBold PredValLabel.TextSize = 12 CreateTextGradient(PredValLabel)
+local PredValLabel = Instance.new("TextLabel", PredSliderBg) PredValLabel.Size = UDim2.new(1, 0, 1, 0) PredValLabel.BackgroundTransparency = 1 PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" PredValLabel.Font = Enum.Font.GothamBold PredValLabel.TextSize = 12 CreateTextGradient(PredValLabel)
 local PredBtnFrame = Instance.new("Frame", PredContainer) PredBtnFrame.Size = UDim2.new(1, -16, 0, 32) PredBtnFrame.Position = UDim2.new(0, 0, 0, 82) PredBtnFrame.BackgroundTransparency = 1
 local function createPredBtn(text, posScale) local btn = Instance.new("TextButton", PredBtnFrame) btn.Size = UDim2.new(0.22, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, text, Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn) return btn end
 local pm1 = createPredBtn("-1", 0) local pm01 = createPredBtn("-0.1", 0.26) local pp01 = createPredBtn("+0.1", 0.52) local pp1 = createPredBtn("+1", 0.78)
-local function UpdatePred(val) _G.Config.Prediction = math.clamp(val, 0, 10) local ratio = _G.Config.Prediction / 10 PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0) PredValLabel.Text = "Thá»i gian Ä‘oÃ¡n: " .. string.format("%.1f", _G.Config.Prediction) .. "s" end
+local function UpdatePred(val) _G.Config.Prediction = math.clamp(val, 0, 10) local ratio = _G.Config.Prediction / 10 PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0) PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" end
 pm1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 1) end) pm01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.1) end) pp01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.1) end) pp1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 1) end)
 PredToggle.MouseButton1Click:Connect(function() _G.Config.Prediction_Enabled = not _G.Config.Prediction_Enabled PredToggleTxt.Text = "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF") ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) end)
 local draggingPred = false
@@ -1408,7 +1483,6 @@ RunService.Heartbeat:Connect(function(dt)
         _G.IsReturning = false
     end
 
-    -- LOGIC AUTO DROP (Ã‰p rÆ¡i náº¿u káº¹t trÃªn cao)
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if myRoot then
         if _G.Config.AutoDrop and not _G.Config.SafeMode then
