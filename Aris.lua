@@ -1437,7 +1437,7 @@ task.spawn(function()
                     
                     if remote then
                         local direction = Vector3.new(0, -0.9, 0.03)
-                        for i = 1, 6 do
+                        for i = 1, 17 do
                             if remote:IsA("RemoteEvent") then
                                 remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
                             elseif remote:IsA("RemoteFunction") then
