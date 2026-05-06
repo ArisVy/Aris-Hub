@@ -9,8 +9,8 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Thêm TP Reset & Auto Change Vector!",
+    Title="ARIS HUB V1.0 + DESYNC",
+    Text="CẬP NHẬT: Giao diện gọn gàng, Auto WS 77 & Logic Desync tối ưu!",
     Duration=8
 })
 
@@ -31,7 +31,7 @@ _G.Config={
     LowHP_KS=false,
     Show_Stats=true,
     FastM1=false,
-    AutoChangeVector=false, -- [MỚI]
+    AutoChangeVector=false,
     Hitbox_NPC=false,
     HitboxSize_NPC=20,
     Hitbox_Box_NPC=false,
@@ -47,9 +47,8 @@ _G.Config={
     Desync_Mode = "Fix",
     TP_NPC = false,
     TP_Player = false,
-    TP_Reset = false, -- [MỚI]
     TP_Height = 15,
-    TP_Speed = 500,
+    TP_Speed = 350, -- Tự động 350
     Prediction_Enabled = false,
     Prediction = 1.0,
     BlacklistedNPCs = {},
@@ -59,22 +58,21 @@ _G.Config={
     AutoDrop = false
 }
 
-_G.WalkSpeed = 90
-_G.WalkSpeedEnabled = false
+_G.WalkSpeed = 77 -- Mặc định 77
+_G.WalkSpeedEnabled = true -- Tự động bật
 _G.IsFleeing = false
 _G.IsReturning = false
 _G.IsForcedDropping = false
+_G.DesyncNormal = false
+_G.DesyncFast = false
+_G.DesyncFix = false
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
 local MAX_NPC_RENDER_DISTANCE = 2500
 
-if CoreGui:FindFirstChild("ArisHUB_PRO") then
-    CoreGui.ArisHUB_PRO:Destroy()
-end
-if CoreGui:FindFirstChild("ArisFloatToggle") then
-    CoreGui.ArisFloatToggle:Destroy()
-end
+if CoreGui:FindFirstChild("ArisHUB_PRO") then CoreGui.ArisHUB_PRO:Destroy() end
+if CoreGui:FindFirstChild("ArisFloatToggle") then CoreGui.ArisFloatToggle:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ArisHUB_PRO"
@@ -109,12 +107,9 @@ StatsGrad.Color = ColorSequence.new({
 local FPS_Frames = 0
 RunService.RenderStepped:Connect(function()
     FPS_Frames = FPS_Frames + 1
-    
     if LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16
-        end
+        if hum then hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16 end
     end
 end)
 
@@ -122,9 +117,7 @@ task.spawn(function()
     while task.wait(1) do
         local ping = 0
         pcall(function() ping = math.floor(LocalPlayer:GetNetworkPing() * 1000) end)
-        if ping == 0 then
-            pcall(function() ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) end)
-        end
+        if ping == 0 then pcall(function() ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) end) end
         if StatsFrame.Visible then StatsText.Text = string.format("FPS: %d  |  PING: %dms", FPS_Frames, ping) end
         FPS_Frames = 0
     end
@@ -185,7 +178,7 @@ local function ApplyToggleGradient(parent, isOn)
         if isOn then
             if txtGrad then 
                 txtGrad.Enabled = true
-                txtGrad.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)) })
+                txtGrad.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, 0, 0), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)) })
                 txtGrad:SetAttribute("CustomOnColor", true) 
             end
             txt.TextColor3 = Color3.fromRGB(255, 255, 255) 
@@ -214,26 +207,19 @@ local function GetTrueStatus(target)
     local char = target.Character
     local pos = char.HumanoidRootPart.Position
 
-    if char:FindFirstChildOfClass("ForceField") then
-        return false 
-    end
+    if char:FindFirstChildOfClass("ForceField") then return false end
 
     local safeZones = workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("SafeZones")
     if safeZones then
         for _, zone in pairs(safeZones:GetChildren()) do
             if zone:IsA("Part") or zone:IsA("MeshPart") then
                 local distance = (zone.Position - pos).Magnitude
-                if distance <= (zone.Size.X / 2 + 10) or distance <= (zone.Size.Z / 2 + 10) then
-                    return false
-                end
+                if distance <= (zone.Size.X / 2 + 10) or distance <= (zone.Size.Z / 2 + 10) then return false end
             end
         end
     end
 
-    if target:GetAttribute("PvpDisabled") == true then
-        return false
-    end
-
+    if target:GetAttribute("PvpDisabled") == true then return false end
     return true
 end
 
@@ -270,6 +256,26 @@ local NumericFlags = {
     {"TimestepArbiterOmegaThou","1073741823"},
     {"MaxAcceptableUpdateDelay","1"}
 }
+
+local function SetNormal(state)
+    _G.DesyncNormal = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFast(state)
+    _G.DesyncFast = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFixV2_Logic(state)
+    _G.DesyncFix = state
+    ToggleDesync(state)
+    if state then
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+    else
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
+    end
+end
 
 local AnimationLib = {}
 function AnimationLib.CreateParticleEffect(position, color, duration)
@@ -394,6 +400,7 @@ local function DoHideNormal()
     workspace.CurrentCamera.CFrame = originalCam
     task.wait(0.5) 
     
+    _G.DesyncNormal = true
     hrp.CFrame = originalCF 
     workspace.CurrentCamera.CFrame = originalCam
     AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) 
@@ -405,6 +412,7 @@ local function ActivateDesyncNormal()
     local hrp = char and char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     if _G.Config.Desync_HideAuto then DoHideNormal() else 
         ToggleDesync(true) 
+        _G.DesyncNormal = true
         UpdateDesyncMarker(hrp.CFrame) 
         AnimationLib.DesyncTeleportEffect(hrp.Position) 
     end
@@ -415,18 +423,19 @@ local function DoFastDesync()
     local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     local savedCFrame = hrp.CFrame UpdateDesyncMarker(savedCFrame) 
     FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
+    SetFast(true)
     local newChar = LocalPlayer.Character if newChar then local newHrp = newChar:WaitForChild("HumanoidRootPart", 5) if newHrp then UpdateDesyncMarker(savedCFrame) end end
 end
 
 local function DoFixDesync(isHide)
     local char = LocalPlayer.Character if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
-    ToggleDesync(true) 
-    for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+    SetFixV2_Logic(true)
     UpdateDesyncMarker(hrp.CFrame)
     local newChar, originalCF, originalCam = CustomRespawnFix(LocalPlayer) 
     local newHrp = newChar:WaitForChild("HumanoidRootPart")
     if isHide then local randomY = math.random(8000, 9000) newHrp.CFrame = CFrame.new(newHrp.Position.X, randomY, newHrp.Position.Z) workspace.CurrentCamera.CFrame = newHrp.CFrame task.wait(0.15) end
+    SetFixV2_Logic(true)
     UpdateDesyncMarker(newHrp.CFrame)
 end
 
@@ -572,6 +581,20 @@ for i,tab in ipairs(Tabs)do
 end
 ContentFrames["ESP"].Frame.Visible=true
 
+local function CreateGrid(parent)
+    local grid = Instance.new("Frame", parent)
+    grid.Size = UDim2.new(1, -16, 0, 0)
+    grid.BackgroundTransparency = 1
+    local layout = Instance.new("UIGridLayout", grid)
+    layout.CellSize = UDim2.new(0.48, 0, 0, 36)
+    layout.CellPadding = UDim2.new(0.04, 0, 0, 8)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        grid.Size = UDim2.new(1, -16, 0, layout.AbsoluteContentSize.Y)
+    end)
+    return grid
+end
+
 local function AddButton(tab, name, cb)
     local content = ContentFrames[tab].Frame
     local btn = Instance.new("TextButton", content) btn.Size = UDim2.new(1, -16, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1, 1, 1)
@@ -591,18 +614,6 @@ local function AddAdjust(tab,name,key,step,minV,maxV,cb)
     plus.MouseButton1Click:Connect(function() _G.Config[key] = math.clamp(_G.Config[key]+step, minVal, maxVal) for _, lblData in ipairs(AdjustLabels[key]) do lblData.Label.Text = lblData.Name..": ".._G.Config[key] end if cb then cb() end end)
 end
 
-local espTab = ContentFrames["ESP"].Frame
-local espGrid = Instance.new("Frame", espTab)
-espGrid.Size = UDim2.new(1, -16, 0, 0)
-espGrid.BackgroundTransparency = 1
-local espLayout = Instance.new("UIGridLayout", espGrid)
-espLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
-espLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
-espLayout.SortOrder = Enum.SortOrder.LayoutOrder
-espLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    espGrid.Size = UDim2.new(1, -16, 0, espLayout.AbsoluteContentSize.Y)
-end)
-
 local function AddGridToggle(parent, name, key, cb)
     local btn = Instance.new("TextButton", parent)
     btn.BackgroundColor3 = Color3.new(1,1,1)
@@ -621,6 +632,8 @@ local function AddGridToggle(parent, name, key, cb)
     end)
 end
 
+-- ESP Tab (Grid Layout)
+local espGrid = CreateGrid(ContentFrames["ESP"].Frame)
 AddGridToggle(espGrid, "NAME", "ESP_Name_P")
 AddGridToggle(espGrid, "HEALTH", "ESP_Health_P")
 AddGridToggle(espGrid, "DISTANCE", "ESP_Distance_P")
@@ -628,59 +641,22 @@ AddGridToggle(espGrid, "BOX 2D", "ESP_Box_P")
 AddGridToggle(espGrid, "CHAMS", "ESP_Chams_P")
 AddGridToggle(espGrid, "PVP ESP", "ESP_PVP") 
 
-local function AddToggle(tab,name,key,cb)
-    local content = ContentFrames[tab].Frame
-    local btn = Instance.new("TextButton",content) btn.Size = UDim2.new(1,-16,0,36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,20)
-    ApplyToggleGradient(btn, _G.Config[key]) CreateBorder(btn) local btnTxt = CreateButtonText(btn, name..": "..(_G.Config[key]and"ON"or"OFF"), Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn)
-    ToggleButtons[key] = {Btn = btn, Txt = btnTxt, Name = name}
-    btn.MouseButton1Click:Connect(function() _G.Config[key] = not _G.Config[key] btnTxt.Text = name..": "..(_G.Config[key]and"ON"or"OFF") ApplyToggleGradient(btn, _G.Config[key]) if cb then cb(_G.Config[key])end end)
-end
-
-AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P")
+-- Hitbox Tab (Grid Layout)
+local hitboxGrid = CreateGrid(ContentFrames["Hitbox"].Frame)
+AddGridToggle(hitboxGrid, "HITBOX P", "Hitbox_P")
+AddGridToggle(hitboxGrid, "BOX 3D", "Hitbox_Box")
+AddGridToggle(hitboxGrid, "ESP 2D", "ESP_2D_Hitbox") 
+AddGridToggle(hitboxGrid, "WALL CHECK", "Hitbox_WallCheck")
 AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
-AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
-AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
-AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
-local dualRowMisc = Instance.new("Frame", ContentFrames["Misc"].Frame)
-dualRowMisc.Size = UDim2.new(1, -16, 0, 36)
-dualRowMisc.BackgroundTransparency = 1
-
-local tcBtn = Instance.new("TextButton", dualRowMisc)
-tcBtn.Size = UDim2.new(0.48, 0, 1, 0)
-tcBtn.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", tcBtn).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(tcBtn, _G.Config.TeamCheck)
-CreateBorder(tcBtn)
-local tcTxt = CreateButtonText(tcBtn, "TEAM CHECK: ON", Enum.Font.GothamBold, 11)
-ApplyButtonAnimation(tcBtn)
-ToggleButtons["TeamCheck"] = {Btn = tcBtn, Txt = tcTxt, Name = "TEAM CHECK"}
-tcBtn.MouseButton1Click:Connect(function()
-    _G.Config.TeamCheck = not _G.Config.TeamCheck
-    tcTxt.Text = "TEAM CHECK: " .. (_G.Config.TeamCheck and "ON" or "OFF")
-    ApplyToggleGradient(tcBtn, _G.Config.TeamCheck)
-end)
-
-local pvpCBtn = Instance.new("TextButton", dualRowMisc)
-pvpCBtn.Size = UDim2.new(0.48, 0, 1, 0)
-pvpCBtn.Position = UDim2.new(0.52, 0, 0, 0)
-pvpCBtn.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", pvpCBtn).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(pvpCBtn, _G.Config.PVPCheck)
-CreateBorder(pvpCBtn)
-local pvpCTxt = CreateButtonText(pvpCBtn, "PVP CHECK: OFF", Enum.Font.GothamBold, 11)
-ApplyButtonAnimation(pvpCBtn)
-ToggleButtons["PVPCheck"] = {Btn = pvpCBtn, Txt = pvpCTxt, Name = "PVP CHECK"}
-pvpCBtn.MouseButton1Click:Connect(function()
-    _G.Config.PVPCheck = not _G.Config.PVPCheck
-    pvpCTxt.Text = "PVP CHECK: " .. (_G.Config.PVPCheck and "ON" or "OFF")
-    ApplyToggleGradient(pvpCBtn, _G.Config.PVPCheck)
-end)
-
-AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
-AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-AddToggle("Misc","FAST M1 (LOGIC LOOP)","FastM1") -- Đã đổi label thành Logic Loop theo lịch sử
-AddToggle("Misc","AUTO CHANGE VECTOR","AutoChangeVector") -- [MỚI] Thêm Auto thay đổi hướng cho Fast M1
+-- Misc Tab (Grid Layout)
+local miscGrid = CreateGrid(ContentFrames["Misc"].Frame)
+AddGridToggle(miscGrid, "TEAM CHECK", "TeamCheck")
+AddGridToggle(miscGrid, "PVP CHECK", "PVPCheck")
+AddGridToggle(miscGrid, "LOW HP KS", "LowHP_KS")
+AddGridToggle(miscGrid, "HIỆN STATS", "Show_Stats", function(val) StatsFrame.Visible = val end)
+AddGridToggle(miscGrid, "FAST M1", "FastM1")
+AddGridToggle(miscGrid, "AUTO VECTOR", "AutoChangeVector")
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
@@ -692,7 +668,7 @@ WSToggle.Text = "" WSToggle.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20) 
 ApplyToggleGradient(WSToggle, _G.WalkSpeedEnabled) 
 CreateBorder(WSToggle) 
-local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: OFF", Enum.Font.GothamBold, 14) 
+local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: " .. (_G.WalkSpeedEnabled and "ON" or "OFF"), Enum.Font.GothamBold, 14) 
 ApplyButtonAnimation(WSToggle)
 local WSSliderBg = Instance.new("Frame", WSContainer) 
 WSSliderBg.Size = UDim2.new(1, -16, 0, 25) 
@@ -749,12 +725,14 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
-AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
+-- NPC Tab (Grid Layout)
+local npcGrid = CreateGrid(ContentFrames["NPC"].Frame)
+AddGridToggle(npcGrid, "HITBOX NPC", "Hitbox_NPC")
+AddGridToggle(npcGrid, "BOX 3D NPC", "Hitbox_Box_NPC")
+AddGridToggle(npcGrid, "ESP NAME", "ESP_NPC_Name")
+AddGridToggle(npcGrid, "ESP BOX 2D", "ESP_NPC_Box")
+AddGridToggle(npcGrid, "ESP CHAMS", "ESP_NPC_Chams")
 AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
-AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
-AddToggle("NPC","ESP NPC NAME","ESP_NPC_Name")
-AddToggle("NPC","ESP NPC BOX 2D","ESP_NPC_Box")
-AddToggle("NPC","ESP NPC CHAMS","ESP_NPC_Chams")
 
 local RefreshFloatBtn
 
@@ -804,11 +782,19 @@ floatBtn.MouseButton1Click:Connect(function()
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
     desyncState = not desyncState RefreshFloatBtn()
     local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
-    if desyncState then if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() else ActivateDesyncNormal() end else ToggleDesync(false) for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end HideDesyncMarker() end
+    if desyncState then
+        if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto)
+        elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync()
+        else ActivateDesyncNormal() end
+    else
+        SetFast(false) SetNormal(false) SetFixV2_Logic(false) HideDesyncMarker()
+    end
 end)
 
-AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
-AddToggle("Desync", "HIỆN NÚT DESYNC NỔI", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
+-- Desync Tab (Grid Layout applied where appropriate)
+local desyncGrid = CreateGrid(ContentFrames["Desync"].Frame)
+AddGridToggle(desyncGrid, "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddGridToggle(desyncGrid, "HIỆN NÚT FLOAT", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
 AddAdjust("Desync", "TỌA ĐỘ X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
 AddAdjust("Desync", "TỌA ĐỘ Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
 
@@ -986,18 +972,6 @@ local function doMagnetLoop()
                 
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
-                    
-                    -- [MỚI] TP RESET LOGIC
-                    if _G.Config.TP_Player and _G.Config.TP_Reset then
-                        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-                        if hum and hum.Health > 0 then
-                            hum.Health = 0 -- Giết người chơi để reset
-                        end
-                        -- Tele thẳng xác chết vào mục tiêu
-                        myRoot.CFrame = currentTarget.CFrame
-                        task.wait(0.05)
-                        continue -- Dừng dòng loop này để lặp lại liên tục việc kéo xác
-                    end
                     
                     if currentTarget ~= currentTargetId then
                         lastTargetPos = currentTarget.Position
@@ -1247,27 +1221,6 @@ end)
 
 local tpPlayerTab = ContentFrames["TP Player"].Frame
 
--- [MỚI] THÊM TP RESET LÊN ĐẦU TIÊN Ở MỤC TP PLAYER
-local resetRow = Instance.new("Frame", tpPlayerTab)
-resetRow.Size = UDim2.new(1, -16, 0, 36)
-resetRow.BackgroundTransparency = 1
-
-local tpResetBtn = Instance.new("TextButton", resetRow)
-tpResetBtn.Size = UDim2.new(1, 0, 1, 0)
-tpResetBtn.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", tpResetBtn).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(tpResetBtn, _G.Config.TP_Reset)
-CreateBorder(tpResetBtn)
-local tpResetTxt = CreateButtonText(tpResetBtn, "🔄 TP RESET: OFF", Enum.Font.GothamBold, 13)
-ApplyButtonAnimation(tpResetBtn)
-ToggleButtons["TP_Reset"] = {Btn = tpResetBtn, Txt = tpResetTxt, Name = "🔄 TP RESET"}
-
-tpResetBtn.MouseButton1Click:Connect(function()
-    _G.Config.TP_Reset = not _G.Config.TP_Reset
-    ApplyToggleGradient(tpResetBtn, _G.Config.TP_Reset)
-    tpResetTxt.Text = "🔄 TP RESET: " .. (_G.Config.TP_Reset and "ON" or "OFF")
-end)
-
 local dualRow = Instance.new("Frame", tpPlayerTab)
 dualRow.Size = UDim2.new(1, -16, 0, 36)
 dualRow.BackgroundTransparency = 1
@@ -1367,7 +1320,6 @@ plus1kBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_Speed = math.clamp(_G.Config.TP_Speed + 1000, 50, 99999) 
     for _, lblData in ipairs(AdjustLabels["TP_Speed"]) do lblData.Label.Text = lblData.Name..": ".._G.Config.TP_Speed end
 end)
-
 
 local SelectedPlayerLabel = Instance.new("TextLabel", ContentFrames["TP Player"].Frame)
 SelectedPlayerLabel.Size = UDim2.new(1, -16, 0, 25)
@@ -1477,12 +1429,10 @@ task.spawn(function()
                     if remote then
                         local direction = Vector3.new(0, -0.9, 0.03)
                         
-                        -- [MỚI] AUTO CHANGE VECTOR M1 LOGIC
                         if _G.Config.AutoChangeVector then
                             local nearest = nil
                             local shortest = 20
                             
-                            -- Kiểm tra players
                             for _, p in ipairs(Players:GetPlayers()) do
                                 if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
                                     local dist = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
@@ -1493,7 +1443,6 @@ task.spawn(function()
                                 end
                             end
                             
-                            -- Kiểm tra NPCs
                             for npc, _ in pairs(CachedNPCs) do
                                 if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
                                     local dist = (npc.HumanoidRootPart.Position - hrp.Position).Magnitude
@@ -1504,7 +1453,6 @@ task.spawn(function()
                                 end
                             end
                             
-                            -- Đổi hướng Vector tấn công xuống mục tiêu gần nhất
                             if nearest then
                                 local dirToTarget = (nearest.Position - hrp.Position).Unit
                                 direction = Vector3.new(dirToTarget.X, -0.9, dirToTarget.Z).Unit
@@ -1536,7 +1484,6 @@ RunService.Heartbeat:Connect(function(dt)
             
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
-                -- [SỬA LỖI] SafeMode Teleport thẳng lên 100km Y thay vì bay từ từ
                 hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
@@ -1546,7 +1493,6 @@ RunService.Heartbeat:Connect(function(dt)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
                 
-                -- Giữ nhân vật tại 100km
                 hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
                 
                 if hpPct > 0.65 then
@@ -1693,11 +1639,8 @@ RunService.Heartbeat:Connect(function(dt)
             if _G.Config.ESP_Health_P then table.insert(espLines, "HP: "..math.floor(hum.Health)) end
             if _G.Config.ESP_Distance_P and (dist ~= math.huge) then table.insert(espLines, "Dist: "..math.floor(dist).."m") end
             if _G.Config.ESP_PVP then
-                if GetTrueStatus(p) then
-                    table.insert(espLines, "Status: <font color='#00A2FF'>PVP ON</font>")
-                else
-                    table.insert(espLines, "Status: <font color='#A0A0A0'>PVP OFF</font>")
-                end
+                if GetTrueStatus(p) then table.insert(espLines, "Status: <font color='#00A2FF'>PVP ON</font>")
+                else table.insert(espLines, "Status: <font color='#A0A0A0'>PVP OFF</font>") end
             end
             s.Text.Text = table.concat(espLines, "\n")
             s.Text.TextColor3 = GetHealthColor(hp_percent)
@@ -1710,10 +1653,7 @@ RunService.Heartbeat:Connect(function(dt)
         local hum = obj:FindFirstChild("Humanoid") local hrp = obj:FindFirstChild("HumanoidRootPart")
         if hum and hrp and hum.Health > 0 then
             local distToNPC = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
-            if distToNPC > MAX_NPC_RENDER_DISTANCE then
-                CleanupNPC(obj)
-                continue
-            end
+            if distToNPC > MAX_NPC_RENDER_DISTANCE then CleanupNPC(obj) continue end
 
             if _G.Config.Hitbox_NPC then
                 local targetSizeNPC = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
