@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Thêm TP Reset & Auto Change Vector!",
+    Text="CẬP NHẬT: Auto WS 77, TP 350 & Logic Desync tối ưu!",
     Duration=8
 })
 
@@ -31,7 +31,7 @@ _G.Config={
     LowHP_KS=false,
     Show_Stats=true,
     FastM1=false,
-    AutoChangeVector=false, -- [MỚI]
+    AutoChangeVector=false,
     Hitbox_NPC=false,
     HitboxSize_NPC=20,
     Hitbox_Box_NPC=false,
@@ -47,9 +47,8 @@ _G.Config={
     Desync_Mode = "Fix",
     TP_NPC = false,
     TP_Player = false,
-    TP_Reset = false, -- [MỚI]
     TP_Height = 15,
-    TP_Speed = 500,
+    TP_Speed = 350, -- [MẶC ĐỊNH 350]
     Prediction_Enabled = false,
     Prediction = 1.0,
     BlacklistedNPCs = {},
@@ -59,11 +58,15 @@ _G.Config={
     AutoDrop = false
 }
 
-_G.WalkSpeed = 90
-_G.WalkSpeedEnabled = false
+_G.WalkSpeed = 77 -- [MẶC ĐỊNH 77]
+_G.WalkSpeedEnabled = true -- [TỰ ĐỘNG BẬT]
 _G.IsFleeing = false
 _G.IsReturning = false
 _G.IsForcedDropping = false
+
+_G.DesyncNormal = false
+_G.DesyncFast = false
+_G.DesyncFix = false
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
@@ -271,6 +274,27 @@ local NumericFlags = {
     {"MaxAcceptableUpdateDelay","1"}
 }
 
+-- [MỚI] Các hàm Set State cho Desync
+local function SetNormal(state)
+    _G.DesyncNormal = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFast(state)
+    _G.DesyncFast = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFixV2_Logic(state)
+    _G.DesyncFix = state
+    ToggleDesync(state)
+    if state then
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+    else
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
+    end
+end
+
 local AnimationLib = {}
 function AnimationLib.CreateParticleEffect(position, color, duration)
     local part = Instance.new("Part") part.Size = Vector3.new(2, 2, 2) part.Anchored = true part.CanCollide = false part.Material = Enum.Material.Neon part.Color = color part.CFrame = CFrame.new(position) part.Transparency = 0.3 part.Parent = workspace
@@ -394,6 +418,7 @@ local function DoHideNormal()
     workspace.CurrentCamera.CFrame = originalCam
     task.wait(0.5) 
     
+    _G.DesyncNormal = true
     hrp.CFrame = originalCF 
     workspace.CurrentCamera.CFrame = originalCam
     AnimationLib.CreateBeam(hrp.Position, originalCF.Position, Color3.fromRGB(0, 255, 150), 0.3) 
@@ -405,6 +430,7 @@ local function ActivateDesyncNormal()
     local hrp = char and char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     if _G.Config.Desync_HideAuto then DoHideNormal() else 
         ToggleDesync(true) 
+        _G.DesyncNormal = true
         UpdateDesyncMarker(hrp.CFrame) 
         AnimationLib.DesyncTeleportEffect(hrp.Position) 
     end
@@ -415,18 +441,19 @@ local function DoFastDesync()
     local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     local savedCFrame = hrp.CFrame UpdateDesyncMarker(savedCFrame) 
     FastRespawnUserLogic(LocalPlayer, _G.Config.Desync_HideAuto)
+    SetFast(true)
     local newChar = LocalPlayer.Character if newChar then local newHrp = newChar:WaitForChild("HumanoidRootPart", 5) if newHrp then UpdateDesyncMarker(savedCFrame) end end
 end
 
 local function DoFixDesync(isHide)
     local char = LocalPlayer.Character if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
-    ToggleDesync(true) 
-    for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+    SetFixV2_Logic(true)
     UpdateDesyncMarker(hrp.CFrame)
     local newChar, originalCF, originalCam = CustomRespawnFix(LocalPlayer) 
     local newHrp = newChar:WaitForChild("HumanoidRootPart")
     if isHide then local randomY = math.random(8000, 9000) newHrp.CFrame = CFrame.new(newHrp.Position.X, randomY, newHrp.Position.Z) workspace.CurrentCamera.CFrame = newHrp.CFrame task.wait(0.15) end
+    SetFixV2_Logic(true)
     UpdateDesyncMarker(newHrp.CFrame)
 end
 
@@ -679,8 +706,8 @@ end)
 
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-AddToggle("Misc","FAST M1 (LOGIC LOOP)","FastM1") -- Đã đổi label thành Logic Loop theo lịch sử
-AddToggle("Misc","AUTO CHANGE VECTOR","AutoChangeVector") -- [MỚI] Thêm Auto thay đổi hướng cho Fast M1
+AddToggle("Misc","FAST M1 (LOGIC LOOP)","FastM1")
+AddToggle("Misc","AUTO CHANGE VECTOR","AutoChangeVector")
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
@@ -692,7 +719,7 @@ WSToggle.Text = "" WSToggle.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", WSToggle).CornerRadius = UDim.new(0, 20) 
 ApplyToggleGradient(WSToggle, _G.WalkSpeedEnabled) 
 CreateBorder(WSToggle) 
-local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: OFF", Enum.Font.GothamBold, 14) 
+local WSToggleTxt = CreateButtonText(WSToggle, "WALKSPEED: " .. (_G.WalkSpeedEnabled and "ON" or "OFF"), Enum.Font.GothamBold, 14) 
 ApplyButtonAnimation(WSToggle)
 local WSSliderBg = Instance.new("Frame", WSContainer) 
 WSSliderBg.Size = UDim2.new(1, -16, 0, 25) 
@@ -804,7 +831,13 @@ floatBtn.MouseButton1Click:Connect(function()
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
     desyncState = not desyncState RefreshFloatBtn()
     local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
-    if desyncState then if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() else ActivateDesyncNormal() end else ToggleDesync(false) for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end HideDesyncMarker() end
+    if desyncState then 
+        if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) 
+        elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() 
+        else ActivateDesyncNormal() end 
+    else 
+        SetFast(false) SetNormal(false) SetFixV2_Logic(false) HideDesyncMarker() 
+    end
 end)
 
 AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
@@ -986,18 +1019,6 @@ local function doMagnetLoop()
                 
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
-                    
-                    -- [MỚI] TP RESET LOGIC
-                    if _G.Config.TP_Player and _G.Config.TP_Reset then
-                        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-                        if hum and hum.Health > 0 then
-                            hum.Health = 0 -- Giết người chơi để reset
-                        end
-                        -- Tele thẳng xác chết vào mục tiêu
-                        myRoot.CFrame = currentTarget.CFrame
-                        task.wait(0.05)
-                        continue -- Dừng dòng loop này để lặp lại liên tục việc kéo xác
-                    end
                     
                     if currentTarget ~= currentTargetId then
                         lastTargetPos = currentTarget.Position
@@ -1246,27 +1267,6 @@ AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
 end)
 
 local tpPlayerTab = ContentFrames["TP Player"].Frame
-
--- [MỚI] THÊM TP RESET LÊN ĐẦU TIÊN Ở MỤC TP PLAYER
-local resetRow = Instance.new("Frame", tpPlayerTab)
-resetRow.Size = UDim2.new(1, -16, 0, 36)
-resetRow.BackgroundTransparency = 1
-
-local tpResetBtn = Instance.new("TextButton", resetRow)
-tpResetBtn.Size = UDim2.new(1, 0, 1, 0)
-tpResetBtn.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", tpResetBtn).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(tpResetBtn, _G.Config.TP_Reset)
-CreateBorder(tpResetBtn)
-local tpResetTxt = CreateButtonText(tpResetBtn, "🔄 TP RESET: OFF", Enum.Font.GothamBold, 13)
-ApplyButtonAnimation(tpResetBtn)
-ToggleButtons["TP_Reset"] = {Btn = tpResetBtn, Txt = tpResetTxt, Name = "🔄 TP RESET"}
-
-tpResetBtn.MouseButton1Click:Connect(function()
-    _G.Config.TP_Reset = not _G.Config.TP_Reset
-    ApplyToggleGradient(tpResetBtn, _G.Config.TP_Reset)
-    tpResetTxt.Text = "🔄 TP RESET: " .. (_G.Config.TP_Reset and "ON" or "OFF")
-end)
 
 local dualRow = Instance.new("Frame", tpPlayerTab)
 dualRow.Size = UDim2.new(1, -16, 0, 36)
