@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Trả Fast Attack gốc, thêm nút 75K!",
+    Text="CẬP NHẬT: Thêm TP Reset & Auto Change Vector!",
     Duration=8
 })
 
@@ -31,6 +31,7 @@ _G.Config={
     LowHP_KS=false,
     Show_Stats=true,
     FastM1=false,
+    AutoChangeVector=false, -- [MỚI]
     Hitbox_NPC=false,
     HitboxSize_NPC=20,
     Hitbox_Box_NPC=false,
@@ -46,6 +47,7 @@ _G.Config={
     Desync_Mode = "Fix",
     TP_NPC = false,
     TP_Player = false,
+    TP_Reset = false, -- [MỚI]
     TP_Height = 15,
     TP_Speed = 500,
     Prediction_Enabled = false,
@@ -491,7 +493,7 @@ ApplyToggleGradient(SafeBtn, _G.Config.SafeMode) CreateBorder(SafeBtn) CreateBut
 SafeBtn.MouseButton1Click:Connect(function()
     _G.Config.SafeMode = not _G.Config.SafeMode
     ApplyToggleGradient(SafeBtn, _G.Config.SafeMode)
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Bay 100km khi HP <35%!" or "Đã TẮT!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Tele 100km khi HP <35%!" or "Đã TẮT!", Duration=3 })
 end)
 
 local Btn75K = Instance.new("TextButton",MainFrame)
@@ -677,7 +679,8 @@ end)
 
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-AddToggle("Misc","FAST M1 (AUTO CLICK)","FastM1")
+AddToggle("Misc","FAST M1 (LOGIC LOOP)","FastM1") -- Đã đổi label thành Logic Loop theo lịch sử
+AddToggle("Misc","AUTO CHANGE VECTOR","AutoChangeVector") -- [MỚI] Thêm Auto thay đổi hướng cho Fast M1
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
@@ -984,6 +987,18 @@ local function doMagnetLoop()
                 if currentTarget then
                     if not noclipConnection then toggleNoclip(true) end
                     
+                    -- [MỚI] TP RESET LOGIC
+                    if _G.Config.TP_Player and _G.Config.TP_Reset then
+                        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+                        if hum and hum.Health > 0 then
+                            hum.Health = 0 -- Giết người chơi để reset
+                        end
+                        -- Tele thẳng xác chết vào mục tiêu
+                        myRoot.CFrame = currentTarget.CFrame
+                        task.wait(0.05)
+                        continue -- Dừng dòng loop này để lặp lại liên tục việc kéo xác
+                    end
+                    
                     if currentTarget ~= currentTargetId then
                         lastTargetPos = currentTarget.Position
                         currentTargetId = currentTarget
@@ -1231,6 +1246,28 @@ AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
 end)
 
 local tpPlayerTab = ContentFrames["TP Player"].Frame
+
+-- [MỚI] THÊM TP RESET LÊN ĐẦU TIÊN Ở MỤC TP PLAYER
+local resetRow = Instance.new("Frame", tpPlayerTab)
+resetRow.Size = UDim2.new(1, -16, 0, 36)
+resetRow.BackgroundTransparency = 1
+
+local tpResetBtn = Instance.new("TextButton", resetRow)
+tpResetBtn.Size = UDim2.new(1, 0, 1, 0)
+tpResetBtn.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", tpResetBtn).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(tpResetBtn, _G.Config.TP_Reset)
+CreateBorder(tpResetBtn)
+local tpResetTxt = CreateButtonText(tpResetBtn, "🔄 TP RESET: OFF", Enum.Font.GothamBold, 13)
+ApplyButtonAnimation(tpResetBtn)
+ToggleButtons["TP_Reset"] = {Btn = tpResetBtn, Txt = tpResetTxt, Name = "🔄 TP RESET"}
+
+tpResetBtn.MouseButton1Click:Connect(function()
+    _G.Config.TP_Reset = not _G.Config.TP_Reset
+    ApplyToggleGradient(tpResetBtn, _G.Config.TP_Reset)
+    tpResetTxt.Text = "🔄 TP RESET: " .. (_G.Config.TP_Reset and "ON" or "OFF")
+end)
+
 local dualRow = Instance.new("Frame", tpPlayerTab)
 dualRow.Size = UDim2.new(1, -16, 0, 36)
 dualRow.BackgroundTransparency = 1
@@ -1430,6 +1467,8 @@ task.spawn(function()
             pcall(function()
                 local char = LocalPlayer.Character
                 if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
                 
                 local tool = char:FindFirstChildOfClass("Tool")
                 if tool then
@@ -1437,6 +1476,41 @@ task.spawn(function()
                     
                     if remote then
                         local direction = Vector3.new(0, -0.9, 0.03)
+                        
+                        -- [MỚI] AUTO CHANGE VECTOR M1 LOGIC
+                        if _G.Config.AutoChangeVector then
+                            local nearest = nil
+                            local shortest = 20
+                            
+                            -- Kiểm tra players
+                            for _, p in ipairs(Players:GetPlayers()) do
+                                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                                    local dist = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                                    if dist <= shortest then
+                                        shortest = dist
+                                        nearest = p.Character.HumanoidRootPart
+                                    end
+                                end
+                            end
+                            
+                            -- Kiểm tra NPCs
+                            for npc, _ in pairs(CachedNPCs) do
+                                if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
+                                    local dist = (npc.HumanoidRootPart.Position - hrp.Position).Magnitude
+                                    if dist <= shortest then
+                                        shortest = dist
+                                        nearest = npc.HumanoidRootPart
+                                    end
+                                end
+                            end
+                            
+                            -- Đổi hướng Vector tấn công xuống mục tiêu gần nhất
+                            if nearest then
+                                local dirToTarget = (nearest.Position - hrp.Position).Unit
+                                direction = Vector3.new(dirToTarget.X, -0.9, dirToTarget.Z).Unit
+                            end
+                        end
+
                         for i = 1, 17 do
                             if remote:IsA("RemoteEvent") then
                                 remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
@@ -1462,7 +1536,8 @@ RunService.Heartbeat:Connect(function(dt)
             
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, 100000, 0)
+                -- [SỬA LỖI] SafeMode Teleport thẳng lên 100km Y thay vì bay từ từ
+                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
             end
@@ -1471,9 +1546,10 @@ RunService.Heartbeat:Connect(function(dt)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
                 
-                if hpPct < 0.55 then
-                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 10000 * dt, 0)
-                else
+                -- Giữ nhân vật tại 100km
+                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
+                
+                if hpPct > 0.65 then
                     _G.IsFleeing = false
                     _G.IsReturning = true
                 end
