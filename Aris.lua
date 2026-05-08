@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Silent Aim Float, Synced Tracer!",
+    Text="UPDATE: Silent Aim 360° & NPC Aim Added!",
     Duration=8
 })
 
@@ -60,10 +60,12 @@ _G.Config={
     InfJump = false,
     WalkOnWater = false,
     SilentAim = false,
-    FOV_Radius = 1000, -- [AUTO SET TO 1000]
-    SilentAim_ShowFloat = true, -- Float button toggle
+    FOV_Radius = 1000,
+    SilentAim_ShowFloat = true,
     SilentAim_FloatX = 70,
-    SilentAim_FloatY = 30
+    SilentAim_FloatY = 30,
+    SilentAim_Nearest = false,
+    SilentAim_NPC = false
 }
 
 _G.WalkSpeed = 77
@@ -78,6 +80,7 @@ _G.DesyncFix = false
 
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
+local CachedNPCs = {}
 local MAX_NPC_RENDER_DISTANCE = 2500
 
 -- [SILENT AIM VARIABLES]
@@ -265,12 +268,34 @@ local function GetTrueStatus(target)
     return true
 end
 
--- [SILENT AIM CORE LOGIC]
-local function GetClosestPlayerForAim()
+-- [SILENT AIM CORE LOGIC & 360°]
+local function GetClosestTargetForAim()
     local Closest = nil
     local ShortestDistance = math.huge
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    
+    local myRoot = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or LocalPlayer.Character:FindFirstChild("Head"))
+
+    local function CheckTarget(targetRoot, targetPlayer)
+        if not targetRoot then return end
+
+        if _G.Config.SilentAim_Nearest and myRoot then
+            local dist3D = (myRoot.Position - targetRoot.Position).Magnitude
+            if dist3D < ShortestDistance then
+                ShortestDistance = dist3D
+                Closest = targetRoot
+            end
+        else
+            local screenPos, onScreen = Camera:WorldToViewportPoint(targetRoot.Position)
+            if onScreen then
+                local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                    ShortestDistance = distToFov
+                    Closest = targetRoot
+                end
+            end
+        end
+    end
+
     for _, Player in next, Players:GetPlayers() do
         if Player == LocalPlayer then continue end
         local Character = Player.Character
@@ -283,15 +308,21 @@ local function GetClosestPlayerForAim()
         if _G.Config.TeamCheck and Player.Team == LocalPlayer.Team then continue end
         if _G.Config.PVPCheck and not GetTrueStatus(Player) then continue end
 
-        local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
-        if onScreen then
-            local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-            if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
-                ShortestDistance = distToFov
-                Closest = RootPart
+        CheckTarget(RootPart, Player)
+    end
+
+    if _G.Config.SilentAim_NPC then
+        for npc, _ in pairs(CachedNPCs) do
+            if npc and npc.Parent then
+                local Humanoid = npc:FindFirstChild("Humanoid")
+                local RootPart = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Head")
+                if Humanoid and Humanoid.Health > 0 and RootPart then
+                    CheckTarget(RootPart, nil)
+                end
             end
         end
     end
+
     return Closest
 end
 
@@ -961,7 +992,7 @@ local function RefreshSAFloatBtn()
     
     local saMainBtn = ToggleButtons["SilentAim"]
     if saMainBtn then
-        saMainBtn.Txt.Text = "SILENT AIM FOV: " .. (_G.Config.SilentAim and "ON" or "OFF")
+        saMainBtn.Txt.Text = "SILENT AIM: " .. (_G.Config.SilentAim and "ON" or "OFF")
         ApplyToggleGradient(saMainBtn.Btn, _G.Config.SilentAim)
     end
 end
@@ -976,7 +1007,9 @@ saFloatBtn.MouseButton1Click:Connect(function()
 end)
 
 -- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
-AddToggle("NULL","SILENT AIM FOV", "SilentAim", RefreshSAFloatBtn)
+AddToggle("NULL","SILENT AIM", "SilentAim", RefreshSAFloatBtn)
+AddToggle("NULL","NEAR PLAYER AIMBOT (360°)", "SilentAim_Nearest")
+AddToggle("NULL","AIMBOT NPC", "SilentAim_NPC")
 
 local NullContent = ContentFrames["NULL"].Frame
 local FOVContainer = Instance.new("Frame", NullContent) 
@@ -1135,7 +1168,7 @@ AddToggle("Desync", "SHOW DESYNC FLOAT BTN", "Desync_ShowFloat", function(v) flo
 AddAdjust("Desync", "POS X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
 AddAdjust("Desync", "POS Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
 
-local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
+local ESP_Store={} local NPC_Store={} 
 
 local function CheckAndCacheNPC(obj)
     if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
@@ -1852,17 +1885,19 @@ RunService.RenderStepped:Connect(function()
         if FOVCircle then
             FOVCircle.Position = screenCenter
             FOVCircle.Radius = _G.Config.FOV_Radius
-            FOVCircle.Visible = true
+            FOVCircle.Visible = not _G.Config.SilentAim_Nearest -- Ẩn FOV circle nếu đang dùng chế độ 360 độ
         end
         
-        SilentAimTarget = GetClosestPlayerForAim()
+        SilentAimTarget = GetClosestTargetForAim()
         
         if SilentAimTarget then
             local rgb = GetRGB() -- Lấy màu Gradient RGB
             if FOVCircle then FOVCircle.Color = rgb end
             if TracerLine then
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
-                if targetOnScreen then
+                
+                -- Support cho Nearest (360 độ) ngay cả khi không trên màn hình
+                if targetOnScreen or _G.Config.SilentAim_Nearest then
                     local startX, startY
                     if hrp then
                         local myPos, myOnScreen = Camera:WorldToViewportPoint(hrp.Position)
@@ -1873,7 +1908,7 @@ RunService.RenderStepped:Connect(function()
                     end
                     TracerLine.From = Vector2.new(startX, startY)
                     TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
-                    TracerLine.Color = rgb -- Đồng bộ Tracer với màu ESP Player
+                    TracerLine.Color = rgb -- Đồng bộ Tracer với màu ESP
                     TracerLine.Visible = true
                 else
                     TracerLine.Visible = false
