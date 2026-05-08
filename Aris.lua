@@ -10,8 +10,8 @@ local TweenService = game:GetService("TweenService")
 local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V1.0 - COMPACT",
-    Text="UPDATE: Aim NPC, 3-Column TP, Compact Layout!",
+    Title="ARIS HUB V1.0 - FIXED",
+    Text="UPDATE: Near Aimbot Added & All Bugs Fixed!",
     Duration=8
 })
 
@@ -61,6 +61,7 @@ _G.Config={
     WalkOnWater = false,
     SilentAim = false,
     SilentAim_NPC = false,
+    NearAim = false, -- [NEW: NEAR AIMBOT]
     FOV_Radius = 1000,
     SilentAim_ShowFloat = true,
     SilentAim_FloatX = 70,
@@ -256,7 +257,63 @@ local function GetTrueStatus(target)
     return true
 end
 
+-- ==========================================
+-- BỘ HÀM DỌN DẸP ESP & HITBOX GLOBAL ĐÃ ĐƯỢC FIX
+-- ==========================================
 local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
+
+local function CleanupHitboxAttributes(hrp)
+    if hrp and hrp:GetAttribute("ArisHitboxActive") then 
+        hrp:SetAttribute("ArisHitboxActive", nil) 
+        hrp.Transparency = 1 
+        hrp.CanCollide = true 
+    end
+end
+
+local function CleanupHitboxAttributesNPC(hrp)
+    if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then 
+        hrp:SetAttribute("ArisHitboxActiveNPC", nil) 
+        hrp.Transparency = 1 
+        hrp.CanCollide = true 
+    end
+end
+
+local function CleanupESP(playerName)
+    if ESP_Store[playerName] then 
+        pcall(function() 
+            if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end
+            if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end 
+        end) 
+        ESP_Store[playerName]=nil 
+    end
+    local plr = Players:FindFirstChild(playerName)
+    if plr and plr.Character then
+        if plr.Character:FindFirstChild("ArisHL") then plr.Character.ArisHL:Destroy() end
+        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then 
+            if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end 
+            CleanupHitboxAttributes(hrp) 
+        end
+    end
+end
+
+local function CleanupNPC(m)
+    if NPC_Store[m] then 
+        pcall(function() 
+            if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end 
+            if NPC_Store[m].BoxBill then NPC_Store[m].BoxBill:Destroy() end 
+        end)
+        NPC_Store[m]=nil 
+    end
+    if m then
+        if m:FindFirstChild("ArisHL_NPC") then m.ArisHL_NPC:Destroy() end
+        local hrp = m:FindFirstChild("HumanoidRootPart")
+        if hrp then 
+            if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end 
+            CleanupHitboxAttributesNPC(hrp) 
+        end
+    end
+end
 
 local function CheckAndCacheNPC(obj)
     if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
@@ -265,12 +322,22 @@ local function CheckAndCacheNPC(obj)
 end
 for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
 Workspace.DescendantAdded:Connect(function(descendant) task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end) end)
+Workspace.DescendantRemoving:Connect(function(descendant) if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end end)
+Players.PlayerRemoving:Connect(function(p) CleanupESP(p.Name) end)
 
--- [SILENT AIM CORE LOGIC - INCLUDES NPC]
+local function GetHealthColor(pct)
+    if pct>0.7 then return Color3.new(0,1,0) elseif pct>0.5 then return Color3.new(1,1,0) elseif pct>0.3 then return Color3.new(1,0.5,0) else return Color3.new(1,0,0) end
+end
+
+-- ==========================================
+-- SILENT AIM CORE LOGIC - INCLUDES NEAR AIM & NPC
+-- ==========================================
 local function GetClosestTargetForAim()
     local Closest = nil
     local ShortestDistance = math.huge
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
     
     if _G.Config.SilentAim then
         for _, Player in next, Players:GetPlayers() do
@@ -285,12 +352,20 @@ local function GetClosestTargetForAim()
             if _G.Config.TeamCheck and Player.Team == LocalPlayer.Team then continue end
             if _G.Config.PVPCheck and not GetTrueStatus(Player) then continue end
 
-            local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
-            if onScreen then
-                local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
-                    ShortestDistance = distToFov
+            if _G.Config.NearAim and myRoot then
+                local dist = (RootPart.Position - myRoot.Position).Magnitude
+                if dist < ShortestDistance then
+                    ShortestDistance = dist
                     Closest = RootPart
+                end
+            else
+                local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+                if onScreen then
+                    local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                    if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                        ShortestDistance = distToFov
+                        Closest = RootPart
+                    end
                 end
             end
         end
@@ -302,12 +377,20 @@ local function GetClosestTargetForAim()
                 local Humanoid = npc:FindFirstChildOfClass("Humanoid")
                 local RootPart = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Head")
                 if Humanoid and Humanoid.Health > 0 and RootPart then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
-                    if onScreen then
-                        local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                        if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
-                            ShortestDistance = distToFov
+                    if _G.Config.NearAim and myRoot then
+                        local dist = (RootPart.Position - myRoot.Position).Magnitude
+                        if dist < ShortestDistance then
+                            ShortestDistance = dist
                             Closest = RootPart
+                        end
+                    else
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+                        if onScreen then
+                            local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                            if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                                ShortestDistance = distToFov
+                                Closest = RootPart
+                            end
                         end
                     end
                 end
@@ -725,11 +808,11 @@ end)
 
 for i,tab in ipairs(Tabs)do
     local btn = Instance.new("TextButton",TabFrame)
-    btn.Size = UDim2.new(0, 50, 1, -5) -- Reduced width
+    btn.Size = UDim2.new(0, 45, 1, -5) 
     btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,16)
     ApplyToggleGradient(btn, false) CreateBorder(btn) 
     local ttxt = CreateButtonText(btn, tab, Enum.Font.GothamBold, 9)
-    ttxt.TextScaled = false
+    ttxt.TextScaled = true
     ApplyButtonAnimation(btn)
 
     local content = Instance.new("ScrollingFrame",MainFrame) 
@@ -1027,6 +1110,9 @@ end)
 
 -- [TAB NULL - UI]
 AddDualToggle("NULL", "SILENT AIM", "SilentAim", "AIM NPC", "SilentAim_NPC", RefreshSAFloatBtn)
+AddDualToggle("NULL", "NEAR AIMBOT", "NearAim", "SHOW FLOAT", "SilentAim_ShowFloat", nil, function(v) saFloatGui.Enabled = v end)
+AddDualToggle("NULL", "FAST M1", "FastM1", "AUTO VECTOR", "AutoChangeVector")
+AddDualToggle("NULL", "INF JUMP", "InfJump", "WALK WATER", "WalkOnWater")
 
 local NullContent = ContentFrames["NULL"].Frame
 local FOVContainer = Instance.new("Frame", NullContent) 
@@ -1108,10 +1194,6 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
-AddDualToggle("NULL", "FAST M1", "FastM1", "AUTO VECTOR", "AutoChangeVector")
-AddDualToggle("NULL", "INF JUMP", "InfJump", "WALK WATER", "WalkOnWater")
-
-AddToggle("NULL", "SHOW SILENT AIM FLOAT", "SilentAim_ShowFloat", function(v) saFloatGui.Enabled = v end)
 AddAdjust("NULL", "FLOAT POS X (%)", "SilentAim_FloatX", 5, 0, 100, UpdateSAFloatPosition)
 AddAdjust("NULL", "FLOAT POS Y (%)", "SilentAim_FloatY", 5, 0, 100, UpdateSAFloatPosition)
 
@@ -1243,9 +1325,7 @@ task.spawn(function()
                             if remote:IsA("RemoteEvent") then
                                 remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
                             elseif remote:IsA("RemoteFunction") then
-                                task.spawn(function()
-                                    remote:InvokeServer()
-                                end)
+                                task.spawn(function() remote:InvokeServer() end)
                             end
                         end
                     end
@@ -1286,7 +1366,7 @@ RunService.RenderStepped:Connect(function()
         if FOVCircle then
             FOVCircle.Position = screenCenter
             FOVCircle.Radius = _G.Config.FOV_Radius
-            FOVCircle.Visible = true
+            FOVCircle.Visible = not _G.Config.NearAim
         end
         
         SilentAimTarget = GetClosestTargetForAim()
@@ -1418,18 +1498,6 @@ RunService.Heartbeat:Connect(function(dt)
         local isTeammate = (_G.Config.TeamCheck and p.Team ~= nil and p.Team == LocalPlayer.Team)
 
         if not char or not hrp or not hum or hum.Health<=0 or isTeammate then
-            local function CleanupHitboxAttributes(hrp)
-                if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
-            end
-            local function CleanupESP(playerName)
-                if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
-                local p = Players:FindFirstChild(playerName)
-                if p and p.Character then
-                    if p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
-                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
-                end
-            end
             CleanupHitboxAttributes(hrp); CleanupESP(p.Name); continue
         end
 
@@ -1441,10 +1509,6 @@ RunService.Heartbeat:Connect(function(dt)
             if _G.Config.LowHP_KS then
                 if hasLowHPEnemy then if hp_percent <= 0.3 then hitboxShouldEnable = true end else if dist <= 2000 then hitboxShouldEnable = true end end
             else hitboxShouldEnable = true end
-        end
-
-        local function CleanupHitboxAttributes(hrp)
-            if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
         end
 
         if hitboxShouldEnable then
@@ -1473,16 +1537,6 @@ RunService.Heartbeat:Connect(function(dt)
         if hrp:GetAttribute("ArisHitboxActive") and _G.Config.Hitbox_Box then
             if not hbBox then hbBox = Instance.new("SelectionBox", hrp); hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp end hbBox.SurfaceColor3 = rgb
         else if hbBox then hbBox:Destroy() end end
-
-        local function CleanupESP(playerName)
-            if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
-            local p = Players:FindFirstChild(playerName)
-            if p and p.Character then
-                if p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
-                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
-            end
-        end
 
         if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P or _G.Config.ESP_PVP then
             if not ESP_Store[p.Name] then
@@ -1524,18 +1578,6 @@ RunService.Heartbeat:Connect(function(dt)
             s.Text.TextColor3 = GetHealthColor(hp_percent)
             s.TextBill.Enabled = (_G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_PVP)
         else CleanupESP(p.Name) end
-    end
-
-    local function CleanupHitboxAttributesNPC(hrp)
-        if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then hrp:SetAttribute("ArisHitboxActiveNPC", nil) hrp.Transparency = 1 hrp.CanCollide = true end
-    end
-    local function CleanupNPC(m)
-        if NPC_Store[m]then pcall(function() if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end if NPC_Store[m].BoxBill then NPC_Store[m].BoxBill:Destroy() end end); NPC_Store[m]=nil end
-        if m then
-            if m:FindFirstChild("ArisHL_NPC") then m.ArisHL_NPC:Destroy() end
-            local hrp = m:FindFirstChild("HumanoidRootPart")
-            if hrp then if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end CleanupHitboxAttributesNPC(hrp) end
-        end
     end
 
     for obj in pairs(CachedNPCs) do
@@ -2103,7 +2145,7 @@ AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
     local autoBtn = Instance.new("TextButton", PlayerListContainer)
     autoBtn.Size = UDim2.new(1, 0, 0, 36)
     autoBtn.Text = ""
-    autoBtn.BackgroundColor3 = Color3.new(1, 1, 1)
+    autoBtn.BackgroundColor3 = Color3.new(1, 0, 0)
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
@@ -2164,19 +2206,3 @@ local draggingPred = false
 PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = true end end)
 PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
 UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
-
-Players.PlayerRemoving:Connect(function(p)
-    local function CleanupHitboxAttributes(hrp)
-        if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
-    end
-    local function CleanupESP(playerName)
-        if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
-        local plr = Players:FindFirstChild(playerName)
-        if plr and plr.Character then
-            if plr.Character:FindFirstChild("ArisHL") then plr.Character.ArisHL:Destroy() end
-            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
-        end
-    end
-    CleanupESP(p.Name)
-end)
