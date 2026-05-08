@@ -10,8 +10,8 @@ local TweenService = game:GetService("TweenService")
 local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Silent Aim Float, Synced Tracer!",
+    Title="ARIS HUB V1.0 - COMPACT",
+    Text="UPDATE: Aim NPC, 3-Column TP, Compact Layout!",
     Duration=8
 })
 
@@ -50,8 +50,8 @@ _G.Config={
     TP_Player = false,
     TP_Height = 15,
     TP_Speed = 350,
-    Prediction_Enabled = true,
-    Prediction = 0.1,
+    Prediction_Enabled = false,
+    Prediction = 1.0,
     BlacklistedNPCs = {},
     SelectedTargetPlayer = nil,
     SelectedTargetNPC = nil,
@@ -60,8 +60,9 @@ _G.Config={
     InfJump = false,
     WalkOnWater = false,
     SilentAim = false,
-    FOV_Radius = 1000, -- [AUTO SET TO 1000]
-    SilentAim_ShowFloat = true, -- Float button toggle
+    SilentAim_NPC = false,
+    FOV_Radius = 1000,
+    SilentAim_ShowFloat = true,
     SilentAim_FloatX = 70,
     SilentAim_FloatY = 30
 }
@@ -100,15 +101,9 @@ pcall(function()
     TracerLine.Transparency = 1
 end)
 
-if CoreGui:FindFirstChild("ArisHUB_PRO") then
-    CoreGui.ArisHUB_PRO:Destroy()
-end
-if CoreGui:FindFirstChild("ArisFloatToggle") then
-    CoreGui.ArisFloatToggle:Destroy()
-end
-if CoreGui:FindFirstChild("ArisSAFloatToggle") then
-    CoreGui.ArisSAFloatToggle:Destroy()
-end
+if CoreGui:FindFirstChild("ArisHUB_PRO") then CoreGui.ArisHUB_PRO:Destroy() end
+if CoreGui:FindFirstChild("ArisFloatToggle") then CoreGui.ArisFloatToggle:Destroy() end
+if CoreGui:FindFirstChild("ArisSAFloatToggle") then CoreGui.ArisSAFloatToggle:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ArisHUB_PRO"
@@ -143,12 +138,9 @@ StatsGrad.Color = ColorSequence.new({
 local FPS_Frames = 0
 RunService.RenderStepped:Connect(function()
     FPS_Frames = FPS_Frames + 1
-    
     if LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16
-        end
+        if hum then hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16 end
     end
 end)
 
@@ -261,34 +253,64 @@ local function GetTrueStatus(target)
     end
 
     if target:GetAttribute("PvpDisabled") == true then return false end
-
     return true
 end
 
--- [SILENT AIM CORE LOGIC]
-local function GetClosestPlayerForAim()
+local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
+
+local function CheckAndCacheNPC(obj)
+    if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
+        if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then CachedNPCs[obj] = true end
+    end
+end
+for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
+Workspace.DescendantAdded:Connect(function(descendant) task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end) end)
+
+-- [SILENT AIM CORE LOGIC - INCLUDES NPC]
+local function GetClosestTargetForAim()
     local Closest = nil
     local ShortestDistance = math.huge
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
-    for _, Player in next, Players:GetPlayers() do
-        if Player == LocalPlayer then continue end
-        local Character = Player.Character
-        if not Character then continue end
-        
-        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-        local RootPart = Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Head")
-        
-        if not Humanoid or Humanoid.Health <= 0 or not RootPart then continue end
-        if _G.Config.TeamCheck and Player.Team == LocalPlayer.Team then continue end
-        if _G.Config.PVPCheck and not GetTrueStatus(Player) then continue end
+    if _G.Config.SilentAim then
+        for _, Player in next, Players:GetPlayers() do
+            if Player == LocalPlayer then continue end
+            local Character = Player.Character
+            if not Character then continue end
+            
+            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+            local RootPart = Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Head")
+            
+            if not Humanoid or Humanoid.Health <= 0 or not RootPart then continue end
+            if _G.Config.TeamCheck and Player.Team == LocalPlayer.Team then continue end
+            if _G.Config.PVPCheck and not GetTrueStatus(Player) then continue end
 
-        local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
-        if onScreen then
-            local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-            if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
-                ShortestDistance = distToFov
-                Closest = RootPart
+            local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+            if onScreen then
+                local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                    ShortestDistance = distToFov
+                    Closest = RootPart
+                end
+            end
+        end
+    end
+
+    if _G.Config.SilentAim_NPC then
+        for npc, _ in pairs(CachedNPCs) do
+            if npc and npc.Parent then
+                local Humanoid = npc:FindFirstChildOfClass("Humanoid")
+                local RootPart = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Head")
+                if Humanoid and Humanoid.Health > 0 and RootPart then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+                    if onScreen then
+                        local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                        if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                            ShortestDistance = distToFov
+                            Closest = RootPart
+                        end
+                    end
+                end
             end
         end
     end
@@ -303,7 +325,7 @@ if not getgenv().Hook_Initialized_Aris then
         local args = {...}
         local method = getnamecallmethod()
 
-        if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
+        if (_G.Config.SilentAim or _G.Config.SilentAim_NPC) and SilentAimTarget and self == workspace and not checkcaller() then
             if method == "Raycast" or string.find(method, "Ray") then
                 local raw_trace = debug.traceback()
                 local trace = raw_trace and string.lower(raw_trace) or ""
@@ -335,7 +357,7 @@ if not getgenv().Hook_Initialized_Aris then
 
     local OldIndex
     OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
-        if not _G.Config.SilentAim or not SilentAimTarget or checkcaller() or self ~= Mouse then
+        if not (_G.Config.SilentAim or _G.Config.SilentAim_NPC) or not SilentAimTarget or checkcaller() or self ~= Mouse then
             return OldIndex(self, index)
         end
 
@@ -404,11 +426,8 @@ local function SetFast(state) _G.DesyncFast = state if not state then ToggleDesy
 local function SetFixV2_Logic(state)
     _G.DesyncFix = state
     ToggleDesync(state)
-    if state then
-        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
-    else
-        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
-    end
+    if state then for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+    else for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end end
 end
 
 local AnimationLib = {}
@@ -706,9 +725,12 @@ end)
 
 for i,tab in ipairs(Tabs)do
     local btn = Instance.new("TextButton",TabFrame)
-    btn.Size = UDim2.new(0, 80, 1, -5) 
+    btn.Size = UDim2.new(0, 50, 1, -5) -- Reduced width
     btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,16)
-    ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, tab, Enum.Font.GothamBold, 10) ApplyButtonAnimation(btn)
+    ApplyToggleGradient(btn, false) CreateBorder(btn) 
+    local ttxt = CreateButtonText(btn, tab, Enum.Font.GothamBold, 9)
+    ttxt.TextScaled = false
+    ApplyButtonAnimation(btn)
 
     local content = Instance.new("ScrollingFrame",MainFrame) 
     content.Size = UDim2.new(1,-10,1,-95) content.Position = UDim2.new(0,5,0,85) content.BackgroundTransparency = 1 content.ScrollBarThickness = 5 content.Visible = false content.BorderSizePixel = 0
@@ -728,6 +750,42 @@ local function AddButton(tab, name, cb)
     local btn = Instance.new("TextButton", content) btn.Size = UDim2.new(1, -16, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false) CreateBorder(btn) local txt = CreateButtonText(btn, name, Enum.Font.GothamBold, 13) ApplyButtonAnimation(btn)
     btn.MouseButton1Click:Connect(function() if cb then cb() end end) return btn
+end
+
+local function AddToggle(tab,name,key,cb)
+    local content = ContentFrames[tab].Frame
+    local btn = Instance.new("TextButton",content) btn.Size = UDim2.new(1,-16,0,36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,20)
+    ApplyToggleGradient(btn, _G.Config[key]) CreateBorder(btn) local btnTxt = CreateButtonText(btn, name..": "..(_G.Config[key]and"ON"or"OFF"), Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn)
+    ToggleButtons[key] = {Btn = btn, Txt = btnTxt, Name = name}
+    btn.MouseButton1Click:Connect(function() _G.Config[key] = not _G.Config[key] btnTxt.Text = name..": "..(_G.Config[key]and"ON"or"OFF") ApplyToggleGradient(btn, _G.Config[key]) if cb then cb(_G.Config[key])end end)
+end
+
+local function AddDualToggle(tab, name1, key1, name2, key2, cb1, cb2)
+    local content = ContentFrames[tab].Frame
+    local row = Instance.new("Frame", content)
+    row.Size = UDim2.new(1, -16, 0, 36)
+    row.BackgroundTransparency = 1
+    local function makeBtn(n, k, c, pScale)
+        local btn = Instance.new("TextButton", row)
+        btn.Size = UDim2.new(0.48, 0, 1, 0)
+        btn.Position = UDim2.new(pScale, 0, 0, 0)
+        btn.Text = ""
+        btn.BackgroundColor3 = Color3.new(1,1,1)
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
+        ApplyToggleGradient(btn, _G.Config[k])
+        CreateBorder(btn)
+        local txt = CreateButtonText(btn, n..": "..(_G.Config[k] and "ON" or "OFF"), Enum.Font.GothamBold, 11)
+        ApplyButtonAnimation(btn)
+        ToggleButtons[k] = {Btn = btn, Txt = txt, Name = n}
+        btn.MouseButton1Click:Connect(function()
+            _G.Config[k] = not _G.Config[k]
+            txt.Text = n..": "..(_G.Config[k] and "ON" or "OFF")
+            ApplyToggleGradient(btn, _G.Config[k])
+            if c then c(_G.Config[k]) end
+        end)
+    end
+    makeBtn(name1, key1, cb1, 0)
+    if name2 then makeBtn(name2, key2, cb2, 0.52) end
 end
 
 local function AddAdjust(tab,name,key,step,minV,maxV,cb)
@@ -778,14 +836,6 @@ AddGridToggle(espGrid, "DISTANCE", "ESP_Distance_P")
 AddGridToggle(espGrid, "BOX 2D", "ESP_Box_P")
 AddGridToggle(espGrid, "CHAMS", "ESP_Chams_P")
 AddGridToggle(espGrid, "PVP ESP", "ESP_PVP") 
-
-local function AddToggle(tab,name,key,cb)
-    local content = ContentFrames[tab].Frame
-    local btn = Instance.new("TextButton",content) btn.Size = UDim2.new(1,-16,0,36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,20)
-    ApplyToggleGradient(btn, _G.Config[key]) CreateBorder(btn) local btnTxt = CreateButtonText(btn, name..": "..(_G.Config[key]and"ON"or"OFF"), Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn)
-    ToggleButtons[key] = {Btn = btn, Txt = btnTxt, Name = name}
-    btn.MouseButton1Click:Connect(function() _G.Config[key] = not _G.Config[key] btnTxt.Text = name..": "..(_G.Config[key]and"ON"or"OFF") ApplyToggleGradient(btn, _G.Config[key]) if cb then cb(_G.Config[key])end end)
-end
 
 AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P")
 AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
@@ -961,7 +1011,7 @@ local function RefreshSAFloatBtn()
     
     local saMainBtn = ToggleButtons["SilentAim"]
     if saMainBtn then
-        saMainBtn.Txt.Text = "SILENT AIM FOV: " .. (_G.Config.SilentAim and "ON" or "OFF")
+        saMainBtn.Txt.Text = "SILENT AIM: " .. (_G.Config.SilentAim and "ON" or "OFF")
         ApplyToggleGradient(saMainBtn.Btn, _G.Config.SilentAim)
     end
 end
@@ -975,8 +1025,8 @@ saFloatBtn.MouseButton1Click:Connect(function()
     ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
 end)
 
--- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
-AddToggle("NULL","SILENT AIM FOV", "SilentAim", RefreshSAFloatBtn)
+-- [TAB NULL - UI]
+AddDualToggle("NULL", "SILENT AIM", "SilentAim", "AIM NPC", "SilentAim_NPC", RefreshSAFloatBtn)
 
 local NullContent = ContentFrames["NULL"].Frame
 local FOVContainer = Instance.new("Frame", NullContent) 
@@ -1058,14 +1108,12 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
+AddDualToggle("NULL", "FAST M1", "FastM1", "AUTO VECTOR", "AutoChangeVector")
+AddDualToggle("NULL", "INF JUMP", "InfJump", "WALK WATER", "WalkOnWater")
+
 AddToggle("NULL", "SHOW SILENT AIM FLOAT", "SilentAim_ShowFloat", function(v) saFloatGui.Enabled = v end)
 AddAdjust("NULL", "FLOAT POS X (%)", "SilentAim_FloatX", 5, 0, 100, UpdateSAFloatPosition)
 AddAdjust("NULL", "FLOAT POS Y (%)", "SilentAim_FloatY", 5, 0, 100, UpdateSAFloatPosition)
-
-AddToggle("NULL","FAST M1 (LOGIC LOOP)","FastM1")
-AddToggle("NULL","AUTO CHANGE VECTOR","AutoChangeVector")
-AddToggle("NULL","INFINITE JUMP", "InfJump")
-AddToggle("NULL","WALK ON WATER (Y=9.2)", "WalkOnWater")
 
 AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
 AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
@@ -1135,48 +1183,416 @@ AddToggle("Desync", "SHOW DESYNC FLOAT BTN", "Desync_ShowFloat", function(v) flo
 AddAdjust("Desync", "POS X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
 AddAdjust("Desync", "POS Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
 
-local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
-
-local function CheckAndCacheNPC(obj)
-    if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
-        if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then CachedNPCs[obj] = true end
+-- [JUMP REQUEST LOGIC CHO INF JUMP]
+UserInputService.JumpRequest:Connect(function()
+    if _G.Config.InfJump then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
-end
-for _, v in ipairs(Workspace:GetDescendants()) do CheckAndCacheNPC(v) end
-Workspace.DescendantAdded:Connect(function(descendant) task.delay(1, function() if descendant.Parent then CheckAndCacheNPC(descendant) end end) end)
+end)
 
-local function CleanupHitboxAttributes(hrp)
-    if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
-end
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    while true do
+        RunService.Heartbeat:Wait() 
+        if _G.Config.FastM1 then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then
+                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
+                    
+                    if remote then
+                        local direction = Vector3.new(0, -0.9, 0.03)
+                        
+                        if _G.Config.AutoChangeVector then
+                            local nearest = nil
+                            local shortest = 20
+                            
+                            for _, p in ipairs(Players:GetPlayers()) do
+                                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                                    local dist = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                                    if dist <= shortest then
+                                        shortest = dist
+                                        nearest = p.Character.HumanoidRootPart
+                                    end
+                                end
+                            end
+                            
+                            for npc, _ in pairs(CachedNPCs) do
+                                if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
+                                    local dist = (npc.HumanoidRootPart.Position - hrp.Position).Magnitude
+                                    if dist <= shortest then
+                                        shortest = dist
+                                        nearest = npc.HumanoidRootPart
+                                    end
+                                end
+                            end
+                            
+                            if nearest then
+                                local dirToTarget = (nearest.Position - hrp.Position).Unit
+                                direction = Vector3.new(dirToTarget.X, -0.9, dirToTarget.Z).Unit
+                            end
+                        end
 
-local function CleanupHitboxAttributesNPC(hrp)
-    if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then hrp:SetAttribute("ArisHitboxActiveNPC", nil) hrp.Transparency = 1 hrp.CanCollide = true end
-end
-
-local function GetHealthColor(pct)
-    if pct>0.7 then return Color3.new(0,1,0) elseif pct>0.5 then return Color3.new(1,1,0) elseif pct>0.3 then return Color3.new(1,0.5,0) else return Color3.new(1,0,0) end
-end
-
-local function CleanupESP(playerName)
-    if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
-    local p = Players:FindFirstChild(playerName)
-    if p and p.Character then
-        if p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
-        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
+                        for i = 1, 17 do
+                            if remote:IsA("RemoteEvent") then
+                                remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
+                            elseif remote:IsA("RemoteFunction") then
+                                task.spawn(function()
+                                    remote:InvokeServer()
+                                end)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
     end
-end
+end)
 
-local function CleanupNPC(m)
-    if NPC_Store[m]then pcall(function() if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end if NPC_Store[m].BoxBill then NPC_Store[m].BoxBill:Destroy() end end); NPC_Store[m]=nil end
-    if m then
-        if m:FindFirstChild("ArisHL_NPC") then m.ArisHL_NPC:Destroy() end
-        local hrp = m:FindFirstChild("HumanoidRootPart")
-        if hrp then if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end CleanupHitboxAttributesNPC(hrp) end
+RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    -- [WALK ON WATER LOGIC]
+    if _G.Config.WalkOnWater and hrp then
+        if hrp.Position.Y >= 9.5 and hrp.Velocity.Y <= 0 then
+            local waterPart = workspace:FindFirstChild("ArisWaterPlatform")
+            if not waterPart then
+                waterPart = Instance.new("Part", workspace)
+                waterPart.Name = "ArisWaterPlatform"
+                waterPart.Size = Vector3.new(20, 1, 20)
+                waterPart.Transparency = 1
+                waterPart.Anchored = true
+                waterPart.CanCollide = true
+                waterPart.CanQuery = false
+            end
+            waterPart.CFrame = CFrame.new(hrp.Position.X, 9.2, hrp.Position.Z)
+        else
+            if workspace:FindFirstChild("ArisWaterPlatform") then workspace.ArisWaterPlatform:Destroy() end
+        end
+    else
+        if workspace:FindFirstChild("ArisWaterPlatform") then workspace.ArisWaterPlatform:Destroy() end
     end
-end
 
-Workspace.DescendantRemoving:Connect(function(descendant) if CachedNPCs[descendant] then CachedNPCs[descendant] = nil; CleanupNPC(descendant) end end)
+    -- [SILENT AIM FOV & TRACER RENDER LOGIC]
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    if _G.Config.SilentAim or _G.Config.SilentAim_NPC then
+        if FOVCircle then
+            FOVCircle.Position = screenCenter
+            FOVCircle.Radius = _G.Config.FOV_Radius
+            FOVCircle.Visible = true
+        end
+        
+        SilentAimTarget = GetClosestTargetForAim()
+        
+        if SilentAimTarget then
+            local rgb = GetRGB() 
+            if FOVCircle then FOVCircle.Color = rgb end
+            if TracerLine then
+                local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
+                if targetOnScreen then
+                    local startX, startY
+                    if hrp then
+                        local myPos, myOnScreen = Camera:WorldToViewportPoint(hrp.Position)
+                        startX = myOnScreen and myPos.X or screenCenter.X
+                        startY = myOnScreen and myPos.Y or Camera.ViewportSize.Y
+                    else
+                        startX = screenCenter.X; startY = Camera.ViewportSize.Y
+                    end
+                    TracerLine.From = Vector2.new(startX, startY)
+                    TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
+                    TracerLine.Color = rgb 
+                    TracerLine.Visible = true
+                else
+                    TracerLine.Visible = false
+                end
+            end
+        else
+            if FOVCircle then FOVCircle.Color = Color3.fromRGB(255, 255, 255) end
+            if TracerLine then TracerLine.Visible = false end
+        end
+    else
+        SilentAimTarget = nil
+        if FOVCircle then FOVCircle.Visible = false end
+        if TracerLine then TracerLine.Visible = false end
+    end
+end)
+
+RunService.Heartbeat:Connect(function(dt)
+    if _G.Config.SafeMode and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hum and hrp and hum.Health > 0 then
+            local hpPct = hum.Health / hum.MaxHealth
+            
+            if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
+                _G.IsFleeing = true
+                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
+                if currentTween then currentTween:Cancel() end
+                if not noclipConnection then toggleNoclip(true) end
+            end
+            
+            if _G.IsFleeing then
+                if currentTween then currentTween:Cancel() end
+                if not noclipConnection then toggleNoclip(true) end
+                
+                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
+                
+                if hpPct > 0.65 then
+                    _G.IsFleeing = false
+                    _G.IsReturning = true
+                end
+            elseif _G.IsReturning then
+                if currentTween then currentTween:Cancel() end
+                if not noclipConnection then toggleNoclip(true) end
+                
+                hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
+                
+                if hrp.Position.Y <= 150 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
+                    _G.IsReturning = false
+                    if noclipConnection and not isFarming then toggleNoclip(false) end
+                end
+            end
+        end
+    else
+        _G.IsFleeing = false
+        _G.IsReturning = false
+    end
+
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if myRoot then
+        if _G.Config.AutoDrop and not _G.Config.SafeMode then
+            if myRoot.Position.Y > 40000 and not _G.IsFleeing and not _G.IsReturning then
+                _G.IsForcedDropping = true
+            end
+        end
+        
+        if _G.IsForcedDropping then
+            if currentTween then currentTween:Cancel() end
+            if not noclipConnection then toggleNoclip(true) end
+            
+            myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
+            if myRoot.Position.Y <= 150 then
+                myRoot.CFrame = CFrame.new(myRoot.Position.X, 150, myRoot.Position.Z)
+                _G.IsForcedDropping = false
+                if noclipConnection and not isFarming then toggleNoclip(false) end
+            end
+        end
+    end
+
+    local rgb = GetRGB()
+    local shift = tick() * 0.15
+
+    local seqOn = GetMovingColorSequence(Palettes.On, shift)
+    local seqOff = GetMovingColorSequence(Palettes.Off, shift)
+    local seqText = GetMovingColorSequence(Palettes.Text, shift * 1.5)
+    local seqBorder = GetMovingColorSequence(Palettes.Border, shift * 1.8)
+
+    for _, grad in ipairs(UIGradientList) do grad.Color = seqBorder end
+    for _, grad in ipairs(TextGradientList) do if not grad:GetAttribute("CustomOnColor") then grad.Color = seqText end end
+    for _, grad in ipairs(BtnGradientList) do if grad.Parent and grad.Parent:GetAttribute("IsOn") then grad.Color = seqOn else grad.Color = seqOff end end
+
+    local hasLowHPEnemy = false
+    if _G.Config.Hitbox_P and _G.Config.LowHP_KS and myRoot then
+        for _, p in Players:GetPlayers() do
+            if p == LocalPlayer then continue end
+            if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then continue end
+            local char = p.Character local hum = char and char:FindFirstChild("Humanoid") local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if char and hum and hrp and hum.Health > 0 then
+                local dist = (hrp.Position - myRoot.Position).Magnitude
+                if dist <= 2000 and (hum.Health / hum.MaxHealth) <= 0.3 then hasLowHPEnemy = true; break end
+            end
+        end
+    end
+
+    for _,p in Players:GetPlayers()do
+        if p==LocalPlayer then continue end
+        local char=p.Character local hrp=char and char:FindFirstChild("HumanoidRootPart") local hum=char and char:FindFirstChild("Humanoid")
+        local isTeammate = (_G.Config.TeamCheck and p.Team ~= nil and p.Team == LocalPlayer.Team)
+
+        if not char or not hrp or not hum or hum.Health<=0 or isTeammate then
+            local function CleanupHitboxAttributes(hrp)
+                if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
+            end
+            local function CleanupESP(playerName)
+                if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
+                local p = Players:FindFirstChild(playerName)
+                if p and p.Character then
+                    if p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
+                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
+                end
+            end
+            CleanupHitboxAttributes(hrp); CleanupESP(p.Name); continue
+        end
+
+        local hp_percent = hum.Health / hum.MaxHealth
+        local dist = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
+        local hitboxShouldEnable = false
+        
+        if _G.Config.Hitbox_P then
+            if _G.Config.LowHP_KS then
+                if hasLowHPEnemy then if hp_percent <= 0.3 then hitboxShouldEnable = true end else if dist <= 2000 then hitboxShouldEnable = true end end
+            else hitboxShouldEnable = true end
+        end
+
+        local function CleanupHitboxAttributes(hrp)
+            if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
+        end
+
+        if hitboxShouldEnable then
+            local valid = true
+            if _G.Config.Hitbox_WallCheck then
+                local rp = RaycastParams.new(); rp.FilterDescendantsInstances = {LocalPlayer.Character}; rp.FilterType = Enum.RaycastFilterType.Exclude
+                local rr = Workspace:Raycast(Camera.CFrame.Position, (hrp.Position - Camera.CFrame.Position), rp)
+                if rr and rr.Instance and not rr.Instance:IsDescendantOf(char) then valid = false end
+            end
+
+            if valid then
+                local targetSize = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                if hrp.Size ~= targetSize then hrp.Size = targetSize end
+                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
+                if hrp.CanCollide ~= false then hrp.CanCollide = false end
+                hrp:SetAttribute("ArisHitboxActive", true)
+            else CleanupHitboxAttributes(hrp) end
+        else CleanupHitboxAttributes(hrp) end
+
+        local hl = char:FindFirstChild("ArisHL")
+        if _G.Config.ESP_Chams_P then
+            if not hl then hl = Instance.new("Highlight", char); hl.Name = "ArisHL" end hl.FillColor = rgb; hl.Enabled = true
+        else if hl then hl:Destroy() end end
+
+        local hbBox = hrp:FindFirstChild("ArisHitboxBox")
+        if hrp:GetAttribute("ArisHitboxActive") and _G.Config.Hitbox_Box then
+            if not hbBox then hbBox = Instance.new("SelectionBox", hrp); hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp end hbBox.SurfaceColor3 = rgb
+        else if hbBox then hbBox:Destroy() end end
+
+        local function CleanupESP(playerName)
+            if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
+            local p = Players:FindFirstChild(playerName)
+            if p and p.Character then
+                if p.Character:FindFirstChild("ArisHL") then p.Character.ArisHL:Destroy() end
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
+            end
+        end
+
+        if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P or _G.Config.ESP_PVP then
+            if not ESP_Store[p.Name] then
+                local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4.2,0,5.8,0); boxBill.AlwaysOnTop = true
+                local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1
+                Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 16)
+                local outS = Instance.new("UIStroke", outF); outS.Thickness = 2.5; outS.Color = Color3.new(1,1,1)
+                local grad = Instance.new("UIGradient", outS)
+                grad.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(0.35, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.65, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
+                local cDot = Instance.new("Frame", boxBill); cDot.Size = UDim2.new(0,4,0,4); cDot.Position = UDim2.new(0.5,-2,0.5,-2); cDot.BackgroundColor3 = Color3.fromRGB(0,230,255); cDot.BorderSizePixel=0; Instance.new("UICorner", cDot).CornerRadius = UDim.new(1,0)
+                local hLine = Instance.new("Frame", boxBill); hLine.Size = UDim2.new(0.5,0,0,1); hLine.Position = UDim2.new(0.25,0,0.5,0); hLine.BackgroundColor3 = Color3.new(1,1,1); hLine.BackgroundTransparency = 0.5; hLine.BorderSizePixel=0
+                local vLine = Instance.new("Frame", boxBill); vLine.Size = UDim2.new(0,1,0.5,0); vLine.Position = UDim2.new(0.5,0,0.25,0); vLine.BackgroundColor3 = Color3.new(1,1,1); vLine.BackgroundTransparency = 0.5; vLine.BorderSizePixel=0
+                
+                local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
+                local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12 
+                txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+                txt.RichText = true
+                ESP_Store[p.Name]={BoxBill=boxBill, Grad=grad, TextBill=textB, Text=txt}
+            end
+            local s=ESP_Store[p.Name]
+            s.BoxBill.Adornee = hrp; s.TextBill.Adornee = char:FindFirstChild("Head") or hrp
+            local isHitboxActive = hrp:GetAttribute("ArisHitboxActive") == true
+            s.BoxBill.Enabled = _G.Config.ESP_Box_P or (isHitboxActive and _G.Config.ESP_2D_Hitbox)
+            if s.Grad then s.Grad.Rotation = (tick() * 150) % 360 end
+            if isHitboxActive and _G.Config.ESP_2D_Hitbox then s.BoxBill.Size = UDim2.new(_G.Config.HitboxSize, 0, _G.Config.HitboxSize, 0) else s.BoxBill.Size = UDim2.new(4.2, 0, 5.8, 0) end
+         
+            local espLines = {}
+            if _G.Config.ESP_Name_P then table.insert(espLines, p.Name) end
+            if _G.Config.ESP_Health_P then table.insert(espLines, "HP: "..math.floor(hum.Health)) end
+            if _G.Config.ESP_Distance_P and (dist ~= math.huge) then table.insert(espLines, "Dist: "..math.floor(dist).."m") end
+            if _G.Config.ESP_PVP then
+                if GetTrueStatus(p) then
+                    table.insert(espLines, "Status: <font color='#00A2FF'>PVP ON</font>")
+                else
+                    table.insert(espLines, "Status: <font color='#A0A0A0'>PVP OFF</font>")
+                end
+            end
+            s.Text.Text = table.concat(espLines, "\n")
+            s.Text.TextColor3 = GetHealthColor(hp_percent)
+            s.TextBill.Enabled = (_G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_PVP)
+        else CleanupESP(p.Name) end
+    end
+
+    local function CleanupHitboxAttributesNPC(hrp)
+        if hrp and hrp:GetAttribute("ArisHitboxActiveNPC") then hrp:SetAttribute("ArisHitboxActiveNPC", nil) hrp.Transparency = 1 hrp.CanCollide = true end
+    end
+    local function CleanupNPC(m)
+        if NPC_Store[m]then pcall(function() if NPC_Store[m].Bill then NPC_Store[m].Bill:Destroy() end if NPC_Store[m].BoxBill then NPC_Store[m].BoxBill:Destroy() end end); NPC_Store[m]=nil end
+        if m then
+            if m:FindFirstChild("ArisHL_NPC") then m.ArisHL_NPC:Destroy() end
+            local hrp = m:FindFirstChild("HumanoidRootPart")
+            if hrp then if hrp:FindFirstChild("ArisHitboxBoxNPC") then hrp.ArisHitboxBoxNPC:Destroy() end CleanupHitboxAttributesNPC(hrp) end
+        end
+    end
+
+    for obj in pairs(CachedNPCs) do
+        if not obj.Parent then CachedNPCs[obj] = nil; CleanupNPC(obj); continue end
+        local hum = obj:FindFirstChild("Humanoid") local hrp = obj:FindFirstChild("HumanoidRootPart")
+        if hum and hrp and hum.Health > 0 then
+            local distToNPC = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
+            if distToNPC > MAX_NPC_RENDER_DISTANCE then
+                CleanupNPC(obj)
+                continue
+            end
+
+            if _G.Config.Hitbox_NPC then
+                local targetSizeNPC = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
+                if hrp.Size ~= targetSizeNPC then hrp.Size = targetSizeNPC end
+                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
+                if hrp.CanCollide ~= false then hrp.CanCollide = false end
+                hrp:SetAttribute("ArisHitboxActiveNPC", true)
+            else CleanupHitboxAttributesNPC(hrp) end
+
+            local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
+            if hrp:GetAttribute("ArisHitboxActiveNPC") and _G.Config.Hitbox_Box_NPC then
+                if not hbBoxNPC then hbBoxNPC = Instance.new("SelectionBox", hrp); hbBoxNPC.Name = "ArisHitboxBoxNPC"; hbBoxNPC.Adornee = hrp end hbBoxNPC.SurfaceColor3 = rgb
+            else if hbBoxNPC then hbBoxNPC:Destroy() end end
+
+            local hlNPC = obj:FindFirstChild("ArisHL_NPC")
+            if _G.Config.ESP_NPC_Chams then
+                if not hlNPC then hlNPC = Instance.new("Highlight", obj); hlNPC.Name = "ArisHL_NPC" end hlNPC.FillColor = rgb; hlNPC.Enabled = true
+            else if hlNPC then hlNPC:Destroy() end end
+
+            if _G.Config.ESP_NPC_Name or _G.Config.ESP_NPC_Box then
+                if not NPC_Store[obj] then
+                    local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0, 200, 0, 60); textB.StudsOffset = Vector3.new(0, 3.5, 0); textB.AlwaysOnTop = true
+                    local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12 txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+                    local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4,0,5.5,0); boxBill.AlwaysOnTop = true
+                    local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1 Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 6)
+                    local inS = Instance.new("UIStroke", outF); inS.Thickness = 1.5; inS.Color = Color3.new(1,1,1)
+                    NPC_Store[obj] = {Bill = textB, Text = txt, BoxBill = boxBill, InStroke = inS}
+                end
+                local ns = NPC_Store[obj]
+                ns.Bill.Adornee = obj:FindFirstChild("Head") or hrp
+                ns.Text.Text = "NPC: " .. obj.Name .. "\nHP: " .. math.floor(hum.Health)
+                ns.Text.TextColor3 = rgb
+                ns.Bill.Enabled = _G.Config.ESP_NPC_Name
+                
+                local isHitboxActiveNPC = hrp:GetAttribute("ArisHitboxActiveNPC") == true
+                ns.BoxBill.Adornee = hrp
+                ns.InStroke.Color = rgb
+                ns.BoxBill.Enabled = _G.Config.ESP_NPC_Box or (isHitboxActiveNPC and _G.Config.ESP_2D_Hitbox)
+
+                if isHitboxActiveNPC and _G.Config.ESP_2D_Hitbox then ns.BoxBill.Size = UDim2.new(_G.Config.HitboxSize_NPC, 0, _G.Config.HitboxSize_NPC, 0) else ns.BoxBill.Size = UDim2.new(4, 0, 5.5, 0) end
+            else
+                if NPC_Store[obj] then if NPC_Store[obj].Bill then NPC_Store[obj].Bill:Destroy() end if NPC_Store[obj].BoxBill then NPC_Store[obj].BoxBill:Destroy() end NPC_Store[obj] = nil end
+            end
+        else CleanupNPC(obj) end
+    end
+end)
 
 local function toggleNoclip(active)
     if active then 
@@ -1468,8 +1884,8 @@ local NPCListContainer = Instance.new("Frame", tpNPCTab)
 NPCListContainer.Size = UDim2.new(1, -16, 0, 0)
 NPCListContainer.BackgroundTransparency = 1
 local nListLayout = Instance.new("UIGridLayout", NPCListContainer)
-nListLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
-nListLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
+nListLayout.CellSize = UDim2.new(0.31, 0, 0, 36)
+nListLayout.CellPadding = UDim2.new(0.035, 0, 0, 8)
 nListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 nListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     NPCListContainer.Size = UDim2.new(1, -16, 0, nListLayout.AbsoluteContentSize.Y)
@@ -1488,7 +1904,7 @@ AddButton("TP NPC", "🔄 REFRESH NPC LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetNPC == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 10)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
@@ -1517,7 +1933,7 @@ AddButton("TP NPC", "🔄 REFRESH NPC LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "👹 " .. npcName, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "👹 " .. npcName, Enum.Font.GothamBold, 9)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
@@ -1538,8 +1954,8 @@ local BlacklistContainer = Instance.new("Frame", tpNPCTab)
 BlacklistContainer.Size = UDim2.new(1, -16, 0, 0) 
 BlacklistContainer.BackgroundTransparency = 1
 local blLayout = Instance.new("UIGridLayout", BlacklistContainer)
-blLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
-blLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
+blLayout.CellSize = UDim2.new(0.31, 0, 0, 36)
+blLayout.CellPadding = UDim2.new(0.035, 0, 0, 8)
 blLayout.SortOrder = Enum.SortOrder.LayoutOrder
 blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
 AddButton("TP NPC", "🔄 REFRESH BLACKLIST (1KM)", function()
@@ -1550,7 +1966,7 @@ AddButton("TP NPC", "🔄 REFRESH BLACKLIST (1KM)", function()
     for npcName, _ in pairs(foundNPCs) do
         count = count + 1 local btn = Instance.new("TextButton", BlacklistContainer) btn.Size = UDim2.new(1, 0, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
         local isBlacklisted = _G.Config.BlacklistedNPCs[npcName] or false ApplyToggleGradient(btn, isBlacklisted) CreateBorder(btn)
-        local txt = CreateButtonText(btn, "🚫 BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
+        local txt = CreateButtonText(btn, "🚫 " .. npcName, Enum.Font.GothamBold, 9) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
         btn.MouseButton1Click:Connect(function() _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName] local state = _G.Config.BlacklistedNPCs[npcName] ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1) end)
     end
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="NPC SEARCH", Text="Found " .. count .. " NPC types in 1km!", Duration=3 })
@@ -1671,8 +2087,8 @@ local PlayerListContainer = Instance.new("Frame", ContentFrames["TP Player"].Fra
 PlayerListContainer.Size = UDim2.new(1, -16, 0, 0)
 PlayerListContainer.BackgroundTransparency = 1
 local pListLayout = Instance.new("UIGridLayout", PlayerListContainer)
-pListLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
-pListLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
+pListLayout.CellSize = UDim2.new(0.31, 0, 0, 36)
+pListLayout.CellPadding = UDim2.new(0.035, 0, 0, 8)
 pListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
@@ -1691,7 +2107,7 @@ AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 10)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
@@ -1716,7 +2132,7 @@ AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "👤 " .. p.Name, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "👤 " .. p.Name, Enum.Font.GothamBold, 9)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
@@ -1749,377 +2165,18 @@ PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.U
 PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
 UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
 
--- [JUMP REQUEST LOGIC CHO INF JUMP]
-UserInputService.JumpRequest:Connect(function()
-    if _G.Config.InfJump then
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+Players.PlayerRemoving:Connect(function(p)
+    local function CleanupHitboxAttributes(hrp)
+        if hrp and hrp:GetAttribute("ArisHitboxActive") then hrp:SetAttribute("ArisHitboxActive", nil) hrp.Transparency = 1 hrp.CanCollide = true end
     end
+    local function CleanupESP(playerName)
+        if ESP_Store[playerName]then pcall(function() if ESP_Store[playerName].BoxBill then ESP_Store[playerName].BoxBill:Destroy() end; if ESP_Store[playerName].TextBill then ESP_Store[playerName].TextBill:Destroy() end end) ESP_Store[playerName]=nil end
+        local plr = Players:FindFirstChild(playerName)
+        if plr and plr.Character then
+            if plr.Character:FindFirstChild("ArisHL") then plr.Character.ArisHL:Destroy() end
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then if hrp:FindFirstChild("ArisHitboxBox") then hrp.ArisHitboxBox:Destroy() end CleanupHitboxAttributes(hrp) end
+        end
+    end
+    CleanupESP(p.Name)
 end)
-
-task.spawn(function()
-    local RunService = game:GetService("RunService")
-    while true do
-        RunService.Heartbeat:Wait() 
-        if _G.Config.FastM1 then
-            pcall(function()
-                local char = LocalPlayer.Character
-                if not char then return end
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-                
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool then
-                    local remote = tool:FindFirstChild("LeftClickRemote") or tool:FindFirstChild("RemoteFunction") or tool:FindFirstChild("RemoteEvent")
-                    
-                    if remote then
-                        local direction = Vector3.new(0, -0.9, 0.03)
-                        
-                        if _G.Config.AutoChangeVector then
-                            local nearest = nil
-                            local shortest = 20
-                            
-                            for _, p in ipairs(Players:GetPlayers()) do
-                                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-                                    local dist = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
-                                    if dist <= shortest then
-                                        shortest = dist
-                                        nearest = p.Character.HumanoidRootPart
-                                    end
-                                end
-                            end
-                            
-                            for npc, _ in pairs(CachedNPCs) do
-                                if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-                                    local dist = (npc.HumanoidRootPart.Position - hrp.Position).Magnitude
-                                    if dist <= shortest then
-                                        shortest = dist
-                                        nearest = npc.HumanoidRootPart
-                                    end
-                                end
-                            end
-                            
-                            if nearest then
-                                local dirToTarget = (nearest.Position - hrp.Position).Unit
-                                direction = Vector3.new(dirToTarget.X, -0.9, dirToTarget.Z).Unit
-                            end
-                        end
-
-                        for i = 1, 17 do
-                            if remote:IsA("RemoteEvent") then
-                                remote:FireServer(Vector3.new(direction.X, direction.Y, direction.Z), 1)
-                            elseif remote:IsA("RemoteFunction") then
-                                task.spawn(function()
-                                    remote:InvokeServer()
-                                end)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
-    -- [WALK ON WATER LOGIC]
-    if _G.Config.WalkOnWater and hrp then
-        if hrp.Position.Y >= 9.5 and hrp.Velocity.Y <= 0 then
-            local waterPart = workspace:FindFirstChild("ArisWaterPlatform")
-            if not waterPart then
-                waterPart = Instance.new("Part", workspace)
-                waterPart.Name = "ArisWaterPlatform"
-                waterPart.Size = Vector3.new(20, 1, 20)
-                waterPart.Transparency = 1
-                waterPart.Anchored = true
-                waterPart.CanCollide = true
-                waterPart.CanQuery = false
-            end
-            waterPart.CFrame = CFrame.new(hrp.Position.X, 9.2, hrp.Position.Z)
-        else
-            if workspace:FindFirstChild("ArisWaterPlatform") then workspace.ArisWaterPlatform:Destroy() end
-        end
-    else
-        if workspace:FindFirstChild("ArisWaterPlatform") then workspace.ArisWaterPlatform:Destroy() end
-    end
-
-    -- [SILENT AIM FOV & TRACER RENDER LOGIC]
-    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    if _G.Config.SilentAim then
-        if FOVCircle then
-            FOVCircle.Position = screenCenter
-            FOVCircle.Radius = _G.Config.FOV_Radius
-            FOVCircle.Visible = true
-        end
-        
-        SilentAimTarget = GetClosestPlayerForAim()
-        
-        if SilentAimTarget then
-            local rgb = GetRGB() -- Lấy màu Gradient RGB
-            if FOVCircle then FOVCircle.Color = rgb end
-            if TracerLine then
-                local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
-                if targetOnScreen then
-                    local startX, startY
-                    if hrp then
-                        local myPos, myOnScreen = Camera:WorldToViewportPoint(hrp.Position)
-                        startX = myOnScreen and myPos.X or screenCenter.X
-                        startY = myOnScreen and myPos.Y or Camera.ViewportSize.Y
-                    else
-                        startX = screenCenter.X; startY = Camera.ViewportSize.Y
-                    end
-                    TracerLine.From = Vector2.new(startX, startY)
-                    TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
-                    TracerLine.Color = rgb -- Đồng bộ Tracer với màu ESP Player
-                    TracerLine.Visible = true
-                else
-                    TracerLine.Visible = false
-                end
-            end
-        else
-            if FOVCircle then FOVCircle.Color = Color3.fromRGB(255, 255, 255) end
-            if TracerLine then TracerLine.Visible = false end
-        end
-    else
-        SilentAimTarget = nil
-        if FOVCircle then FOVCircle.Visible = false end
-        if TracerLine then TracerLine.Visible = false end
-    end
-end)
-
-RunService.Heartbeat:Connect(function(dt)
-    if _G.Config.SafeMode and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hum and hrp and hum.Health > 0 then
-            local hpPct = hum.Health / hum.MaxHealth
-            
-            if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
-                _G.IsFleeing = true
-                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
-                if currentTween then currentTween:Cancel() end
-                if not noclipConnection then toggleNoclip(true) end
-            end
-            
-            if _G.IsFleeing then
-                if currentTween then currentTween:Cancel() end
-                if not noclipConnection then toggleNoclip(true) end
-                
-                hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
-                
-                if hpPct > 0.65 then
-                    _G.IsFleeing = false
-                    _G.IsReturning = true
-                end
-            elseif _G.IsReturning then
-                if currentTween then currentTween:Cancel() end
-                if not noclipConnection then toggleNoclip(true) end
-                
-                hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
-                
-                if hrp.Position.Y <= 150 then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
-                    _G.IsReturning = false
-                    if noclipConnection and not isFarming then toggleNoclip(false) end
-                end
-            end
-        end
-    else
-        _G.IsFleeing = false
-        _G.IsReturning = false
-    end
-
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if myRoot then
-        if _G.Config.AutoDrop and not _G.Config.SafeMode then
-            if myRoot.Position.Y > 40000 and not _G.IsFleeing and not _G.IsReturning then
-                _G.IsForcedDropping = true
-            end
-        end
-        
-        if _G.IsForcedDropping then
-            if currentTween then currentTween:Cancel() end
-            if not noclipConnection then toggleNoclip(true) end
-            
-            myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
-            if myRoot.Position.Y <= 150 then
-                myRoot.CFrame = CFrame.new(myRoot.Position.X, 150, myRoot.Position.Z)
-                _G.IsForcedDropping = false
-                if noclipConnection and not isFarming then toggleNoclip(false) end
-            end
-        end
-    end
-
-    local rgb = GetRGB()
-    local shift = tick() * 0.15
-
-    local seqOn = GetMovingColorSequence(Palettes.On, shift)
-    local seqOff = GetMovingColorSequence(Palettes.Off, shift)
-    local seqText = GetMovingColorSequence(Palettes.Text, shift * 1.5)
-    local seqBorder = GetMovingColorSequence(Palettes.Border, shift * 1.8)
-
-    for _, grad in ipairs(UIGradientList) do grad.Color = seqBorder end
-    for _, grad in ipairs(TextGradientList) do if not grad:GetAttribute("CustomOnColor") then grad.Color = seqText end end
-    for _, grad in ipairs(BtnGradientList) do if grad.Parent and grad.Parent:GetAttribute("IsOn") then grad.Color = seqOn else grad.Color = seqOff end end
-
-    local hasLowHPEnemy = false
-    if _G.Config.Hitbox_P and _G.Config.LowHP_KS and myRoot then
-        for _, p in Players:GetPlayers() do
-            if p == LocalPlayer then continue end
-            if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then continue end
-            local char = p.Character local hum = char and char:FindFirstChild("Humanoid") local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if char and hum and hrp and hum.Health > 0 then
-                local dist = (hrp.Position - myRoot.Position).Magnitude
-                if dist <= 2000 and (hum.Health / hum.MaxHealth) <= 0.3 then hasLowHPEnemy = true; break end
-            end
-        end
-    end
-
-    for _,p in Players:GetPlayers()do
-        if p==LocalPlayer then continue end
-        local char=p.Character local hrp=char and char:FindFirstChild("HumanoidRootPart") local hum=char and char:FindFirstChild("Humanoid")
-        local isTeammate = (_G.Config.TeamCheck and p.Team ~= nil and p.Team == LocalPlayer.Team)
-
-        if not char or not hrp or not hum or hum.Health<=0 or isTeammate then
-            CleanupHitboxAttributes(hrp); CleanupESP(p.Name); continue
-        end
-
-        local hp_percent = hum.Health / hum.MaxHealth
-        local dist = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
-        local hitboxShouldEnable = false
-        
-        if _G.Config.Hitbox_P then
-            if _G.Config.LowHP_KS then
-                if hasLowHPEnemy then if hp_percent <= 0.3 then hitboxShouldEnable = true end else if dist <= 2000 then hitboxShouldEnable = true end end
-            else hitboxShouldEnable = true end
-        end
-
-        if hitboxShouldEnable then
-            local valid = true
-            if _G.Config.Hitbox_WallCheck then
-                local rp = RaycastParams.new(); rp.FilterDescendantsInstances = {LocalPlayer.Character}; rp.FilterType = Enum.RaycastFilterType.Exclude
-                local rr = Workspace:Raycast(Camera.CFrame.Position, (hrp.Position - Camera.CFrame.Position), rp)
-                if rr and rr.Instance and not rr.Instance:IsDescendantOf(char) then valid = false end
-            end
-
-            if valid then
-                local targetSize = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
-                if hrp.Size ~= targetSize then hrp.Size = targetSize end
-                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
-                if hrp.CanCollide ~= false then hrp.CanCollide = false end
-                hrp:SetAttribute("ArisHitboxActive", true)
-            else CleanupHitboxAttributes(hrp) end
-        else CleanupHitboxAttributes(hrp) end
-
-        local hl = char:FindFirstChild("ArisHL")
-        if _G.Config.ESP_Chams_P then
-            if not hl then hl = Instance.new("Highlight", char); hl.Name = "ArisHL" end hl.FillColor = rgb; hl.Enabled = true
-        else if hl then hl:Destroy() end end
-
-        local hbBox = hrp:FindFirstChild("ArisHitboxBox")
-        if hrp:GetAttribute("ArisHitboxActive") and _G.Config.Hitbox_Box then
-            if not hbBox then hbBox = Instance.new("SelectionBox", hrp); hbBox.Name = "ArisHitboxBox"; hbBox.Adornee = hrp end hbBox.SurfaceColor3 = rgb
-        else if hbBox then hbBox:Destroy() end end
-
-        if _G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_Box_P or _G.Config.ESP_PVP then
-            if not ESP_Store[p.Name] then
-                local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4.2,0,5.8,0); boxBill.AlwaysOnTop = true
-                local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1
-                Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 16)
-                local outS = Instance.new("UIStroke", outF); outS.Thickness = 2.5; outS.Color = Color3.new(1,1,1)
-                local grad = Instance.new("UIGradient", outS)
-                grad.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(0.35, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.65, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
-                local cDot = Instance.new("Frame", boxBill); cDot.Size = UDim2.new(0,4,0,4); cDot.Position = UDim2.new(0.5,-2,0.5,-2); cDot.BackgroundColor3 = Color3.fromRGB(0,230,255); cDot.BorderSizePixel=0; Instance.new("UICorner", cDot).CornerRadius = UDim.new(1,0)
-                local hLine = Instance.new("Frame", boxBill); hLine.Size = UDim2.new(0.5,0,0,1); hLine.Position = UDim2.new(0.25,0,0.5,0); hLine.BackgroundColor3 = Color3.new(1,1,1); hLine.BackgroundTransparency = 0.5; hLine.BorderSizePixel=0
-                local vLine = Instance.new("Frame", boxBill); vLine.Size = UDim2.new(0,1,0.5,0); vLine.Position = UDim2.new(0.5,0,0.25,0); vLine.BackgroundColor3 = Color3.new(1,1,1); vLine.BackgroundTransparency = 0.5; vLine.BorderSizePixel=0
-                
-                local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0,200,0,60); textB.StudsOffset = Vector3.new(0,3.5,0); textB.AlwaysOnTop = true
-                local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12 
-                txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
-                txt.RichText = true
-                ESP_Store[p.Name]={BoxBill=boxBill, Grad=grad, TextBill=textB, Text=txt}
-            end
-            local s=ESP_Store[p.Name]
-            s.BoxBill.Adornee = hrp; s.TextBill.Adornee = char:FindFirstChild("Head") or hrp
-            local isHitboxActive = hrp:GetAttribute("ArisHitboxActive") == true
-            s.BoxBill.Enabled = _G.Config.ESP_Box_P or (isHitboxActive and _G.Config.ESP_2D_Hitbox)
-            if s.Grad then s.Grad.Rotation = (tick() * 150) % 360 end
-            if isHitboxActive and _G.Config.ESP_2D_Hitbox then s.BoxBill.Size = UDim2.new(_G.Config.HitboxSize, 0, _G.Config.HitboxSize, 0) else s.BoxBill.Size = UDim2.new(4.2, 0, 5.8, 0) end
-         
-            local espLines = {}
-            if _G.Config.ESP_Name_P then table.insert(espLines, p.Name) end
-            if _G.Config.ESP_Health_P then table.insert(espLines, "HP: "..math.floor(hum.Health)) end
-            if _G.Config.ESP_Distance_P and (dist ~= math.huge) then table.insert(espLines, "Dist: "..math.floor(dist).."m") end
-            if _G.Config.ESP_PVP then
-                if GetTrueStatus(p) then
-                    table.insert(espLines, "Status: <font color='#00A2FF'>PVP ON</font>")
-                else
-                    table.insert(espLines, "Status: <font color='#A0A0A0'>PVP OFF</font>")
-                end
-            end
-            s.Text.Text = table.concat(espLines, "\n")
-            s.Text.TextColor3 = GetHealthColor(hp_percent)
-            s.TextBill.Enabled = (_G.Config.ESP_Name_P or _G.Config.ESP_Health_P or _G.Config.ESP_Distance_P or _G.Config.ESP_PVP)
-        else CleanupESP(p.Name) end
-    end
-
-    for obj in pairs(CachedNPCs) do
-        if not obj.Parent then CachedNPCs[obj] = nil; CleanupNPC(obj); continue end
-        local hum = obj:FindFirstChild("Humanoid") local hrp = obj:FindFirstChild("HumanoidRootPart")
-        if hum and hrp and hum.Health > 0 then
-            local distToNPC = myRoot and (hrp.Position - myRoot.Position).Magnitude or math.huge
-            if distToNPC > MAX_NPC_RENDER_DISTANCE then
-                CleanupNPC(obj)
-                continue
-            end
-
-            if _G.Config.Hitbox_NPC then
-                local targetSizeNPC = Vector3.new(_G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC, _G.Config.HitboxSize_NPC)
-                if hrp.Size ~= targetSizeNPC then hrp.Size = targetSizeNPC end
-                if hrp.Transparency ~= 0.6 then hrp.Transparency = 0.6 end
-                if hrp.CanCollide ~= false then hrp.CanCollide = false end
-                hrp:SetAttribute("ArisHitboxActiveNPC", true)
-            else CleanupHitboxAttributesNPC(hrp) end
-
-            local hbBoxNPC = hrp:FindFirstChild("ArisHitboxBoxNPC")
-            if hrp:GetAttribute("ArisHitboxActiveNPC") and _G.Config.Hitbox_Box_NPC then
-                if not hbBoxNPC then hbBoxNPC = Instance.new("SelectionBox", hrp); hbBoxNPC.Name = "ArisHitboxBoxNPC"; hbBoxNPC.Adornee = hrp end hbBoxNPC.SurfaceColor3 = rgb
-            else if hbBoxNPC then hbBoxNPC:Destroy() end end
-
-            local hlNPC = obj:FindFirstChild("ArisHL_NPC")
-            if _G.Config.ESP_NPC_Chams then
-                if not hlNPC then hlNPC = Instance.new("Highlight", obj); hlNPC.Name = "ArisHL_NPC" end hlNPC.FillColor = rgb; hlNPC.Enabled = true
-            else if hlNPC then hlNPC:Destroy() end end
-
-            if _G.Config.ESP_NPC_Name or _G.Config.ESP_NPC_Box then
-                if not NPC_Store[obj] then
-                    local textB = Instance.new("BillboardGui", ScreenGui); textB.Size = UDim2.new(0, 200, 0, 60); textB.StudsOffset = Vector3.new(0, 3.5, 0); textB.AlwaysOnTop = true
-                    local txt = Instance.new("TextLabel", textB); txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.GothamBold; txt.TextSize = 12 txt.TextStrokeTransparency = 0; txt.TextStrokeColor3 = Color3.new(0, 0, 0)
-                    local boxBill = Instance.new("BillboardGui", ScreenGui); boxBill.Size = UDim2.new(4,0,5.5,0); boxBill.AlwaysOnTop = true
-                    local outF = Instance.new("Frame", boxBill); outF.Size = UDim2.new(1,0,1,0); outF.BackgroundTransparency = 1 Instance.new("UICorner", outF).CornerRadius = UDim.new(0, 6)
-                    local inS = Instance.new("UIStroke", outF); inS.Thickness = 1.5; inS.Color = Color3.new(1,1,1)
-                    NPC_Store[obj] = {Bill = textB, Text = txt, BoxBill = boxBill, InStroke = inS}
-                end
-                local ns = NPC_Store[obj]
-                ns.Bill.Adornee = obj:FindFirstChild("Head") or hrp
-                ns.Text.Text = "NPC: " .. obj.Name .. "\nHP: " .. math.floor(hum.Health)
-                ns.Text.TextColor3 = rgb
-                ns.Bill.Enabled = _G.Config.ESP_NPC_Name
-                
-                local isHitboxActiveNPC = hrp:GetAttribute("ArisHitboxActiveNPC") == true
-                ns.BoxBill.Adornee = hrp
-                ns.InStroke.Color = rgb
-                ns.BoxBill.Enabled = _G.Config.ESP_NPC_Box or (isHitboxActiveNPC and _G.Config.ESP_2D_Hitbox)
-
-                if isHitboxActiveNPC and _G.Config.ESP_2D_Hitbox then ns.BoxBill.Size = UDim2.new(_G.Config.HitboxSize_NPC, 0, _G.Config.HitboxSize_NPC, 0) else ns.BoxBill.Size = UDim2.new(4, 0, 5.5, 0) end
-            else
-                if NPC_Store[obj] then if NPC_Store[obj].Bill then NPC_Store[obj].Bill:Destroy() end if NPC_Store[obj].BoxBill then NPC_Store[obj].BoxBill:Destroy() end NPC_Store[obj] = nil end
-            end
-        else CleanupNPC(obj) end
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(p) CleanupESP(p.Name) end)
