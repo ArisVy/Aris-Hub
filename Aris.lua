@@ -10,8 +10,8 @@ local TweenService = game:GetService("TweenService")
 local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V1.0 + CUSTOM FOV",
-    Text="CẬP NHẬT: Silent Aim Slider, Giao diện NULL mới!",
+    Title="ARIS HUB V1.0 - ENGLISH",
+    Text="UPDATE: Silent Aim Float, Synced Tracer!",
     Duration=8
 })
 
@@ -60,7 +60,10 @@ _G.Config={
     InfJump = false,
     WalkOnWater = false,
     SilentAim = false,
-    FOV_Radius = 150
+    FOV_Radius = 1000, -- [AUTO SET TO 1000]
+    SilentAim_ShowFloat = true, -- Float button toggle
+    SilentAim_FloatX = 70,
+    SilentAim_FloatY = 30
 }
 
 _G.WalkSpeed = 77
@@ -102,6 +105,9 @@ if CoreGui:FindFirstChild("ArisHUB_PRO") then
 end
 if CoreGui:FindFirstChild("ArisFloatToggle") then
     CoreGui.ArisFloatToggle:Destroy()
+end
+if CoreGui:FindFirstChild("ArisSAFloatToggle") then
+    CoreGui.ArisSAFloatToggle:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -630,7 +636,7 @@ ApplyToggleGradient(SafeBtn, _G.Config.SafeMode) CreateBorder(SafeBtn) CreateBut
 SafeBtn.MouseButton1Click:Connect(function()
     _G.Config.SafeMode = not _G.Config.SafeMode
     ApplyToggleGradient(SafeBtn, _G.Config.SafeMode)
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "BẬT: Tele 100km khi HP <35%!" or "Đã TẮT!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="SAFE MODE", Text=_G.Config.SafeMode and "ON: Tele 100km when HP <35%!" or "TURNED OFF!", Duration=3 })
 end)
 
 local Btn75K = Instance.new("TextButton",MainFrame)
@@ -647,7 +653,7 @@ Btn75K.MouseButton1Click:Connect(function()
     if hrp then
         if currentTween then currentTween:Cancel() end
         hrp.CFrame = CFrame.new(hrp.Position.X, 75000, hrp.Position.Z)
-        game:GetService("StarterGui"):SetCore("SendNotification", { Title="TELEPORT", Text="Bay thẳng lên Y: 75,000!", Duration=3 })
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="TELEPORT", Text="Teleported straight to Y: 75,000!", Duration=3 })
     end
 end)
 
@@ -662,7 +668,7 @@ ApplyToggleGradient(DropBtn, _G.Config.AutoDrop) CreateBorder(DropBtn) CreateBut
 DropBtn.MouseButton1Click:Connect(function()
     _G.Config.AutoDrop = not _G.Config.AutoDrop
     ApplyToggleGradient(DropBtn, _G.Config.AutoDrop)
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="DROP MODE", Text=_G.Config.AutoDrop and "BẬT: Ép rớt xuống khi kẹt trên trời (SAFE TẮT)!" or "Đã TẮT!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="DROP MODE", Text=_G.Config.AutoDrop and "ON: Force drop when stuck in sky (SAFE OFF)!" or "TURNED OFF!", Duration=3 })
 end)
 
 local Title = Instance.new("TextLabel",MainFrame)
@@ -784,7 +790,7 @@ end
 AddToggle("Hitbox","HITBOX PLAYER","Hitbox_P")
 AddAdjust("Hitbox","HITBOX SIZE","HitboxSize",10)
 AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
-AddToggle("Hitbox","ESP 2D THEO HITBOX","ESP_2D_Hitbox") 
+AddToggle("Hitbox","ESP 2D BASED HITBOX","ESP_2D_Hitbox") 
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
 local dualRowMisc = Instance.new("Frame", ContentFrames["Misc"].Frame)
@@ -823,7 +829,7 @@ pvpCBtn.MouseButton1Click:Connect(function()
 end)
 
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
-AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
+AddToggle("Misc","SHOW FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
@@ -892,8 +898,85 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
+-- [FLOAT BUTTON FOR SILENT AIM]
+local saFloatGui = Instance.new("ScreenGui", CoreGui)
+saFloatGui.Name = "ArisSAFloatToggle"
+saFloatGui.ResetOnSpawn = false
+saFloatGui.DisplayOrder = 1000
+saFloatGui.Enabled = _G.Config.SilentAim_ShowFloat
+
+local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
+local saFloatBtn = Instance.new("TextButton", saFloatGui)
+saFloatBtn.Size = UDim2.new(0, 130, 0, 40)
+saFloatBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+saFloatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+saFloatBtn.Text = ""
+saFloatBtn.AutoButtonColor = false
+saFloatBtn.Active = false
+saFloatBtn.Draggable = false
+Instance.new("UICorner", saFloatBtn).CornerRadius = UDim.new(1, 0)
+ApplyButtonAnimation(saFloatBtn)
+
+local saBtnGradient = Instance.new("UIGradient", saFloatBtn)
+saBtnGradient.Color = cyanPinkColors
+saBtnGradient.Enabled = false
+
+local saFloatStroke = Instance.new("UIStroke", saFloatBtn)
+saFloatStroke.Thickness = 2.5
+saFloatStroke.Color = Color3.fromRGB(255, 255, 255)
+saFloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local saStrokeGradient = Instance.new("UIGradient", saFloatStroke)
+saStrokeGradient.Color = cyanPinkColors
+
+local saFloatText = Instance.new("TextLabel", saFloatBtn)
+saFloatText.Size = UDim2.new(1, 0, 1, 0)
+saFloatText.BackgroundTransparency = 1
+saFloatText.Text = "Silent Aim : OFF"
+saFloatText.TextColor3 = Color3.fromRGB(255, 255, 255)
+saFloatText.TextSize = 13
+saFloatText.Font = Enum.Font.GothamBold
+local saTextGradient = Instance.new("UIGradient", saFloatText)
+saTextGradient.Color = cyanPinkColors
+saTextGradient.Enabled = true
+
+local function UpdateSAFloatPosition() 
+    saFloatBtn.Position = UDim2.new(_G.Config.SilentAim_FloatX / 100, 0, _G.Config.SilentAim_FloatY / 100, 0) 
+end
+UpdateSAFloatPosition()
+
+local function RefreshSAFloatBtn()
+    if _G.Config.SilentAim then
+        saFloatText.Text = "Silent Aim : ON"
+        saBtnGradient.Enabled = true
+        saFloatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        saTextGradient.Enabled = false
+        saFloatText.TextColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        saFloatText.Text = "Silent Aim : OFF"
+        saBtnGradient.Enabled = false
+        saFloatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        saTextGradient.Enabled = true
+        saFloatText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+    
+    local saMainBtn = ToggleButtons["SilentAim"]
+    if saMainBtn then
+        saMainBtn.Txt.Text = "SILENT AIM FOV: " .. (_G.Config.SilentAim and "ON" or "OFF")
+        ApplyToggleGradient(saMainBtn.Btn, _G.Config.SilentAim)
+    end
+end
+
+saFloatBtn.MouseButton1Click:Connect(function()
+    _G.Config.SilentAim = not _G.Config.SilentAim
+    RefreshSAFloatBtn()
+    local ts = game:GetService("TweenService")
+    ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play()
+    task.wait(0.1)
+    ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
+end)
+
 -- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
-AddToggle("NULL","SILENT AIM FOV", "SilentAim")
+AddToggle("NULL","SILENT AIM FOV", "SilentAim", RefreshSAFloatBtn)
 
 local NullContent = ContentFrames["NULL"].Frame
 local FOVContainer = Instance.new("Frame", NullContent) 
@@ -975,6 +1058,10 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
+AddToggle("NULL", "SHOW SILENT AIM FLOAT", "SilentAim_ShowFloat", function(v) saFloatGui.Enabled = v end)
+AddAdjust("NULL", "FLOAT POS X (%)", "SilentAim_FloatX", 5, 0, 100, UpdateSAFloatPosition)
+AddAdjust("NULL", "FLOAT POS Y (%)", "SilentAim_FloatY", 5, 0, 100, UpdateSAFloatPosition)
+
 AddToggle("NULL","FAST M1 (LOGIC LOOP)","FastM1")
 AddToggle("NULL","AUTO CHANGE VECTOR","AutoChangeVector")
 AddToggle("NULL","INFINITE JUMP", "InfJump")
@@ -997,7 +1084,7 @@ local function createModeBtn(text, posScale, modeStr)
     local btn = Instance.new("TextButton", ModeFrame) btn.Size = UDim2.new(0.25, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16) CreateBorder(btn) local txt = CreateButtonText(btn, text, Enum.Font.GothamBold, 12) ApplyButtonAnimation(btn)
     local function UpdateState() ApplyToggleGradient(btn, _G.Config.Desync_Mode == modeStr) end UpdateState()
     btn.MouseButton1Click:Connect(function()
-        if desyncState then game:GetService("StarterGui"):SetCore("SendNotification",{ Title="CẢNH BÁO", Text="Vui lòng TẮT Desync trước khi đổi chế độ!", Duration=2 }) return end
+        if desyncState then game:GetService("StarterGui"):SetCore("SendNotification",{ Title="WARNING", Text="Please turn OFF Desync before changing mode!", Duration=2 }) return end
         _G.Config.Desync_Mode = modeStr
         for _, child in ipairs(ModeFrame:GetChildren()) do if child:IsA("TextButton") then ApplyToggleGradient(child, child:GetAttribute("ModeStr") == _G.Config.Desync_Mode) end end
         if RefreshFloatBtn then RefreshFloatBtn() end
@@ -1007,12 +1094,11 @@ end
 createModeBtn("Normal", 0.22, "Normal") createModeBtn("Fast", 0.49, "Fast") createModeBtn("Fix", 0.76, "Fix")
 
 local floatGui = Instance.new("ScreenGui", CoreGui) floatGui.Name = "ArisFloatToggle" floatGui.ResetOnSpawn = false floatGui.DisplayOrder = 1000 floatGui.Enabled = _G.Config.Desync_ShowFloat
-local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
 local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 130, 0, 40) floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
 local btnGradient = Instance.new("UIGradient", floatBtn) btnGradient.Color = cyanPinkColors btnGradient.Enabled = false
 local floatStroke = Instance.new("UIStroke", floatBtn) floatStroke.Thickness = 2.5 floatStroke.Color = Color3.fromRGB(255, 255, 255) floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 local strokeGradient = Instance.new("UIGradient", floatStroke) strokeGradient.Color = cyanPinkColors
-local floatText = Instance.new("TextLabel", floatBtn) floatText.Size = UDim2.new(1, 0, 1, 0) floatText.BackgroundTransparency = 1 floatText.Text = "DeSync : Off" floatText.TextColor3 = Color3.fromRGB(255, 255, 255) floatText.TextSize = 13 floatText.Font = Enum.Font.GothamBold
+local floatText = Instance.new("TextLabel", floatBtn) floatText.Size = UDim2.new(1, 0, 1, 0) floatText.BackgroundTransparency = 1 floatText.Text = "DeSync : OFF" floatText.TextColor3 = Color3.fromRGB(255, 255, 255) floatText.TextSize = 13 floatText.Font = Enum.Font.GothamBold
 local textGradient = Instance.new("UIGradient", floatText) textGradient.Color = cyanPinkColors textGradient.Enabled = true
 
 local function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Desync_FloatX / 100, 0, _G.Config.Desync_FloatY / 100, 0) end UpdateFloatPosition()
@@ -1022,7 +1108,7 @@ RefreshFloatBtn = function()
         floatText.Text = "N/A ⚠️" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
     end
     strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
-    if desyncState then floatText.Text = "DeSync : On" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : Off" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
+    if desyncState then floatText.Text = "DeSync : ON" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : OFF" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
 end
 
 floatBtn.MouseButton1Click:Connect(function()
@@ -1045,9 +1131,9 @@ floatBtn.MouseButton1Click:Connect(function()
 end)
 
 AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
-AddToggle("Desync", "HIỆN NÚT DESYNC NỔI", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
-AddAdjust("Desync", "TỌA ĐỘ X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
-AddAdjust("Desync", "TỌA ĐỘ Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
+AddToggle("Desync", "SHOW DESYNC FLOAT BTN", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
+AddAdjust("Desync", "POS X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
+AddAdjust("Desync", "POS Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
 
 local ESP_Store={} local NPC_Store={} local CachedNPCs = {}
 
@@ -1283,23 +1369,23 @@ tpSelNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
 CreateBorder(tpSelNPCBtn)
-local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "🎯 BẬT TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "🎯 ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelNPCBtn)
-ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "🎯 BẬT TP"}
+ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "🎯 ENABLE TP"}
 
 tpSelNPCBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_NPC = not _G.Config.TP_NPC
     ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
-    tpSelNPCTxt.Text = "🎯 BẬT TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
+    tpSelNPCTxt.Text = "🎯 ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
     if _G.Config.TP_NPC then
         _G.Config.TP_Player = false
         local b = ToggleButtons["TP_Player"]
-        if b then b.Txt.Text = "🎯 BẬT TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "🎯 ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipNPC = {}
         if not _G.Config.TP_NPC then currentTarget = nil if currentTween then currentTween:Cancel() end end
-        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Đã xóa danh sách NPC bị bỏ qua!", Duration=3 })
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Cleared skipped NPC list!", Duration=3 })
     end
 end)
 
@@ -1318,12 +1404,12 @@ skipNPCBtn.MouseButton1Click:Connect(function()
         TempSkipNPC[currentTarget.Parent] = true 
         currentTarget = nil 
         if currentTween then currentTween:Cancel() end 
-        game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP NPC", Text="Đã tạm thời bỏ qua NPC này!", Duration=3 }) 
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP NPC", Text="Temporarily skipped this NPC!", Duration=3 }) 
     end
 end)
 
-AddAdjust("TP NPC", "ĐỘ CAO (Y)", "TP_Height", 5) 
-AddAdjust("TP NPC", "TỐC ĐỘ BAY", "TP_Speed", 50)
+AddAdjust("TP NPC", "HEIGHT (Y)", "TP_Height", 5) 
+AddAdjust("TP NPC", "FLY SPEED", "TP_Speed", 50)
 
 local speed1kNPCFrame = Instance.new("Frame", tpNPCTab)
 speed1kNPCFrame.Size = UDim2.new(1, -16, 0, 36)
@@ -1373,7 +1459,7 @@ end)
 local SelectedNPCLabel = Instance.new("TextLabel", tpNPCTab)
 SelectedNPCLabel.Size = UDim2.new(1, -16, 0, 25)
 SelectedNPCLabel.BackgroundTransparency = 1
-SelectedNPCLabel.Text = "Đang chọn: Tự động (Gần nhất)"
+SelectedNPCLabel.Text = "Target: Auto (Nearest)"
 SelectedNPCLabel.Font = Enum.Font.GothamBold
 SelectedNPCLabel.TextSize = 13
 CreateTextGradient(SelectedNPCLabel)
@@ -1389,7 +1475,7 @@ nListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     NPCListContainer.Size = UDim2.new(1, -16, 0, nListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP NPC", "🔄 LÀM MỚI DANH SÁCH NPC", function()
+AddButton("TP NPC", "🔄 REFRESH NPC LIST", function()
     for _, child in ipairs(NPCListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1402,12 +1488,12 @@ AddButton("TP NPC", "🔄 LÀM MỚI DANH SÁCH NPC", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetNPC == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "🎯 Tự động", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
         _G.Config.SelectedTargetNPC = nil
-        SelectedNPCLabel.Text = "Đang chọn: Tự động (Gần nhất)"
+        SelectedNPCLabel.Text = "Target: Auto (Nearest)"
         for _, child in ipairs(NPCListContainer:GetChildren()) do
             if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
         end
@@ -1437,7 +1523,7 @@ AddButton("TP NPC", "🔄 LÀM MỚI DANH SÁCH NPC", function()
         
         btn.MouseButton1Click:Connect(function()
             _G.Config.SelectedTargetNPC = npcName
-            SelectedNPCLabel.Text = "Đang chọn: " .. npcName
+            SelectedNPCLabel.Text = "Target: " .. npcName
             for _, child in ipairs(NPCListContainer:GetChildren()) do
                 if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
             end
@@ -1445,7 +1531,7 @@ AddButton("TP NPC", "🔄 LÀM MỚI DANH SÁCH NPC", function()
             txt.TextColor3 = Color3.fromRGB(0,0,0)
         end)
     end
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " loại NPC!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LIST REFRESHED", Text="Loaded " .. count .. " NPC types!", Duration=3 })
 end)
 
 local BlacklistContainer = Instance.new("Frame", tpNPCTab) 
@@ -1456,7 +1542,7 @@ blLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
 blLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
 blLayout.SortOrder = Enum.SortOrder.LayoutOrder
 blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
-AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
+AddButton("TP NPC", "🔄 REFRESH BLACKLIST (1KM)", function()
     for _, child in ipairs(BlacklistContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end
     local foundNPCs = {} for npc, _ in pairs(CachedNPCs) do if npc and npc.Parent then local root = npc:FindFirstChild("HumanoidRootPart") if root and (root.Position - myRoot.Position).Magnitude <= 1000 then foundNPCs[npc.Name] = true end end end
@@ -1467,7 +1553,7 @@ AddButton("TP NPC", "🔄 LÀM MỚI BLACKLIST (1KM)", function()
         local txt = CreateButtonText(btn, "🚫 BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
         btn.MouseButton1Click:Connect(function() _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName] local state = _G.Config.BlacklistedNPCs[npcName] ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1) end)
     end
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="TÌM KIẾM NPC", Text="Phát hiện " .. count .. " loại NPC trong 1km!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="NPC SEARCH", Text="Found " .. count .. " NPC types in 1km!", Duration=3 })
 end)
 
 local tpPlayerTab = ContentFrames["TP Player"].Frame
@@ -1482,23 +1568,23 @@ tpSelBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
 CreateBorder(tpSelBtn)
-local tpSelTxt = CreateButtonText(tpSelBtn, "🎯 BẬT TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelTxt = CreateButtonText(tpSelBtn, "🎯 ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelBtn)
-ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "🎯 BẬT TP"}
+ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "🎯 ENABLE TP"}
 
 tpSelBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_Player = not _G.Config.TP_Player
     ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
-    tpSelTxt.Text = "🎯 BẬT TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
+    tpSelTxt.Text = "🎯 ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
     if _G.Config.TP_Player then
         _G.Config.TP_NPC = false
         local b = ToggleButtons["TP_NPC"]
-        if b then b.Txt.Text = "🎯 BẬT TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "🎯 ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipPlayer = {}
         if not _G.Config.TP_Player then currentTarget = nil if currentTween then currentTween:Cancel() end end
-        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Đã xóa danh sách Player bị bỏ qua!", Duration=3 })
+        game:GetService("StarterGui"):SetCore("SendNotification", { Title="RESET", Text="Cleared skipped Player list!", Duration=3 })
     end
 end)
 
@@ -1519,13 +1605,13 @@ skipBtn.MouseButton1Click:Connect(function()
             TempSkipPlayer[p.Name] = true
             currentTarget = nil
             if currentTween then currentTween:Cancel() end
-            game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP PLAYER", Text="Đã bỏ qua: " .. p.Name, Duration=3 })
+            game:GetService("StarterGui"):SetCore("SendNotification", { Title="SKIP PLAYER", Text="Skipped: " .. p.Name, Duration=3 })
         end
     end
 end)
 
-AddAdjust("TP Player", "ĐỘ CAO (Y)", "TP_Height", 5) 
-AddAdjust("TP Player", "TỐC ĐỘ BAY", "TP_Speed", 50)
+AddAdjust("TP Player", "HEIGHT (Y)", "TP_Height", 5) 
+AddAdjust("TP Player", "FLY SPEED", "TP_Speed", 50)
 
 local speed1kFrame = Instance.new("Frame", tpPlayerTab)
 speed1kFrame.Size = UDim2.new(1, -16, 0, 36)
@@ -1576,7 +1662,7 @@ end)
 local SelectedPlayerLabel = Instance.new("TextLabel", ContentFrames["TP Player"].Frame)
 SelectedPlayerLabel.Size = UDim2.new(1, -16, 0, 25)
 SelectedPlayerLabel.BackgroundTransparency = 1
-SelectedPlayerLabel.Text = "Đang chọn: Tự động (Gần nhất)"
+SelectedPlayerLabel.Text = "Target: Auto (Nearest)"
 SelectedPlayerLabel.Font = Enum.Font.GothamBold
 SelectedPlayerLabel.TextSize = 13
 CreateTextGradient(SelectedPlayerLabel)
@@ -1592,7 +1678,7 @@ pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
+AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
     for _, child in ipairs(PlayerListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1605,12 +1691,12 @@ AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "🎯 Tự động", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
         _G.Config.SelectedTargetPlayer = nil
-        SelectedPlayerLabel.Text = "Đang chọn: Tự động (Gần nhất)"
+        SelectedPlayerLabel.Text = "Target: Auto (Nearest)"
         for _, child in ipairs(PlayerListContainer:GetChildren()) do
             if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
         end
@@ -1636,7 +1722,7 @@ AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
         
         btn.MouseButton1Click:Connect(function()
             _G.Config.SelectedTargetPlayer = p.Name
-            SelectedPlayerLabel.Text = "Đang chọn: " .. p.Name
+            SelectedPlayerLabel.Text = "Target: " .. p.Name
             for _, child in ipairs(PlayerListContainer:GetChildren()) do
                 if child:IsA("TextButton") then ApplyToggleGradient(child, false) end
             end
@@ -1644,18 +1730,18 @@ AddButton("TP Player", "🔄 LÀM MỚI DANH SÁCH PLAYER", function()
             txt.TextColor3 = Color3.fromRGB(0,0,0)
         end)
     end
-    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LÀM MỚI DANH SÁCH", Text="Đã tải " .. count .. " người chơi!", Duration=3 })
+    game:GetService("StarterGui"):SetCore("SendNotification", { Title="LIST REFRESHED", Text="Loaded " .. count .. " players!", Duration=3 })
 end)
 
 local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame) PredContainer.Size = UDim2.new(1, 0, 0, 115) PredContainer.BackgroundTransparency = 1
 local PredToggle = Instance.new("TextButton", PredContainer) PredToggle.Size = UDim2.new(1, -16, 0, 36) PredToggle.Text = "" PredToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) CreateBorder(PredToggle) local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(PredToggle)
 local PredSliderBg = Instance.new("Frame", PredContainer) PredSliderBg.Size = UDim2.new(1, -16, 0, 25) PredSliderBg.Position = UDim2.new(0, 0, 0, 48) PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
 local PredSliderFill = Instance.new("Frame", PredSliderBg) PredSliderFill.Size = UDim2.new(_G.Config.Prediction / 10, 0, 1, 0) PredSliderFill.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredSliderFill).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredSliderFill, true)
-local PredValLabel = Instance.new("TextLabel", PredSliderBg) PredValLabel.Size = UDim2.new(1, 0, 1, 0) PredValLabel.BackgroundTransparency = 1 PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" PredValLabel.Font = Enum.Font.GothamBold PredValLabel.TextSize = 12 CreateTextGradient(PredValLabel)
+local PredValLabel = Instance.new("TextLabel", PredSliderBg) PredValLabel.Size = UDim2.new(1, 0, 1, 0) PredValLabel.BackgroundTransparency = 1 PredValLabel.Text = "Predict Time: " .. string.format("%.1f", _G.Config.Prediction) .. "s" PredValLabel.Font = Enum.Font.GothamBold PredValLabel.TextSize = 12 CreateTextGradient(PredValLabel)
 local PredBtnFrame = Instance.new("Frame", PredContainer) PredBtnFrame.Size = UDim2.new(1, -16, 0, 32) PredBtnFrame.Position = UDim2.new(0, 0, 0, 82) PredBtnFrame.BackgroundTransparency = 1
 local function createPredBtn(text, posScale) local btn = Instance.new("TextButton", PredBtnFrame) btn.Size = UDim2.new(0.22, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, text, Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn) return btn end
 local pm1 = createPredBtn("-1", 0) local pm01 = createPredBtn("-0.1", 0.26) local pp01 = createPredBtn("+0.1", 0.52) local pp1 = createPredBtn("+1", 0.78)
-local function UpdatePred(val) _G.Config.Prediction = math.clamp(val, 0, 10) local ratio = _G.Config.Prediction / 10 PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0) PredValLabel.Text = "Thời gian đoán: " .. string.format("%.1f", _G.Config.Prediction) .. "s" end
+local function UpdatePred(val) _G.Config.Prediction = math.clamp(val, 0, 10) local ratio = _G.Config.Prediction / 10 PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0) PredValLabel.Text = "Predict Time: " .. string.format("%.1f", _G.Config.Prediction) .. "s" end
 pm1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 1) end) pm01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.1) end) pp01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.1) end) pp1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 1) end)
 PredToggle.MouseButton1Click:Connect(function() _G.Config.Prediction_Enabled = not _G.Config.Prediction_Enabled PredToggleTxt.Text = "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF") ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) end)
 local draggingPred = false
@@ -1772,7 +1858,8 @@ RunService.RenderStepped:Connect(function()
         SilentAimTarget = GetClosestPlayerForAim()
         
         if SilentAimTarget then
-            if FOVCircle then FOVCircle.Color = Color3.fromRGB(255, 0, 0) end
+            local rgb = GetRGB() -- Lấy màu Gradient RGB
+            if FOVCircle then FOVCircle.Color = rgb end
             if TracerLine then
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
                 if targetOnScreen then
@@ -1786,6 +1873,7 @@ RunService.RenderStepped:Connect(function()
                     end
                     TracerLine.From = Vector2.new(startX, startY)
                     TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
+                    TracerLine.Color = rgb -- Đồng bộ Tracer với màu ESP Player
                     TracerLine.Visible = true
                 else
                     TracerLine.Visible = false
