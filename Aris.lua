@@ -60,6 +60,7 @@ _G.Config={
     InfJump = false,
     WalkOnWater = false,
     SilentAim = false,
+    SilentAim_Nearest = false,
     SilentAim_NPC = false,
     FOV_Radius = 1000,
     SilentAim_ShowFloat = true,
@@ -271,6 +272,7 @@ local function GetClosestTargetForAim()
     local Closest = nil
     local ShortestDistance = math.huge
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     
     if _G.Config.SilentAim then
         for _, Player in next, Players:GetPlayers() do
@@ -285,12 +287,20 @@ local function GetClosestTargetForAim()
             if _G.Config.TeamCheck and Player.Team == LocalPlayer.Team then continue end
             if _G.Config.PVPCheck and not GetTrueStatus(Player) then continue end
 
-            local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
-            if onScreen then
-                local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
-                    ShortestDistance = distToFov
+            if _G.Config.SilentAim_Nearest and myRoot then
+                local distToPlayer = (RootPart.Position - myRoot.Position).Magnitude
+                if distToPlayer < ShortestDistance then
+                    ShortestDistance = distToPlayer
                     Closest = RootPart
+                end
+            else
+                local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+                if onScreen then
+                    local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                    if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                        ShortestDistance = distToFov
+                        Closest = RootPart
+                    end
                 end
             end
         end
@@ -302,12 +312,20 @@ local function GetClosestTargetForAim()
                 local Humanoid = npc:FindFirstChildOfClass("Humanoid")
                 local RootPart = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Head")
                 if Humanoid and Humanoid.Health > 0 and RootPart then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
-                    if onScreen then
-                        local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                        if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
-                            ShortestDistance = distToFov
+                    if _G.Config.SilentAim_Nearest and myRoot then
+                        local distToNPC = (RootPart.Position - myRoot.Position).Magnitude
+                        if distToNPC < ShortestDistance then
+                            ShortestDistance = distToNPC
                             Closest = RootPart
+                        end
+                    else
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+                        if onScreen then
+                            local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                            if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                                ShortestDistance = distToFov
+                                Closest = RootPart
+                            end
                         end
                     end
                 end
@@ -1026,7 +1044,8 @@ saFloatBtn.MouseButton1Click:Connect(function()
 end)
 
 -- [TAB NULL - UI]
-AddDualToggle("NULL", "SILENT AIM", "SilentAim", "AIM NPC", "SilentAim_NPC", RefreshSAFloatBtn)
+AddDualToggle("NULL", "SILENT AIM", "SilentAim", "NEAR AIM 360", "SilentAim_Nearest", RefreshSAFloatBtn)
+AddToggle("NULL", "AIM NPC", "SilentAim_NPC")
 
 local NullContent = ContentFrames["NULL"].Frame
 local FOVContainer = Instance.new("Frame", NullContent) 
@@ -1296,7 +1315,9 @@ RunService.RenderStepped:Connect(function()
             if FOVCircle then FOVCircle.Color = rgb end
             if TracerLine then
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
-                if targetOnScreen then
+                
+                -- Bỏ qua giới hạn màn hình nếu đang bật Near Aim (vẽ 360 độ)
+                if targetOnScreen or _G.Config.SilentAim_Nearest then
                     local startX, startY
                     if hrp then
                         local myPos, myOnScreen = Camera:WorldToViewportPoint(hrp.Position)
@@ -1305,6 +1326,14 @@ RunService.RenderStepped:Connect(function()
                     else
                         startX = screenCenter.X; startY = Camera.ViewportSize.Y
                     end
+                    
+                    -- Xử lý đảo ngược toạ độ nếu mục tiêu nằm sau lưng camera để tia tracer chỉ đúng hướng
+                    if not targetOnScreen and _G.Config.SilentAim_Nearest and targetPos.Z < 0 then
+                        local wrapX = targetPos.X > screenCenter.X and 0 or Camera.ViewportSize.X
+                        local wrapY = targetPos.Y > screenCenter.Y and 0 or Camera.ViewportSize.Y
+                        targetPos = Vector3.new(wrapX, wrapY, targetPos.Z)
+                    end
+
                     TracerLine.From = Vector2.new(startX, startY)
                     TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
                     TracerLine.Color = rgb 
