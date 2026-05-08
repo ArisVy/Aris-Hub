@@ -7,10 +7,11 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
+local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
-    Title="ARIS HUB V1.0 + DESYNC + TP",
-    Text="CẬP NHẬT: Auto WS 77, TP 350 & Logic Desync tối ưu!",
+    Title="ARIS HUB V1.0 + CUSTOM FOV",
+    Text="CẬP NHẬT: Silent Aim Slider, Giao diện NULL mới!",
     Duration=8
 })
 
@@ -48,18 +49,22 @@ _G.Config={
     TP_NPC = false,
     TP_Player = false,
     TP_Height = 15,
-    TP_Speed = 350, -- [MẶC ĐỊNH 350]
+    TP_Speed = 350,
     Prediction_Enabled = false,
     Prediction = 1.0,
     BlacklistedNPCs = {},
     SelectedTargetPlayer = nil,
     SelectedTargetNPC = nil,
     SafeMode = false,
-    AutoDrop = false
+    AutoDrop = false,
+    InfJump = false,
+    WalkOnWater = false,
+    SilentAim = false,
+    FOV_Radius = 150
 }
 
-_G.WalkSpeed = 77 -- [MẶC ĐỊNH 77]
-_G.WalkSpeedEnabled = true -- [TỰ ĐỘNG BẬT]
+_G.WalkSpeed = 77
+_G.WalkSpeedEnabled = true
 _G.IsFleeing = false
 _G.IsReturning = false
 _G.IsForcedDropping = false
@@ -71,6 +76,26 @@ _G.DesyncFix = false
 local TempSkipNPC = {}
 local TempSkipPlayer = {} 
 local MAX_NPC_RENDER_DISTANCE = 2500
+
+-- [SILENT AIM VARIABLES]
+local SilentAimTarget = nil
+local FOVCircle = nil
+local TracerLine = nil
+
+pcall(function()
+    FOVCircle = Drawing.new("Circle")
+    FOVCircle.Visible = false
+    FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+    FOVCircle.Thickness = 1.5
+    FOVCircle.Filled = false
+    FOVCircle.NumSides = 64
+
+    TracerLine = Drawing.new("Line")
+    TracerLine.Visible = false
+    TracerLine.Color = Color3.fromRGB(255, 0, 0)
+    TracerLine.Thickness = 2
+    TracerLine.Transparency = 1
+end)
 
 if CoreGui:FindFirstChild("ArisHUB_PRO") then
     CoreGui.ArisHUB_PRO:Destroy()
@@ -217,27 +242,121 @@ local function GetTrueStatus(target)
     local char = target.Character
     local pos = char.HumanoidRootPart.Position
 
-    if char:FindFirstChildOfClass("ForceField") then
-        return false 
-    end
+    if char:FindFirstChildOfClass("ForceField") then return false end
 
     local safeZones = workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("SafeZones")
     if safeZones then
         for _, zone in pairs(safeZones:GetChildren()) do
             if zone:IsA("Part") or zone:IsA("MeshPart") then
                 local distance = (zone.Position - pos).Magnitude
-                if distance <= (zone.Size.X / 2 + 10) or distance <= (zone.Size.Z / 2 + 10) then
-                    return false
-                end
+                if distance <= (zone.Size.X / 2 + 10) or distance <= (zone.Size.Z / 2 + 10) then return false end
             end
         end
     end
 
-    if target:GetAttribute("PvpDisabled") == true then
-        return false
-    end
+    if target:GetAttribute("PvpDisabled") == true then return false end
 
     return true
+end
+
+-- [SILENT AIM CORE LOGIC]
+local function GetClosestPlayerForAim()
+    local Closest = nil
+    local ShortestDistance = math.huge
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, Player in next, Players:GetPlayers() do
+        if Player == LocalPlayer then continue end
+        local Character = Player.Character
+        if not Character then continue end
+        
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Head")
+        
+        if not Humanoid or Humanoid.Health <= 0 or not RootPart then continue end
+        if _G.Config.TeamCheck and Player.Team == LocalPlayer.Team then continue end
+        if _G.Config.PVPCheck and not GetTrueStatus(Player) then continue end
+
+        local screenPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+        if onScreen then
+            local distToFov = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+            if distToFov <= _G.Config.FOV_Radius and distToFov < ShortestDistance then
+                ShortestDistance = distToFov
+                Closest = RootPart
+            end
+        end
+    end
+    return Closest
+end
+
+if not getgenv().Hook_Initialized_Aris then
+    getgenv().Hook_Initialized_Aris = true
+    
+    local OldNamecall
+    OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+
+        if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
+            if method == "Raycast" or string.find(method, "Ray") then
+                local raw_trace = debug.traceback()
+                local trace = raw_trace and string.lower(raw_trace) or ""
+                
+                if string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "camera") then
+                    return OldNamecall(self, ...)
+                end
+
+                local origin
+                if method == "Raycast" then
+                    origin = args[1]
+                elseif args[1] and typeof(args[1]) == "Ray" then
+                    origin = args[1].Origin
+                end
+
+                if origin and typeof(origin) == "Vector3" then
+                    if method == "Raycast" then
+                        args[2] = (SilentAimTarget.Position - origin).Unit * 1000
+                        return OldNamecall(self, unpack(args))
+                    else
+                        args[1] = Ray.new(origin, (SilentAimTarget.Position - origin).Unit * 1000)
+                        return OldNamecall(self, unpack(args))
+                    end
+                end
+            end
+        end
+        return OldNamecall(self, ...)
+    end))
+
+    local OldIndex
+    OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
+        if not _G.Config.SilentAim or not SilentAimTarget or checkcaller() or self ~= Mouse then
+            return OldIndex(self, index)
+        end
+
+        if index == "Hit" or index == "hit" or index == "Target" or index == "target" then
+            local raw_trace = debug.traceback()
+            local trace = raw_trace and string.lower(raw_trace) or ""
+            
+            if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "popper") 
+               or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual") then
+                return OldIndex(self, index)
+            end
+
+            local char = LocalPlayer.Character
+            local tool = char and char:FindFirstChildOfClass("Tool")
+            if not tool then return OldIndex(self, index) end
+
+            if index == "Hit" or index == "hit" then
+                local aimPos = SilentAimTarget.Position
+                if tool.Name == "Dragon Trident" then aimPos = aimPos - Vector3.new(0, 3, 0) end
+                return CFrame.new(aimPos)
+            elseif index == "Target" or index == "target" then
+                return SilentAimTarget
+            end
+        end
+
+        return OldIndex(self, index)
+    end))
 end
 
 local desyncState = false
@@ -274,17 +393,8 @@ local NumericFlags = {
     {"MaxAcceptableUpdateDelay","1"}
 }
 
--- [MỚI] Các hàm Set State cho Desync
-local function SetNormal(state)
-    _G.DesyncNormal = state
-    if not state then ToggleDesync(false) end
-end
-
-local function SetFast(state)
-    _G.DesyncFast = state
-    if not state then ToggleDesync(false) end
-end
-
+local function SetNormal(state) _G.DesyncNormal = state if not state then ToggleDesync(false) end end
+local function SetFast(state) _G.DesyncFast = state if not state then ToggleDesync(false) end end
 local function SetFixV2_Logic(state)
     _G.DesyncFix = state
     ToggleDesync(state)
@@ -567,23 +677,31 @@ CreateTextGradient(Title) MakeDraggable(MainFrame)
 
 ToggleBtn.MouseButton1Click:Connect(function() _G.Config.MenuOpen=not _G.Config.MenuOpen; MainFrame.Visible=_G.Config.MenuOpen end)
 
-local TabFrame = Instance.new("Frame",MainFrame)
+local TabFrame = Instance.new("ScrollingFrame",MainFrame)
 TabFrame.Size = UDim2.new(1,-10,0,35)
 TabFrame.Position = UDim2.new(0,5,0,45)
 TabFrame.BackgroundTransparency = 1
+TabFrame.ScrollBarThickness = 3
+TabFrame.ScrollingDirection = Enum.ScrollingDirection.X
+TabFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+TabFrame.BorderSizePixel = 0
 
-local Tabs = {"ESP","Hitbox","Misc","NPC","Desync", "TP NPC", "TP Player"}
+local Tabs = {"ESP","Hitbox","Misc","NPC","Desync", "TP NPC", "TP Player", "NULL"}
 local ContentFrames = {}
 
 local tabListLayout = Instance.new("UIListLayout", TabFrame)
 tabListLayout.FillDirection = Enum.FillDirection.Horizontal
 tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabListLayout.Padding = UDim.new(0, 4)
-tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    TabFrame.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 10, 0, 0)
+end)
 
 for i,tab in ipairs(Tabs)do
     local btn = Instance.new("TextButton",TabFrame)
-    btn.Size = UDim2.new(1/#Tabs, -4, 1, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,16)
+    btn.Size = UDim2.new(0, 80, 1, -5) 
+    btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner",btn).CornerRadius = UDim.new(0,16)
     ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, tab, Enum.Font.GothamBold, 10) ApplyButtonAnimation(btn)
 
     local content = Instance.new("ScrollingFrame",MainFrame) 
@@ -706,8 +824,6 @@ end)
 
 AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
 AddToggle("Misc","HIỆN FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-AddToggle("Misc","FAST M1 (LOGIC LOOP)","FastM1")
-AddToggle("Misc","AUTO CHANGE VECTOR","AutoChangeVector")
 
 local MiscContent = ContentFrames["Misc"].Frame
 local WSContainer = Instance.new("Frame", MiscContent) 
@@ -775,6 +891,94 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateWS(16 + relX * (250 - 16)) 
     end 
 end)
+
+-- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
+AddToggle("NULL","SILENT AIM FOV", "SilentAim")
+
+local NullContent = ContentFrames["NULL"].Frame
+local FOVContainer = Instance.new("Frame", NullContent) 
+FOVContainer.Size = UDim2.new(1, 0, 0, 80)
+FOVContainer.BackgroundTransparency = 1
+
+local FOVSliderBg = Instance.new("Frame", FOVContainer) 
+FOVSliderBg.Size = UDim2.new(1, -16, 0, 25) 
+FOVSliderBg.Position = UDim2.new(0, 0, 0, 5) 
+FOVSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
+Instance.new("UICorner", FOVSliderBg).CornerRadius = UDim.new(0, 20)
+
+local maxFOV = 1000
+local minFOV = 10
+
+local FOVSliderFill = Instance.new("Frame", FOVSliderBg) 
+FOVSliderFill.Size = UDim2.new((_G.Config.FOV_Radius - minFOV) / (maxFOV - minFOV), 0, 1, 0) 
+FOVSliderFill.BackgroundColor3 = Color3.new(1,1,1) 
+Instance.new("UICorner", FOVSliderFill).CornerRadius = UDim.new(0, 20) 
+ApplyToggleGradient(FOVSliderFill, true)
+
+local FOVValLabel = Instance.new("TextLabel", FOVSliderBg) 
+FOVValLabel.Size = UDim2.new(1, 0, 1, 0) 
+FOVValLabel.BackgroundTransparency = 1 
+FOVValLabel.Text = "FOV Radius: " .. math.floor(_G.Config.FOV_Radius) 
+FOVValLabel.Font = Enum.Font.GothamBold 
+FOVValLabel.TextSize = 12 
+CreateTextGradient(FOVValLabel)
+
+local FOVBtnFrame = Instance.new("Frame", FOVContainer) 
+FOVBtnFrame.Size = UDim2.new(1, -16, 0, 32) 
+FOVBtnFrame.Position = UDim2.new(0, 0, 0, 38) 
+FOVBtnFrame.BackgroundTransparency = 1
+
+local fovBtnW = 0.22 
+local fovGap = 0.04
+local function createFOVBtn(text, posScale) 
+    local btn = Instance.new("TextButton", FOVBtnFrame) 
+    btn.Size = UDim2.new(fovBtnW, 0, 1, 0) 
+    btn.Position = UDim2.new(posScale, 0, 0, 0) 
+    btn.Text = "" 
+    btn.BackgroundColor3 = Color3.new(1,1,1) 
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) 
+    ApplyToggleGradient(btn, false) 
+    CreateBorder(btn) 
+    CreateButtonText(btn, text, Enum.Font.GothamBold, 14) 
+    ApplyButtonAnimation(btn) 
+    return btn 
+end
+
+local fm100 = createFOVBtn("-100", 0) 
+local fm10 = createFOVBtn("-10", fovBtnW + fovGap) 
+local fp10 = createFOVBtn("+10", (fovBtnW + fovGap) * 2) 
+local fp100 = createFOVBtn("+100", (fovBtnW + fovGap) * 3)
+
+local function UpdateFOV(val) 
+    _G.Config.FOV_Radius = math.clamp(val, minFOV, maxFOV) 
+    local ratio = (_G.Config.FOV_Radius - minFOV) / (maxFOV - minFOV) 
+    FOVSliderFill.Size = UDim2.new(ratio, 0, 1, 0) 
+    FOVValLabel.Text = "FOV Radius: " .. math.floor(_G.Config.FOV_Radius) 
+end
+
+fm100.MouseButton1Click:Connect(function() UpdateFOV(_G.Config.FOV_Radius - 100) end) 
+fm10.MouseButton1Click:Connect(function() UpdateFOV(_G.Config.FOV_Radius - 10) end) 
+fp10.MouseButton1Click:Connect(function() UpdateFOV(_G.Config.FOV_Radius + 10) end) 
+fp100.MouseButton1Click:Connect(function() UpdateFOV(_G.Config.FOV_Radius + 100) end)
+
+local draggingFOV = false
+FOVSliderBg.InputBegan:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingFOV = true end 
+end)
+FOVSliderBg.InputEnded:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingFOV = false end 
+end)
+UserInputService.InputChanged:Connect(function(input) 
+    if draggingFOV and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then 
+        local relX = math.clamp((input.Position.X - FOVSliderBg.AbsolutePosition.X) / FOVSliderBg.AbsoluteSize.X, 0, 1) 
+        UpdateFOV(minFOV + relX * (maxFOV - minFOV)) 
+    end 
+end)
+
+AddToggle("NULL","FAST M1 (LOGIC LOOP)","FastM1")
+AddToggle("NULL","AUTO CHANGE VECTOR","AutoChangeVector")
+AddToggle("NULL","INFINITE JUMP", "InfJump")
+AddToggle("NULL","WALK ON WATER (Y=9.2)", "WalkOnWater")
 
 AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
 AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
@@ -1459,6 +1663,14 @@ PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.U
 PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
 UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
 
+-- [JUMP REQUEST LOGIC CHO INF JUMP]
+UserInputService.JumpRequest:Connect(function()
+    if _G.Config.InfJump then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
 task.spawn(function()
     local RunService = game:GetService("RunService")
     while true do
@@ -1477,12 +1689,10 @@ task.spawn(function()
                     if remote then
                         local direction = Vector3.new(0, -0.9, 0.03)
                         
-                        -- [MỚI] AUTO CHANGE VECTOR M1 LOGIC
                         if _G.Config.AutoChangeVector then
                             local nearest = nil
                             local shortest = 20
                             
-                            -- Kiểm tra players
                             for _, p in ipairs(Players:GetPlayers()) do
                                 if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
                                     local dist = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
@@ -1493,7 +1703,6 @@ task.spawn(function()
                                 end
                             end
                             
-                            -- Kiểm tra NPCs
                             for npc, _ in pairs(CachedNPCs) do
                                 if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
                                     local dist = (npc.HumanoidRootPart.Position - hrp.Position).Magnitude
@@ -1504,7 +1713,6 @@ task.spawn(function()
                                 end
                             end
                             
-                            -- Đổi hướng Vector tấn công xuống mục tiêu gần nhất
                             if nearest then
                                 local dirToTarget = (nearest.Position - hrp.Position).Unit
                                 direction = Vector3.new(dirToTarget.X, -0.9, dirToTarget.Z).Unit
@@ -1527,6 +1735,73 @@ task.spawn(function()
     end
 end)
 
+RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    -- [WALK ON WATER LOGIC]
+    if _G.Config.WalkOnWater and hrp then
+        if hrp.Position.Y >= 9.5 and hrp.Velocity.Y <= 0 then
+            local waterPart = workspace:FindFirstChild("ArisWaterPlatform")
+            if not waterPart then
+                waterPart = Instance.new("Part", workspace)
+                waterPart.Name = "ArisWaterPlatform"
+                waterPart.Size = Vector3.new(20, 1, 20)
+                waterPart.Transparency = 1
+                waterPart.Anchored = true
+                waterPart.CanCollide = true
+                waterPart.CanQuery = false
+            end
+            waterPart.CFrame = CFrame.new(hrp.Position.X, 9.2, hrp.Position.Z)
+        else
+            if workspace:FindFirstChild("ArisWaterPlatform") then workspace.ArisWaterPlatform:Destroy() end
+        end
+    else
+        if workspace:FindFirstChild("ArisWaterPlatform") then workspace.ArisWaterPlatform:Destroy() end
+    end
+
+    -- [SILENT AIM FOV & TRACER RENDER LOGIC]
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    if _G.Config.SilentAim then
+        if FOVCircle then
+            FOVCircle.Position = screenCenter
+            FOVCircle.Radius = _G.Config.FOV_Radius
+            FOVCircle.Visible = true
+        end
+        
+        SilentAimTarget = GetClosestPlayerForAim()
+        
+        if SilentAimTarget then
+            if FOVCircle then FOVCircle.Color = Color3.fromRGB(255, 0, 0) end
+            if TracerLine then
+                local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
+                if targetOnScreen then
+                    local startX, startY
+                    if hrp then
+                        local myPos, myOnScreen = Camera:WorldToViewportPoint(hrp.Position)
+                        startX = myOnScreen and myPos.X or screenCenter.X
+                        startY = myOnScreen and myPos.Y or Camera.ViewportSize.Y
+                    else
+                        startX = screenCenter.X; startY = Camera.ViewportSize.Y
+                    end
+                    TracerLine.From = Vector2.new(startX, startY)
+                    TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
+                    TracerLine.Visible = true
+                else
+                    TracerLine.Visible = false
+                end
+            end
+        else
+            if FOVCircle then FOVCircle.Color = Color3.fromRGB(255, 255, 255) end
+            if TracerLine then TracerLine.Visible = false end
+        end
+    else
+        SilentAimTarget = nil
+        if FOVCircle then FOVCircle.Visible = false end
+        if TracerLine then TracerLine.Visible = false end
+    end
+end)
+
 RunService.Heartbeat:Connect(function(dt)
     if _G.Config.SafeMode and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
@@ -1536,7 +1811,6 @@ RunService.Heartbeat:Connect(function(dt)
             
             if hpPct <= 0.35 and not _G.IsFleeing and not _G.IsReturning then
                 _G.IsFleeing = true
-                -- [SỬA LỖI] SafeMode Teleport thẳng lên 100km Y thay vì bay từ từ
                 hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
@@ -1546,7 +1820,6 @@ RunService.Heartbeat:Connect(function(dt)
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
                 
-                -- Giữ nhân vật tại 100km
                 hrp.CFrame = CFrame.new(hrp.Position.X, 100000, hrp.Position.Z)
                 
                 if hpPct > 0.65 then
