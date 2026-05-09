@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Silent Aim 360° & NPC Aim Added!",
+    Text="UPDATE: Silent Aim 360° & NPC Aim Added!ok",
     Duration=8
 })
 
