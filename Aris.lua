@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Silent Aim Prediction Added!",
+    Text="UPDATE: Silent Aim 360Â° & NPC Aim Added!",
     Duration=8
 })
 
@@ -65,9 +65,7 @@ _G.Config={
     SilentAim_FloatX = 70,
     SilentAim_FloatY = 30,
     SilentAim_Nearest = false,
-    SilentAim_NPC = false,
-    SilentAim_Prediction = true,
-    SilentAim_Prediction_Value = 0.125
+    SilentAim_NPC = false
 }
 
 _G.WalkSpeed = 77
@@ -270,18 +268,7 @@ local function GetTrueStatus(target)
     return true
 end
 
--- [SILENT AIM HELPER]
-local function GetSilentAimPosition()
-    if not SilentAimTarget then return Vector3.zero end
-    local pos = SilentAimTarget.Position
-    if _G.Config.SilentAim_Prediction then
-        local vel = SilentAimTarget.AssemblyLinearVelocity or Vector3.zero
-        pos = pos + (vel * _G.Config.SilentAim_Prediction_Value)
-    end
-    return pos
-end
-
--- [SILENT AIM CORE LOGIC & 360°]
+-- [SILENT AIM CORE LOGIC & 360Â°]
 local function GetClosestTargetForAim()
     local Closest = nil
     local ShortestDistance = math.huge
@@ -364,12 +351,11 @@ if not getgenv().Hook_Initialized_Aris then
                 end
 
                 if origin and typeof(origin) == "Vector3" then
-                    local predictedPos = GetSilentAimPosition()
                     if method == "Raycast" then
-                        args[2] = (predictedPos - origin).Unit * 1000
+                        args[2] = (SilentAimTarget.Position - origin).Unit * 1000
                         return OldNamecall(self, unpack(args))
                     else
-                        args[1] = Ray.new(origin, (predictedPos - origin).Unit * 1000)
+                        args[1] = Ray.new(origin, (SilentAimTarget.Position - origin).Unit * 1000)
                         return OldNamecall(self, unpack(args))
                     end
                 end
@@ -398,7 +384,7 @@ if not getgenv().Hook_Initialized_Aris then
             if not tool then return OldIndex(self, index) end
 
             if index == "Hit" or index == "hit" then
-                local aimPos = GetSilentAimPosition()
+                local aimPos = SilentAimTarget.Position
                 if tool.Name == "Dragon Trident" then aimPos = aimPos - Vector3.new(0, 3, 0) end
                 return CFrame.new(aimPos)
             elseif index == "Target" or index == "target" then
@@ -1020,112 +1006,12 @@ saFloatBtn.MouseButton1Click:Connect(function()
     ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
 end)
 
--- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
+-- [TAB NULL - UI TÃ™Y CHá»ˆNH FOV + TÃNH NÄ‚NG]
 AddToggle("NULL","SILENT AIM", "SilentAim", RefreshSAFloatBtn)
-AddToggle("NULL","NEAR PLAYER AIMBOT (360°)", "SilentAim_Nearest")
+AddToggle("NULL","NEAR PLAYER AIMBOT (360Â°)", "SilentAim_Nearest")
 AddToggle("NULL","AIMBOT NPC", "SilentAim_NPC")
 
 local NullContent = ContentFrames["NULL"].Frame
-
--- [NEW: SILENT AIM PREDICTION UI (1 HÀNG 3 NÚT)]
-local SAPredContainer = Instance.new("Frame", NullContent)
-SAPredContainer.Size = UDim2.new(1, 0, 0, 155)
-SAPredContainer.BackgroundTransparency = 1
-
-local SAPredToggle = Instance.new("TextButton", SAPredContainer)
-SAPredToggle.Size = UDim2.new(1, -16, 0, 36)
-SAPredToggle.Text = ""
-SAPredToggle.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", SAPredToggle).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(SAPredToggle, _G.Config.SilentAim_Prediction)
-CreateBorder(SAPredToggle)
-local SAPredToggleTxt = CreateButtonText(SAPredToggle, "SA PREDICTION: " .. (_G.Config.SilentAim_Prediction and "ON" or "OFF"), Enum.Font.GothamBold, 14)
-ApplyButtonAnimation(SAPredToggle)
-
-local SAPredSliderBg = Instance.new("Frame", SAPredContainer)
-SAPredSliderBg.Size = UDim2.new(1, -16, 0, 25)
-SAPredSliderBg.Position = UDim2.new(0, 0, 0, 48)
-SAPredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", SAPredSliderBg).CornerRadius = UDim.new(0, 20)
-
-local SAPredSliderFill = Instance.new("Frame", SAPredSliderBg)
-SAPredSliderFill.Size = UDim2.new(math.clamp(_G.Config.SilentAim_Prediction_Value / 2, 0, 1), 0, 1, 0)
-SAPredSliderFill.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", SAPredSliderFill).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(SAPredSliderFill, true)
-
-local SAPredValLabel = Instance.new("TextLabel", SAPredSliderBg)
-SAPredValLabel.Size = UDim2.new(1, 0, 1, 0)
-SAPredValLabel.BackgroundTransparency = 1
-SAPredValLabel.Text = "Predict Time: " .. string.format("%.3f", _G.Config.SilentAim_Prediction_Value) .. "s"
-SAPredValLabel.Font = Enum.Font.GothamBold
-SAPredValLabel.TextSize = 12
-CreateTextGradient(SAPredValLabel)
-
-local SAPredBtnFrame = Instance.new("Frame", SAPredContainer)
-SAPredBtnFrame.Size = UDim2.new(1, -16, 0, 70)
-SAPredBtnFrame.Position = UDim2.new(0, 0, 0, 82)
-SAPredBtnFrame.BackgroundTransparency = 1
-
-local saPredLayout = Instance.new("UIGridLayout", SAPredBtnFrame)
-saPredLayout.CellSize = UDim2.new(0.31, 0, 0, 32)
-saPredLayout.CellPadding = UDim2.new(0.035, 0, 0, 6)
-saPredLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function createSAPredBtn(text)
-    local btn = Instance.new("TextButton", SAPredBtnFrame)
-    btn.Text = ""
-    btn.BackgroundColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
-    ApplyToggleGradient(btn, false)
-    CreateBorder(btn)
-    CreateButtonText(btn, text, Enum.Font.GothamBold, 12)
-    ApplyButtonAnimation(btn)
-    return btn
-end
-
-local sapm1 = createSAPredBtn("-1")
-local sapm025 = createSAPredBtn("-0.25")
-local sapm01 = createSAPredBtn("-0.1")
-local sapp01 = createSAPredBtn("+0.1")
-local sapp025 = createSAPredBtn("+0.25")
-local sapp1 = createSAPredBtn("+1")
-
-local function UpdateSAPred(val)
-    _G.Config.SilentAim_Prediction_Value = math.clamp(val, 0, 10)
-    local ratio = math.clamp(_G.Config.SilentAim_Prediction_Value / 2, 0, 1)
-    SAPredSliderFill.Size = UDim2.new(ratio, 0, 1, 0)
-    SAPredValLabel.Text = "Predict Time: " .. string.format("%.3f", _G.Config.SilentAim_Prediction_Value) .. "s"
-end
-
-sapm1.MouseButton1Click:Connect(function() UpdateSAPred(_G.Config.SilentAim_Prediction_Value - 1) end)
-sapm025.MouseButton1Click:Connect(function() UpdateSAPred(_G.Config.SilentAim_Prediction_Value - 0.25) end)
-sapm01.MouseButton1Click:Connect(function() UpdateSAPred(_G.Config.SilentAim_Prediction_Value - 0.1) end)
-sapp01.MouseButton1Click:Connect(function() UpdateSAPred(_G.Config.SilentAim_Prediction_Value + 0.1) end)
-sapp025.MouseButton1Click:Connect(function() UpdateSAPred(_G.Config.SilentAim_Prediction_Value + 0.25) end)
-sapp1.MouseButton1Click:Connect(function() UpdateSAPred(_G.Config.SilentAim_Prediction_Value + 1) end)
-
-SAPredToggle.MouseButton1Click:Connect(function()
-    _G.Config.SilentAim_Prediction = not _G.Config.SilentAim_Prediction
-    SAPredToggleTxt.Text = "SA PREDICTION: " .. (_G.Config.SilentAim_Prediction and "ON" or "OFF")
-    ApplyToggleGradient(SAPredToggle, _G.Config.SilentAim_Prediction)
-end)
-
-local draggingSAPred = false
-SAPredSliderBg.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSAPred = true end
-end)
-SAPredSliderBg.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSAPred = false end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if draggingSAPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local relX = math.clamp((input.Position.X - SAPredSliderBg.AbsolutePosition.X) / SAPredSliderBg.AbsoluteSize.X, 0, 1)
-        UpdateSAPred(relX * 2)
-    end
-end)
-
-
 local FOVContainer = Instance.new("Frame", NullContent) 
 FOVContainer.Size = UDim2.new(1, 0, 0, 80)
 FOVContainer.BackgroundTransparency = 1
@@ -1252,7 +1138,7 @@ local function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Des
 
 RefreshFloatBtn = function()
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
-        floatText.Text = "N/A ⚠️" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
+        floatText.Text = "N/A âš ï¸" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
     end
     strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
     if desyncState then floatText.Text = "DeSync : ON" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : OFF" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
@@ -1277,7 +1163,7 @@ floatBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddToggle("Desync", "GHOST MODE (ðŸ‘»)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
 AddToggle("Desync", "SHOW DESYNC FLOAT BTN", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
 AddAdjust("Desync", "POS X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
 AddAdjust("Desync", "POS Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
@@ -1516,18 +1402,18 @@ tpSelNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
 CreateBorder(tpSelNPCBtn)
-local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "🎯 ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelNPCBtn)
-ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "🎯 ENABLE TP"}
+ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "ðŸŽ¯ ENABLE TP"}
 
 tpSelNPCBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_NPC = not _G.Config.TP_NPC
     ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
-    tpSelNPCTxt.Text = "🎯 ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
+    tpSelNPCTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
     if _G.Config.TP_NPC then
         _G.Config.TP_Player = false
         local b = ToggleButtons["TP_Player"]
-        if b then b.Txt.Text = "🎯 ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipNPC = {}
@@ -1543,7 +1429,7 @@ skipNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipNPCBtn, false)
 CreateBorder(skipNPCBtn)
-CreateButtonText(skipNPCBtn, "⏭️ SKIP NPC", Enum.Font.GothamBold, 11)
+CreateButtonText(skipNPCBtn, "â­ï¸ SKIP NPC", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipNPCBtn)
 
 skipNPCBtn.MouseButton1Click:Connect(function()
@@ -1622,7 +1508,7 @@ nListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     NPCListContainer.Size = UDim2.new(1, -16, 0, nListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP NPC", "🔄 REFRESH NPC LIST", function()
+AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
     for _, child in ipairs(NPCListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1635,7 +1521,7 @@ AddButton("TP NPC", "🔄 REFRESH NPC LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetNPC == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
@@ -1664,7 +1550,7 @@ AddButton("TP NPC", "🔄 REFRESH NPC LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "👹 " .. npcName, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "ðŸ‘¹ " .. npcName, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
@@ -1689,7 +1575,7 @@ blLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
 blLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
 blLayout.SortOrder = Enum.SortOrder.LayoutOrder
 blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
-AddButton("TP NPC", "🔄 REFRESH BLACKLIST (1KM)", function()
+AddButton("TP NPC", "ðŸ”„ REFRESH BLACKLIST (1KM)", function()
     for _, child in ipairs(BlacklistContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end
     local foundNPCs = {} for npc, _ in pairs(CachedNPCs) do if npc and npc.Parent then local root = npc:FindFirstChild("HumanoidRootPart") if root and (root.Position - myRoot.Position).Magnitude <= 1000 then foundNPCs[npc.Name] = true end end end
@@ -1697,7 +1583,7 @@ AddButton("TP NPC", "🔄 REFRESH BLACKLIST (1KM)", function()
     for npcName, _ in pairs(foundNPCs) do
         count = count + 1 local btn = Instance.new("TextButton", BlacklistContainer) btn.Size = UDim2.new(1, 0, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
         local isBlacklisted = _G.Config.BlacklistedNPCs[npcName] or false ApplyToggleGradient(btn, isBlacklisted) CreateBorder(btn)
-        local txt = CreateButtonText(btn, "🚫 BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
+        local txt = CreateButtonText(btn, "ðŸš« BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
         btn.MouseButton1Click:Connect(function() _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName] local state = _G.Config.BlacklistedNPCs[npcName] ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1) end)
     end
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="NPC SEARCH", Text="Found " .. count .. " NPC types in 1km!", Duration=3 })
@@ -1715,18 +1601,18 @@ tpSelBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
 CreateBorder(tpSelBtn)
-local tpSelTxt = CreateButtonText(tpSelBtn, "🎯 ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelTxt = CreateButtonText(tpSelBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelBtn)
-ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "🎯 ENABLE TP"}
+ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "ðŸŽ¯ ENABLE TP"}
 
 tpSelBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_Player = not _G.Config.TP_Player
     ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
-    tpSelTxt.Text = "🎯 ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
+    tpSelTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
     if _G.Config.TP_Player then
         _G.Config.TP_NPC = false
         local b = ToggleButtons["TP_NPC"]
-        if b then b.Txt.Text = "🎯 ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipPlayer = {}
@@ -1742,7 +1628,7 @@ skipBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipBtn, false)
 CreateBorder(skipBtn)
-CreateButtonText(skipBtn, "⏭️ SKIP PLAYER", Enum.Font.GothamBold, 11)
+CreateButtonText(skipBtn, "â­ï¸ SKIP PLAYER", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipBtn)
 
 skipBtn.MouseButton1Click:Connect(function()
@@ -1825,7 +1711,7 @@ pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
+AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
     for _, child in ipairs(PlayerListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1838,7 +1724,7 @@ AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
@@ -1863,7 +1749,7 @@ AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "👤 " .. p.Name, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "ðŸ‘¤ " .. p.Name, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
@@ -1999,19 +1885,18 @@ RunService.RenderStepped:Connect(function()
         if FOVCircle then
             FOVCircle.Position = screenCenter
             FOVCircle.Radius = _G.Config.FOV_Radius
-            FOVCircle.Visible = not _G.Config.SilentAim_Nearest -- Ẩn FOV circle nếu đang dùng chế độ 360 độ
+            FOVCircle.Visible = not _G.Config.SilentAim_Nearest -- áº¨n FOV circle náº¿u Ä‘ang dÃ¹ng cháº¿ Ä‘á»™ 360 Ä‘á»™
         end
         
         SilentAimTarget = GetClosestTargetForAim()
         
         if SilentAimTarget then
-            local rgb = GetRGB() -- Lấy màu Gradient RGB
+            local rgb = GetRGB() -- Láº¥y mÃ u Gradient RGB
             if FOVCircle then FOVCircle.Color = rgb end
             if TracerLine then
-                local predictedPos = GetSilentAimPosition()
-                local targetPos, targetOnScreen = Camera:WorldToViewportPoint(predictedPos)
+                local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
                 
-                -- Support cho Nearest (360 độ) ngay cả khi không trên màn hình
+                -- Support cho Nearest (360 Ä‘á»™) ngay cáº£ khi khÃ´ng trÃªn mÃ n hÃ¬nh
                 if targetOnScreen or _G.Config.SilentAim_Nearest then
                     local startX, startY
                     if hrp then
@@ -2023,7 +1908,7 @@ RunService.RenderStepped:Connect(function()
                     end
                     TracerLine.From = Vector2.new(startX, startY)
                     TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
-                    TracerLine.Color = rgb -- Đồng bộ Tracer với màu ESP
+                    TracerLine.Color = rgb -- Äá»“ng bá»™ Tracer vá»›i mÃ u ESP
                     TracerLine.Visible = true
                 else
                     TracerLine.Visible = false
