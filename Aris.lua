@@ -280,7 +280,7 @@ local function GetClosestTargetForAim()
     local function CheckTarget(targetRoot, targetPlayer)
         if not targetRoot then return end
 
-        -- GIỚI HẠN 2.1KM
+        -- GIỚI HẠN CHUẨN 2.1KM
         if myRoot and (myRoot.Position - targetRoot.Position).Magnitude > 2100 then return end
 
         if _G.Config.SilentAim_Nearest and myRoot then
@@ -342,6 +342,18 @@ if not getgenv().Hook_Initialized_Aris then
         if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
             if method == "Raycast" or string.find(method, "Ray") then
                 
+                local raw_trace = debug.traceback()
+                local trace = raw_trace and string.lower(raw_trace) or ""
+                
+                -- BỘ LỌC 1: LỌC TỪ KHÓA (Bypass Camera, UI, Mobile, Dash)
+                if string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "camera") 
+                or string.find(trace, "dash") or string.find(trace, "soru") or string.find(trace, "geppo") 
+                or string.find(trace, "movement") or string.find(trace, "step") or string.find(trace, "body")
+                or string.find(trace, "touch") or string.find(trace, "mobile") or string.find(trace, "gui")
+                or string.find(trace, "button") or string.find(trace, "control") or string.find(trace, "ui") then
+                    return OldNamecall(self, ...)
+                end
+
                 local origin
                 local originalDir
                 
@@ -353,8 +365,7 @@ if not getgenv().Hook_Initialized_Aris then
                     originalDir = args[1].Direction
                 end
 
-                -- BỘ LỌC ĐỘ DÀI TIA (MAGNITUDE BYPASS): 
-                -- Tia quét lướt (dash), nhẩy (geppo) siêu ngắn (<200) sẽ không bị Aim Bot làm gãy
+                -- BỘ LỌC 2: MAGNITUDE BYPASS (< 200 studs)
                 if origin and originalDir then
                     if originalDir.Magnitude < 200 then
                         return OldNamecall(self, ...)
@@ -362,10 +373,12 @@ if not getgenv().Hook_Initialized_Aris then
 
                     local aimPos = SilentAimTarget.Position
                     
+                    -- PREDICTION 0.125
                     if _G.Config.SilentAim_Prediction and SilentAimTarget:IsA("BasePart") then
                         aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.SilentAim_Prediction_Value)
                     end
                     
+                    -- KÉO TIA ĐẠN MAX 2100M
                     local direction = (aimPos - origin).Unit * 2100
                     
                     if method == "Raycast" then
@@ -391,7 +404,7 @@ if not getgenv().Hook_Initialized_Aris then
             local raw_trace = debug.traceback()
             local trace = raw_trace and string.lower(raw_trace) or ""
             
-            -- LỌC CÁC TỪ KHÓA LIÊN QUAN TỚI DI CHUYỂN / MOBILE / UI
+            -- LỌC TỪ KHÓA CHO INDEX (Mobile, Phím lướt)
             if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "popper") 
                or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual")
                or string.find(trace, "dash") or string.find(trace, "soru") or string.find(trace, "geppo")
@@ -408,6 +421,7 @@ if not getgenv().Hook_Initialized_Aris then
             if index == "Hit" or index == "hit" then
                 local aimPos = SilentAimTarget.Position
                 
+                -- PREDICTION 0.125
                 if _G.Config.SilentAim_Prediction and SilentAimTarget:IsA("BasePart") then
                     aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.SilentAim_Prediction_Value)
                 end
@@ -1929,7 +1943,6 @@ RunService.RenderStepped:Connect(function()
                 
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(aimPos)
                 
-                -- Hỗ trợ tracer màu đỏ và chỉ hiện trên màn hình
                 if targetOnScreen then
                     local startX, startY
                     if hrp then
