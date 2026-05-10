@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="Welcome back to Aris Hub!",
+    Text="UPDATE: Target Info UI Added!",
     Duration=8
 })
 
@@ -83,6 +83,11 @@ local TempSkipPlayer = {}
 local CachedNPCs = {}
 local MAX_NPC_RENDER_DISTANCE = 2500
 
+-- Biến Global cho Target & Tween
+local currentTween = nil 
+local currentTarget = nil 
+local noclipConnection = nil 
+
 -- [SILENT AIM VARIABLES]
 local SilentAimTarget = nil
 local FOVCircle = nil
@@ -120,6 +125,7 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = CoreGui
 
+-- [UI FPS / PING]
 local StatsFrame = Instance.new("Frame", ScreenGui)
 StatsFrame.Size = UDim2.new(0, 150, 0, 26)
 StatsFrame.Position = UDim2.new(0, 15, 0, 60)
@@ -143,6 +149,30 @@ StatsGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200))
 })
 
+-- [UI TP TARGET INFO]
+local TargetStatsFrame = Instance.new("Frame", ScreenGui)
+TargetStatsFrame.Size = UDim2.new(0, 280, 0, 26)
+TargetStatsFrame.Position = UDim2.new(0, 15, 0, 90) -- Đặt dưới khung FPS/Ping, cạnh khung Chat
+TargetStatsFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TargetStatsFrame.BackgroundTransparency = 0.5
+TargetStatsFrame.BorderSizePixel = 0
+TargetStatsFrame.Visible = false
+Instance.new("UICorner", TargetStatsFrame).CornerRadius = UDim.new(0, 6)
+
+local TargetStatsText = Instance.new("TextLabel", TargetStatsFrame)
+TargetStatsText.Size = UDim2.new(1, 0, 1, 0)
+TargetStatsText.BackgroundTransparency = 1
+TargetStatsText.Text = "Target: Looking..."
+TargetStatsText.Font = Enum.Font.GothamBold
+TargetStatsText.TextSize = 13
+TargetStatsText.TextColor3 = Color3.new(1,1,1)
+
+local TargetStatsGrad = Instance.new("UIGradient", TargetStatsText)
+TargetStatsGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200))
+})
+
 local FPS_Frames = 0
 RunService.RenderStepped:Connect(function()
     FPS_Frames = FPS_Frames + 1
@@ -152,6 +182,32 @@ RunService.RenderStepped:Connect(function()
         if hum then
             hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16
         end
+    end
+
+    -- Logic Cập nhật thông tin TP Target
+    if (_G.Config.TP_Player or _G.Config.TP_NPC) then
+        if currentTarget and currentTarget.Parent then
+            TargetStatsFrame.Visible = true
+            local char = currentTarget.Parent
+            local hum = char:FindFirstChild("Humanoid")
+            local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hum and myRoot then
+                local dist = math.floor((currentTarget.Position - myRoot.Position).Magnitude)
+                local hp = math.floor(hum.Health)
+                local maxHp = math.floor(hum.MaxHealth)
+                local name = char.Name
+                local p = Players:GetPlayerFromCharacter(char)
+                if p then name = p.Name end
+                
+                local icon = p and "👤" or "👹"
+                TargetStatsText.Text = string.format("%s %s | HP: %d/%d | Dist: %dm", icon, name, hp, maxHp, dist)
+            end
+        else
+            TargetStatsFrame.Visible = true
+            TargetStatsText.Text = "Target: Looking for nearest..."
+        end
+    else
+        TargetStatsFrame.Visible = false
     end
 end)
 
@@ -253,7 +309,7 @@ local function GetTrueStatus(target)
 
     if char:FindFirstChildOfClass("ForceField") then return false end
 
-    local safeZones = workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("SafeZones")
+    local safeZones = workspace:FindFirstChild("_WorldOrigin") and workspace:FindFirstChild("_WorldOrigin"):FindFirstChild("SafeZones")
     if safeZones then
         for _, zone in pairs(safeZones:GetChildren()) do
             if zone:IsA("Part") or zone:IsA("MeshPart") then
@@ -610,8 +666,6 @@ local function CheckAdmin()
     return false
 end
 
-local currentTween = nil local currentTarget = nil local noclipConnection = nil 
-
 local function MakeDraggable(f)
     local d=false;local i,s
     f.InputBegan:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then d=true; i=inp.Position; s=f.Position end end)
@@ -824,7 +878,6 @@ AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D BASED HITBOX","ESP_2D_Hitbox") 
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
--- [MISC TAB - 1 HÀNG 2 NÚT]
 local MiscContent = ContentFrames["Misc"].Frame
 local miscGrid = Instance.new("Frame", MiscContent)
 miscGrid.Size = UDim2.new(1, -16, 0, 0)
@@ -988,7 +1041,6 @@ end)
 -- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
 local NullContent = ContentFrames["NULL"].Frame
 
--- Tạo Layout 2 nút 1 hàng cho NULL TAB
 local nullGrid = Instance.new("Frame", NullContent)
 nullGrid.Size = UDim2.new(1, -16, 0, 0)
 nullGrid.BackgroundTransparency = 1
