@@ -70,7 +70,7 @@ SliderBG.Parent = MainFrame
 Instance.new("UICorner", SliderBG).CornerRadius = UDim.new(1, 0)
 
 local SliderFill = Instance.new("Frame")
-SliderFill.Size = UDim2.new(50/150, 0, 1, 0) -- Khởi tạo ở 50ms trên tổng 150ms
+SliderFill.Size = UDim2.new(50/1000, 0, 1, 0) -- Khởi tạo ở 50ms trên tổng 1000ms
 SliderFill.BackgroundColor3 = Color3.fromRGB(50, 150, 250)
 SliderFill.Parent = SliderBG
 Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
@@ -89,7 +89,7 @@ QuickFrame.Position = UDim2.new(0.1, 0, 0.75, 0)
 QuickFrame.BackgroundTransparency = 1
 QuickFrame.Parent = MainFrame
 
--- Hàm tạo nút được chỉnh tỷ lệ để nhét vừa 4 nút
+-- Hàm tạo nút
 local function createQuickBtn(text, posX)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.22, 0, 1, 0) 
@@ -154,10 +154,10 @@ ToggleBtn.Activated:Connect(function()
 end)
 
 local function updateDelay(ms)
-    ms = math.clamp(ms, 1, 150) -- Chỉnh max lên 150
+    ms = math.clamp(ms, 1, 1000) -- Chỉnh max lên 1000ms
     _G.FastV2Delay = ms / 1000
     DelayLabel.Text = "Delay: " .. ms .. "ms"
-    SliderFill.Size = UDim2.new(ms / 150, 0, 1, 0) -- Tỉ lệ max 150
+    SliderFill.Size = UDim2.new(ms / 1000, 0, 1, 0) -- Tỉ lệ max 1000ms
 end
 
 Btn5.Activated:Connect(function() updateDelay(5) end)
@@ -184,12 +184,12 @@ UserInputService.InputChanged:Connect(function(input)
         local sliderX = SliderBG.AbsolutePosition.X
         local sliderWidth = SliderBG.AbsoluteSize.X
         local fillPercent = math.clamp((mouseX - sliderX) / sliderWidth, 0.01, 1)
-        updateDelay(math.floor(fillPercent * 150)) -- Nhân với max 150
+        updateDelay(math.floor(fillPercent * 1000)) -- Nhân với max 1000ms
     end
 end)
 
 -- ==========================================
--- LOGIC FAST V2 (Từ mã gốc)
+-- LOGIC FAST V2
 -- ==========================================
 local N = require(RS.Modules.Net)
 local C = require(RS.Modules.CombatUtil)
@@ -313,8 +313,8 @@ task.spawn(function()
             continue
         end
         
-        -- KHOẢNG CÁCH ĐÃ ĐƯỢC CHỈNH THÀNH 1000
-        local targets = getTargets(root, 1000) 
+        -- KHOẢNG CÁCH ĐÃ ĐƯỢC CHỈNH THÀNH 5000 (5km)
+        local targets = getTargets(root, 5000) 
         if #targets > 0 then
             atk:FireServer()
             hit:FireServer(root, targets, nil, nil, tostring(os.clock()))
