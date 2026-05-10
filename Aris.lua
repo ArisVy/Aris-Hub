@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Target Info UI Added!",
+    Text="UPDATE: Black/Red Float UI & Tracer Fix!",
     Duration=8
 })
 
@@ -961,6 +961,10 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
+-- [COLOR GRADIENTS CHO FLOAT BORDERS]
+local blackRedColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)) })
+local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
+
 -- [FLOAT BUTTON FOR SILENT AIM]
 local saFloatGui = Instance.new("ScreenGui", CoreGui)
 saFloatGui.Name = "ArisSAFloatToggle"
@@ -968,9 +972,8 @@ saFloatGui.ResetOnSpawn = false
 saFloatGui.DisplayOrder = 1000
 saFloatGui.Enabled = _G.Config.SilentAim_ShowFloat
 
-local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
 local saFloatBtn = Instance.new("TextButton", saFloatGui)
-saFloatBtn.Size = UDim2.new(0, 130, 0, 40)
+saFloatBtn.Size = UDim2.new(0, 98, 0, 30) -- Giảm 25% kích thước
 saFloatBtn.AnchorPoint = Vector2.new(0.5, 0.5)
 saFloatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 saFloatBtn.Text = ""
@@ -989,14 +992,14 @@ saFloatStroke.Thickness = 2.5
 saFloatStroke.Color = Color3.fromRGB(255, 255, 255)
 saFloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 local saStrokeGradient = Instance.new("UIGradient", saFloatStroke)
-saStrokeGradient.Color = cyanPinkColors
+saStrokeGradient.Color = blackRedColors -- Viền đen đỏ
 
 local saFloatText = Instance.new("TextLabel", saFloatBtn)
 saFloatText.Size = UDim2.new(1, 0, 1, 0)
 saFloatText.BackgroundTransparency = 1
 saFloatText.Text = "Silent Aim : OFF"
 saFloatText.TextColor3 = Color3.fromRGB(255, 255, 255)
-saFloatText.TextSize = 13
+saFloatText.TextSize = 11 -- Giảm nhẹ cỡ chữ cho vừa viền mới
 saFloatText.Font = Enum.Font.GothamBold
 local saTextGradient = Instance.new("UIGradient", saFloatText)
 saTextGradient.Color = cyanPinkColors
@@ -1033,9 +1036,9 @@ saFloatBtn.MouseButton1Click:Connect(function()
     _G.Config.SilentAim = not _G.Config.SilentAim
     RefreshSAFloatBtn()
     local ts = game:GetService("TweenService")
-    ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play()
+    ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 90, 0, 26)}):Play()
     task.wait(0.1)
-    ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
+    ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 98, 0, 30)}):Play()
 end)
 
 -- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
@@ -1170,11 +1173,12 @@ end
 createModeBtn("Normal", 0.22, "Normal") createModeBtn("Fast", 0.49, "Fast") createModeBtn("Fix", 0.76, "Fix")
 
 local floatGui = Instance.new("ScreenGui", CoreGui) floatGui.Name = "ArisFloatToggle" floatGui.ResetOnSpawn = false floatGui.DisplayOrder = 1000 floatGui.Enabled = _G.Config.Desync_ShowFloat
-local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 130, 0, 40) floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
+local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 98, 0, 30) -- Giảm 25% kích thước
+floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
 local btnGradient = Instance.new("UIGradient", floatBtn) btnGradient.Color = cyanPinkColors btnGradient.Enabled = false
 local floatStroke = Instance.new("UIStroke", floatBtn) floatStroke.Thickness = 2.5 floatStroke.Color = Color3.fromRGB(255, 255, 255) floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local strokeGradient = Instance.new("UIGradient", floatStroke) strokeGradient.Color = cyanPinkColors
-local floatText = Instance.new("TextLabel", floatBtn) floatText.Size = UDim2.new(1, 0, 1, 0) floatText.BackgroundTransparency = 1 floatText.Text = "DeSync : OFF" floatText.TextColor3 = Color3.fromRGB(255, 255, 255) floatText.TextSize = 13 floatText.Font = Enum.Font.GothamBold
+local strokeGradient = Instance.new("UIGradient", floatStroke) strokeGradient.Color = blackRedColors -- Viền đen đỏ
+local floatText = Instance.new("TextLabel", floatBtn) floatText.Size = UDim2.new(1, 0, 1, 0) floatText.BackgroundTransparency = 1 floatText.Text = "DeSync : OFF" floatText.TextColor3 = Color3.fromRGB(255, 255, 255) floatText.TextSize = 11 floatText.Font = Enum.Font.GothamBold
 local textGradient = Instance.new("UIGradient", floatText) textGradient.Color = cyanPinkColors textGradient.Enabled = true
 
 local function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Desync_FloatX / 100, 0, _G.Config.Desync_FloatY / 100, 0) end UpdateFloatPosition()
@@ -1196,7 +1200,7 @@ floatBtn.MouseButton1Click:Connect(function()
 
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then return end
     desyncState = not desyncState RefreshFloatBtn()
-    local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 120, 0, 35)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 130, 0, 40)}):Play()
+    local ts = game:GetService("TweenService") ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 90, 0, 26)}):Play() task.wait(0.1) ts:Create(floatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 98, 0, 30)}):Play()
     if desyncState then 
         if _G.Config.Desync_Mode == "Fix" then DoFixDesync(_G.Config.Desync_HideAuto) 
         elseif _G.Config.Desync_Mode == "Fast" then DoFastDesync() 
@@ -1934,8 +1938,8 @@ RunService.RenderStepped:Connect(function()
             if TracerLine then
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
                 
-                -- Support cho Nearest (360 độ) ngay cả khi không trên màn hình
-                if targetOnScreen or _G.Config.SilentAim_Nearest then
+                -- Chỉ vẽ Tracer khi kẻ địch lọt vào trước màn hình (bỏ condition Nearest)
+                if targetOnScreen then
                     local startX, startY
                     if hrp then
                         local myPos, myOnScreen = Camera:WorldToViewportPoint(hrp.Position)
