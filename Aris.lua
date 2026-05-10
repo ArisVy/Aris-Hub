@@ -385,6 +385,19 @@ end
 if not getgenv().Hook_Initialized_Aris then
     getgenv().Hook_Initialized_Aris = true
     
+    -- Gộp các từ khóa cần bỏ qua để không lỗi skill di chuyển / UI
+    local function IsIgnoredTrace(trace)
+        local t = string.lower(trace)
+        local ignores = {
+            "combatframework", "camera", "popper", "playermodule", 
+            "effect", "visual", "dash", "movement", "step", "flashstep", "soru"
+        }
+        for _, v in ipairs(ignores) do
+            if string.find(t, v) then return true end
+        end
+        return false
+    end
+
     local OldNamecall
     OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local args = {...}
@@ -393,9 +406,7 @@ if not getgenv().Hook_Initialized_Aris then
         if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
             if method == "Raycast" or string.find(method, "Ray") then
                 local raw_trace = debug.traceback()
-                local trace = raw_trace and string.lower(raw_trace) or ""
-                
-                if string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "camera") then
+                if raw_trace and IsIgnoredTrace(raw_trace) then
                     return OldNamecall(self, ...)
                 end
 
@@ -428,10 +439,7 @@ if not getgenv().Hook_Initialized_Aris then
 
         if index == "Hit" or index == "hit" or index == "Target" or index == "target" then
             local raw_trace = debug.traceback()
-            local trace = raw_trace and string.lower(raw_trace) or ""
-            
-            if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "popper") 
-               or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual") then
+            if raw_trace and IsIgnoredTrace(raw_trace) then
                 return OldIndex(self, index)
             end
 
@@ -441,6 +449,7 @@ if not getgenv().Hook_Initialized_Aris then
 
             if index == "Hit" or index == "hit" then
                 local aimPos = SilentAimTarget.Position
+                -- Tinh chỉnh cho vũ khí đặc thù
                 if tool.Name == "Dragon Trident" then aimPos = aimPos - Vector3.new(0, 3, 0) end
                 return CFrame.new(aimPos)
             elseif index == "Target" or index == "target" then
