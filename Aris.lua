@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Prediction 0.125 & Fixed Movement!",
+    Text="Welcome back to Aris Hub!",
     Duration=8
 })
 
@@ -339,8 +339,7 @@ if not getgenv().Hook_Initialized_Aris then
                 local raw_trace = debug.traceback()
                 local trace = raw_trace and string.lower(raw_trace) or ""
                 
-                if string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "camera") 
-                or string.find(trace, "dash") or string.find(trace, "jump") or string.find(trace, "step") or string.find(trace, "movement") then
+                if string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "camera") then
                     return OldNamecall(self, ...)
                 end
 
@@ -352,16 +351,11 @@ if not getgenv().Hook_Initialized_Aris then
                 end
 
                 if origin and typeof(origin) == "Vector3" then
-                    local targetPos = SilentAimTarget.Position
-                    if SilentAimTarget:IsA("BasePart") then
-                        targetPos = targetPos + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
-                    end
-
                     if method == "Raycast" then
-                        args[2] = (targetPos - origin).Unit * 1000
+                        args[2] = (SilentAimTarget.Position - origin).Unit * 1000
                         return OldNamecall(self, unpack(args))
                     else
-                        args[1] = Ray.new(origin, (targetPos - origin).Unit * 1000)
+                        args[1] = Ray.new(origin, (SilentAimTarget.Position - origin).Unit * 1000)
                         return OldNamecall(self, unpack(args))
                     end
                 end
@@ -381,8 +375,7 @@ if not getgenv().Hook_Initialized_Aris then
             local trace = raw_trace and string.lower(raw_trace) or ""
             
             if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "popper") 
-               or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual")
-               or string.find(trace, "dash") or string.find(trace, "jump") or string.find(trace, "step") or string.find(trace, "movement") then
+               or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual") then
                 return OldIndex(self, index)
             end
 
@@ -392,10 +385,6 @@ if not getgenv().Hook_Initialized_Aris then
 
             if index == "Hit" or index == "hit" then
                 local aimPos = SilentAimTarget.Position
-                if SilentAimTarget:IsA("BasePart") then
-                    aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
-                end
-
                 if tool.Name == "Dragon Trident" then aimPos = aimPos - Vector3.new(0, 3, 0) end
                 return CFrame.new(aimPos)
             elseif index == "Target" or index == "target" then
@@ -835,45 +824,24 @@ AddToggle("Hitbox","SHOW HITBOX BOX 3D","Hitbox_Box")
 AddToggle("Hitbox","ESP 2D BASED HITBOX","ESP_2D_Hitbox") 
 AddToggle("Hitbox","HITBOX WALL CHECK","Hitbox_WallCheck")
 
-local dualRowMisc = Instance.new("Frame", ContentFrames["Misc"].Frame)
-dualRowMisc.Size = UDim2.new(1, -16, 0, 36)
-dualRowMisc.BackgroundTransparency = 1
-
-local tcBtn = Instance.new("TextButton", dualRowMisc)
-tcBtn.Size = UDim2.new(0.48, 0, 1, 0)
-tcBtn.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", tcBtn).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(tcBtn, _G.Config.TeamCheck)
-CreateBorder(tcBtn)
-local tcTxt = CreateButtonText(tcBtn, "TEAM CHECK: ON", Enum.Font.GothamBold, 11)
-ApplyButtonAnimation(tcBtn)
-ToggleButtons["TeamCheck"] = {Btn = tcBtn, Txt = tcTxt, Name = "TEAM CHECK"}
-tcBtn.MouseButton1Click:Connect(function()
-    _G.Config.TeamCheck = not _G.Config.TeamCheck
-    tcTxt.Text = "TEAM CHECK: " .. (_G.Config.TeamCheck and "ON" or "OFF")
-    ApplyToggleGradient(tcBtn, _G.Config.TeamCheck)
-end)
-
-local pvpCBtn = Instance.new("TextButton", dualRowMisc)
-pvpCBtn.Size = UDim2.new(0.48, 0, 1, 0)
-pvpCBtn.Position = UDim2.new(0.52, 0, 0, 0)
-pvpCBtn.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", pvpCBtn).CornerRadius = UDim.new(0, 20)
-ApplyToggleGradient(pvpCBtn, _G.Config.PVPCheck)
-CreateBorder(pvpCBtn)
-local pvpCTxt = CreateButtonText(pvpCBtn, "PVP CHECK: OFF", Enum.Font.GothamBold, 11)
-ApplyButtonAnimation(pvpCBtn)
-ToggleButtons["PVPCheck"] = {Btn = pvpCBtn, Txt = pvpCTxt, Name = "PVP CHECK"}
-pvpCBtn.MouseButton1Click:Connect(function()
-    _G.Config.PVPCheck = not _G.Config.PVPCheck
-    pvpCTxt.Text = "PVP CHECK: " .. (_G.Config.PVPCheck and "ON" or "OFF")
-    ApplyToggleGradient(pvpCBtn, _G.Config.PVPCheck)
-end)
-
-AddToggle("Misc","LOW HP KS (<30%)","LowHP_KS")
-AddToggle("Misc","SHOW FPS & PING","Show_Stats", function(val) StatsFrame.Visible = val end)
-
+-- [MISC TAB - 1 HÀNG 2 NÚT]
 local MiscContent = ContentFrames["Misc"].Frame
+local miscGrid = Instance.new("Frame", MiscContent)
+miscGrid.Size = UDim2.new(1, -16, 0, 0)
+miscGrid.BackgroundTransparency = 1
+local miscLayout = Instance.new("UIGridLayout", miscGrid)
+miscLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
+miscLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
+miscLayout.SortOrder = Enum.SortOrder.LayoutOrder
+miscLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    miscGrid.Size = UDim2.new(1, -16, 0, miscLayout.AbsoluteContentSize.Y)
+end)
+
+AddGridToggle(miscGrid, "TEAM CHECK", "TeamCheck")
+AddGridToggle(miscGrid, "PVP CHECK", "PVPCheck")
+AddGridToggle(miscGrid, "LOW HP KS", "LowHP_KS")
+AddGridToggle(miscGrid, "SHOW FPS/PING", "Show_Stats", function(val) StatsFrame.Visible = val end)
+
 local WSContainer = Instance.new("Frame", MiscContent) 
 WSContainer.Size = UDim2.new(1, 0, 0, 115) 
 WSContainer.BackgroundTransparency = 1
@@ -1375,17 +1343,12 @@ local function doMagnetLoop()
                     
                     if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then 
                         local vel = currentTarget.AssemblyLinearVelocity 
-                        targetPos = targetPos + (vel * _G.Config.Prediction) 
+                        targetPos = targetPos + (Vector3.new(vel.X, 0, vel.Z) * _G.Config.Prediction) 
                     end
                     
                     local currentTargetPos = currentTarget.Position
                     local targetTeleported = lastTargetPos and (currentTargetPos - lastTargetPos).Magnitude > 80
                     local isTargetHighInSky = currentTargetPos.Y > 30000
-
-                    local flatDist = Vector2.new(myRoot.Position.X - targetPos.Position.X, myRoot.Position.Z - targetPos.Position.Z).Magnitude
-                    if flatDist > 150 and not targetTeleported and not isTargetHighInSky then
-                        targetPos = CFrame.new(targetPos.Position.X, math.max(targetPos.Position.Y + 300, myRoot.Position.Y + 100), targetPos.Position.Z)
-                    end
 
                     if targetTeleported or isTargetHighInSky then
                         if currentTween then currentTween:Cancel() end
@@ -1919,8 +1882,8 @@ RunService.RenderStepped:Connect(function()
             if TracerLine then
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
                 
-                -- Chỉ vẽ TracerLine khi mục tiêu thật sự hiển thị trên màn hình
-                if targetOnScreen then
+                -- Support cho Nearest (360 độ) ngay cả khi không trên màn hình
+                if targetOnScreen or _G.Config.SilentAim_Nearest then
                     local startX, startY
                     if hrp then
                         local myPos, myOnScreen = Camera:WorldToViewportPoint(hrp.Position)
