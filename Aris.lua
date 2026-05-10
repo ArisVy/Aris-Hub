@@ -3,6 +3,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local CoreGui = game:GetService("CoreGui")
@@ -11,7 +12,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Black/Red Float UI & Tracer Fix!",
+    Text="UPDATE: Fast V2 Melee Integrated!",
     Duration=8
 })
 
@@ -65,7 +66,9 @@ _G.Config={
     SilentAim_FloatX = 10,
     SilentAim_FloatY = 15,
     SilentAim_Nearest = false,
-    SilentAim_NPC = false
+    SilentAim_NPC = false,
+    FastV2_Enabled = false,
+    FastV2_Delay = 50
 }
 
 _G.WalkSpeed = 77
@@ -83,7 +86,7 @@ local TempSkipPlayer = {}
 local CachedNPCs = {}
 local MAX_NPC_RENDER_DISTANCE = 2500
 
--- Biáº¿n Global cho Target & Tween
+-- Biến Global cho Target & Tween
 local currentTween = nil 
 local currentTarget = nil 
 local noclipConnection = nil 
@@ -152,7 +155,7 @@ StatsGrad.Color = ColorSequence.new({
 -- [UI TP TARGET INFO]
 local TargetStatsFrame = Instance.new("Frame", ScreenGui)
 TargetStatsFrame.Size = UDim2.new(0, 280, 0, 26)
-TargetStatsFrame.Position = UDim2.new(0, 15, 0, 90) -- Äáº·t dÆ°á»›i khung FPS/Ping, cáº¡nh khung Chat
+TargetStatsFrame.Position = UDim2.new(0, 15, 0, 90)
 TargetStatsFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 TargetStatsFrame.BackgroundTransparency = 0.5
 TargetStatsFrame.BorderSizePixel = 0
@@ -184,7 +187,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Logic Cáº­p nháº­t thÃ´ng tin TP Target
     if (_G.Config.TP_Player or _G.Config.TP_NPC) then
         if currentTarget and currentTarget.Parent then
             TargetStatsFrame.Visible = true
@@ -199,7 +201,7 @@ RunService.RenderStepped:Connect(function()
                 local p = Players:GetPlayerFromCharacter(char)
                 if p then name = p.Name end
                 
-                local icon = p and "ðŸ‘¤" or "ðŸ‘¹"
+                local icon = p and "👤" or "👹"
                 TargetStatsText.Text = string.format("%s %s | HP: %d/%d | Dist: %dm", icon, name, hp, maxHp, dist)
             end
         else
@@ -324,7 +326,7 @@ local function GetTrueStatus(target)
     return true
 end
 
--- [SILENT AIM CORE LOGIC & 360Â°]
+-- [SILENT AIM CORE LOGIC & 360°]
 local function GetClosestTargetForAim()
     local Closest = nil
     local ShortestDistance = math.huge
@@ -451,6 +453,137 @@ if not getgenv().Hook_Initialized_Aris then
         return OldIndex(self, index)
     end))
 end
+
+-- ==========================================
+-- FAST V2 MELEE LOGIC (TÍCH HỢP TỪ ARIS (1))
+-- ==========================================
+local fv2_loaded = {}
+local fv2_currentTrack = nil
+local fv2_humanoid, fv2_animator
+
+local N_Module, C_Module, WeaponData_Module
+local hitRemote, atkRemote
+pcall(function()
+    N_Module = require(ReplicatedStorage.Modules.Net)
+    C_Module = require(ReplicatedStorage.Modules.CombatUtil)
+    WeaponData_Module = require(ReplicatedStorage.Modules.WeaponData)
+    hitRemote = N_Module:RemoteEvent("RegisterHit", true)
+    atkRemote = ReplicatedStorage.Modules.Net["RE/RegisterAttack"]
+end)
+
+local function fv2_stopAnim()
+    if fv2_currentTrack then
+        fv2_currentTrack:Stop()
+        fv2_currentTrack = nil
+    end
+end
+
+local function fv2_setup(char)
+    fv2_stopAnim()
+    fv2_loaded = {}
+    fv2_humanoid = char:WaitForChild("Humanoid")
+    fv2_animator = fv2_humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", fv2_humanoid)
+    fv2_humanoid.Died:Connect(fv2_stopAnim)
+end
+
+if LocalPlayer.Character then fv2_setup(LocalPlayer.Character) end
+LocalPlayer.CharacterAdded:Connect(fv2_setup)
+
+local function fv2_getTrack(id)
+    if not fv2_animator then return nil end
+    if fv2_loaded[id] then return fv2_loaded[id] end
+    local anim = Instance.new("Animation")
+    anim.AnimationId = id
+    local track = fv2_animator:LoadAnimation(anim)
+    track.Priority = Enum.AnimationPriority.Action4
+    track.Looped = true
+    fv2_loaded[id] = track
+    return track
+end
+
+local function fv2_getTargets(root, dist)
+    local t = {}
+    if workspace:FindFirstChild("Enemies") then
+        for _, m in ipairs(workspace.Enemies:GetChildren()) do
+            local hrp = m:FindFirstChild("HumanoidRootPart")
+            local hum = m:FindFirstChild("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                if (hrp.Position - root.Position).Magnitude <= dist then
+                    t[#t + 1] = {m, hrp}
+                end
+            end
+        end
+    end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            local hum = plr.Character:FindFirstChild("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                if (hrp.Position - root.Position).Magnitude <= dist then
+                    t[#t + 1] = {plr.Character, hrp}
+                end
+            end
+        end
+    end
+    return t
+end
+
+local function fv2_play(tool)
+    if not tool or not fv2_humanoid or not C_Module or not WeaponData_Module then return end
+    local weaponName = C_Module:GetWeaponName(tool)
+    local data = WeaponData_Module[weaponName] or WeaponData_Module[string.lower(weaponName)]
+    if not data or data.Type == "Gun" or not (data.Moveset and data.Moveset.Basic) then return end
+    
+    local moves = data.Moveset.Basic
+    local index = math.clamp(3, 1, #moves)
+    local animData = moves[index]
+    if not animData then return end
+    
+    local track = fv2_getTrack(animData.AnimationId)
+    if not track then return end
+    if fv2_currentTrack ~= track then fv2_stopAnim(); fv2_currentTrack = track end
+    
+    track.TimePosition = 0
+    track:Play(0.25, 1, 0.02)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(_G.Config.FastV2_Delay / 1000)
+        
+        if not _G.Config.FastV2_Enabled then 
+            fv2_stopAnim()
+            continue
+        end
+        
+        local char = LocalPlayer.Character
+        if not (char and fv2_humanoid and fv2_humanoid.Health > 0) then
+            fv2_stopAnim()
+            continue
+        end
+        
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local tool = char:FindFirstChildOfClass("Tool")
+        if not (root and tool and hitRemote and atkRemote and C_Module and WeaponData_Module) then fv2_stopAnim(); continue end
+        
+        local weaponName = C_Module:GetWeaponName(tool)
+        local data = WeaponData_Module[weaponName] or WeaponData_Module[string.lower(weaponName)]
+        if not data or data.Type == "Gun" or data.Type == "Blox Fruit" then
+            fv2_stopAnim()
+            continue
+        end
+        
+        local targets = fv2_getTargets(root, 1000) 
+        if #targets > 0 then
+            atkRemote:FireServer()
+            hitRemote:FireServer(root, targets, nil, nil, tostring(os.clock()))
+            fv2_play(tool)
+        else
+            fv2_stopAnim()
+        end
+    end
+end)
+
 
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
@@ -961,6 +1094,68 @@ UserInputService.InputChanged:Connect(function(input)
     end 
 end)
 
+-- [FAST V2 UI INTEGRATION]
+local FV2Container = Instance.new("Frame", MiscContent) 
+FV2Container.Size = UDim2.new(1, 0, 0, 115) 
+FV2Container.BackgroundTransparency = 1
+
+local FV2Toggle = Instance.new("TextButton", FV2Container) 
+FV2Toggle.Size = UDim2.new(1, -16, 0, 36) 
+FV2Toggle.Text = "" 
+FV2Toggle.BackgroundColor3 = Color3.new(1,1,1) 
+Instance.new("UICorner", FV2Toggle).CornerRadius = UDim.new(0, 20) 
+ApplyToggleGradient(FV2Toggle, _G.Config.FastV2_Enabled) 
+CreateBorder(FV2Toggle) 
+local FV2ToggleTxt = CreateButtonText(FV2Toggle, "FAST V2 MELEE: OFF", Enum.Font.GothamBold, 14) 
+ApplyButtonAnimation(FV2Toggle)
+
+local FV2SliderBg = Instance.new("Frame", FV2Container) 
+FV2SliderBg.Size = UDim2.new(1, -16, 0, 25) 
+FV2SliderBg.Position = UDim2.new(0, 0, 0, 48) 
+FV2SliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
+Instance.new("UICorner", FV2SliderBg).CornerRadius = UDim.new(0, 20)
+
+local FV2SliderFill = Instance.new("Frame", FV2SliderBg) 
+FV2SliderFill.Size = UDim2.new(_G.Config.FastV2_Delay / 1000, 0, 1, 0)
+FV2SliderFill.BackgroundColor3 = Color3.new(1,1,1) 
+Instance.new("UICorner", FV2SliderFill).CornerRadius = UDim.new(0, 20) 
+ApplyToggleGradient(FV2SliderFill, true)
+
+local FV2ValLabel = Instance.new("TextLabel", FV2SliderBg) 
+FV2ValLabel.Size = UDim2.new(1, 0, 1, 0) 
+FV2ValLabel.BackgroundTransparency = 1 
+FV2ValLabel.Text = "FV2 Delay: " .. _G.Config.FastV2_Delay .. "ms"
+FV2ValLabel.Font = Enum.Font.GothamBold 
+FV2ValLabel.TextSize = 12 
+CreateTextGradient(FV2ValLabel)
+
+local function UpdateFV2Delay(val) 
+    _G.Config.FastV2_Delay = math.clamp(val, 1, 1000)
+    FV2SliderFill.Size = UDim2.new(_G.Config.FastV2_Delay / 1000, 0, 1, 0) 
+    FV2ValLabel.Text = "FV2 Delay: " .. math.floor(_G.Config.FastV2_Delay) .. "ms"
+end
+
+FV2Toggle.MouseButton1Click:Connect(function() 
+    _G.Config.FastV2_Enabled = not _G.Config.FastV2_Enabled 
+    FV2ToggleTxt.Text = "FAST V2 MELEE: " .. (_G.Config.FastV2_Enabled and "ON" or "OFF") 
+    ApplyToggleGradient(FV2Toggle, _G.Config.FastV2_Enabled)
+end)
+
+local draggingFV2 = false
+FV2SliderBg.InputBegan:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingFV2 = true end 
+end)
+FV2SliderBg.InputEnded:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingFV2 = false end 
+end)
+UserInputService.InputChanged:Connect(function(input) 
+    if draggingFV2 and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then 
+        local relX = math.clamp((input.Position.X - FV2SliderBg.AbsolutePosition.X) / FV2SliderBg.AbsoluteSize.X, 0, 1) 
+        UpdateFV2Delay(relX * 1000) 
+    end 
+end)
+
+
 -- [COLOR GRADIENTS CHO FLOAT BORDERS]
 local blackRedColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)) })
 local cyanPinkColors = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 200)) })
@@ -973,7 +1168,7 @@ saFloatGui.DisplayOrder = 1000
 saFloatGui.Enabled = _G.Config.SilentAim_ShowFloat
 
 local saFloatBtn = Instance.new("TextButton", saFloatGui)
-saFloatBtn.Size = UDim2.new(0, 98, 0, 30) -- Giáº£m 25% kÃ­ch thÆ°á»›c
+saFloatBtn.Size = UDim2.new(0, 98, 0, 30) -- Giảm 25% kích thước
 saFloatBtn.AnchorPoint = Vector2.new(0.5, 0.5)
 saFloatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 saFloatBtn.Text = ""
@@ -992,14 +1187,14 @@ saFloatStroke.Thickness = 2.5
 saFloatStroke.Color = Color3.fromRGB(255, 255, 255)
 saFloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 local saStrokeGradient = Instance.new("UIGradient", saFloatStroke)
-saStrokeGradient.Color = blackRedColors -- Viá»n Ä‘en Ä‘á»
+saStrokeGradient.Color = blackRedColors -- Viền đen đỏ
 
 local saFloatText = Instance.new("TextLabel", saFloatBtn)
 saFloatText.Size = UDim2.new(1, 0, 1, 0)
 saFloatText.BackgroundTransparency = 1
 saFloatText.Text = "Silent Aim : OFF"
 saFloatText.TextColor3 = Color3.fromRGB(255, 255, 255)
-saFloatText.TextSize = 11 -- Giáº£m nháº¹ cá»¡ chá»¯ cho vá»«a viá»n má»›i
+saFloatText.TextSize = 11 -- Giảm nhẹ cỡ chữ cho vừa viền mới
 saFloatText.Font = Enum.Font.GothamBold
 local saTextGradient = Instance.new("UIGradient", saFloatText)
 saTextGradient.Color = cyanPinkColors
@@ -1041,7 +1236,7 @@ saFloatBtn.MouseButton1Click:Connect(function()
     ts:Create(saFloatBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 98, 0, 30)}):Play()
 end)
 
--- [TAB NULL - UI TÃ™Y CHá»ˆNH FOV + TÃNH NÄ‚NG]
+-- [TAB NULL - UI TÙY CHỈNH FOV + TÍNH NĂNG]
 local NullContent = ContentFrames["NULL"].Frame
 
 local nullGrid = Instance.new("Frame", NullContent)
@@ -1056,7 +1251,7 @@ nullLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 end)
 
 AddGridToggle(nullGrid, "SILENT AIM", "SilentAim", RefreshSAFloatBtn)
-AddGridToggle(nullGrid, "360Â° AIMBOT", "SilentAim_Nearest")
+AddGridToggle(nullGrid, "360° AIMBOT", "SilentAim_Nearest")
 AddGridToggle(nullGrid, "AIMBOT NPC", "SilentAim_NPC")
 AddGridToggle(nullGrid, "SA FLOAT", "SilentAim_ShowFloat", function(v) saFloatGui.Enabled = v end)
 AddGridToggle(nullGrid, "FAST M1", "FastM1")
@@ -1173,11 +1368,11 @@ end
 createModeBtn("Normal", 0.22, "Normal") createModeBtn("Fast", 0.49, "Fast") createModeBtn("Fix", 0.76, "Fix")
 
 local floatGui = Instance.new("ScreenGui", CoreGui) floatGui.Name = "ArisFloatToggle" floatGui.ResetOnSpawn = false floatGui.DisplayOrder = 1000 floatGui.Enabled = _G.Config.Desync_ShowFloat
-local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 98, 0, 30) -- Giáº£m 25% kÃ­ch thÆ°á»›c
+local floatBtn = Instance.new("TextButton", floatGui) floatBtn.Size = UDim2.new(0, 98, 0, 30) -- Giảm 25% kích thước
 floatBtn.AnchorPoint = Vector2.new(0.5, 0.5) floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) floatBtn.Text = "" floatBtn.AutoButtonColor = false floatBtn.Active = false floatBtn.Draggable = false Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) ApplyButtonAnimation(floatBtn)
 local btnGradient = Instance.new("UIGradient", floatBtn) btnGradient.Color = cyanPinkColors btnGradient.Enabled = false
 local floatStroke = Instance.new("UIStroke", floatBtn) floatStroke.Thickness = 2.5 floatStroke.Color = Color3.fromRGB(255, 255, 255) floatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local strokeGradient = Instance.new("UIGradient", floatStroke) strokeGradient.Color = blackRedColors -- Viá»n Ä‘en Ä‘á»
+local strokeGradient = Instance.new("UIGradient", floatStroke) strokeGradient.Color = blackRedColors -- Viền đen đỏ
 local floatText = Instance.new("TextLabel", floatBtn) floatText.Size = UDim2.new(1, 0, 1, 0) floatText.BackgroundTransparency = 1 floatText.Text = "DeSync : OFF" floatText.TextColor3 = Color3.fromRGB(255, 255, 255) floatText.TextSize = 11 floatText.Font = Enum.Font.GothamBold
 local textGradient = Instance.new("UIGradient", floatText) textGradient.Color = cyanPinkColors textGradient.Enabled = true
 
@@ -1185,7 +1380,7 @@ local function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Des
 
 RefreshFloatBtn = function()
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
-        floatText.Text = "N/A âš ï¸" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
+        floatText.Text = "N/A ⚠️" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
     end
     strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
     if desyncState then floatText.Text = "DeSync : ON" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : OFF" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
@@ -1210,7 +1405,7 @@ floatBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-AddToggle("Desync", "GHOST MODE (ðŸ‘»)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddToggle("Desync", "GHOST MODE (👻)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
 AddToggle("Desync", "SHOW DESYNC FLOAT BTN", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
 AddAdjust("Desync", "POS X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
 AddAdjust("Desync", "POS Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
@@ -1444,18 +1639,18 @@ tpSelNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
 CreateBorder(tpSelNPCBtn)
-local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "🎯 ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelNPCBtn)
-ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "ðŸŽ¯ ENABLE TP"}
+ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "🎯 ENABLE TP"}
 
 tpSelNPCBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_NPC = not _G.Config.TP_NPC
     ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
-    tpSelNPCTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
+    tpSelNPCTxt.Text = "🎯 ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
     if _G.Config.TP_NPC then
         _G.Config.TP_Player = false
         local b = ToggleButtons["TP_Player"]
-        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "🎯 ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipNPC = {}
@@ -1471,7 +1666,7 @@ skipNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipNPCBtn, false)
 CreateBorder(skipNPCBtn)
-CreateButtonText(skipNPCBtn, "â­ï¸ SKIP NPC", Enum.Font.GothamBold, 11)
+CreateButtonText(skipNPCBtn, "⏭️ SKIP NPC", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipNPCBtn)
 
 skipNPCBtn.MouseButton1Click:Connect(function()
@@ -1550,7 +1745,7 @@ nListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     NPCListContainer.Size = UDim2.new(1, -16, 0, nListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
+AddButton("TP NPC", "🔄 REFRESH NPC LIST", function()
     for _, child in ipairs(NPCListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1563,7 +1758,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetNPC == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
@@ -1592,7 +1787,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "ðŸ‘¹ " .. npcName, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "👹 " .. npcName, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
@@ -1617,7 +1812,7 @@ blLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
 blLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
 blLayout.SortOrder = Enum.SortOrder.LayoutOrder
 blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
-AddButton("TP NPC", "ðŸ”„ REFRESH BLACKLIST (1KM)", function()
+AddButton("TP NPC", "🔄 REFRESH BLACKLIST (1KM)", function()
     for _, child in ipairs(BlacklistContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end
     local foundNPCs = {} for npc, _ in pairs(CachedNPCs) do if npc and npc.Parent then local root = npc:FindFirstChild("HumanoidRootPart") if root and (root.Position - myRoot.Position).Magnitude <= 1000 then foundNPCs[npc.Name] = true end end end
@@ -1625,7 +1820,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH BLACKLIST (1KM)", function()
     for npcName, _ in pairs(foundNPCs) do
         count = count + 1 local btn = Instance.new("TextButton", BlacklistContainer) btn.Size = UDim2.new(1, 0, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
         local isBlacklisted = _G.Config.BlacklistedNPCs[npcName] or false ApplyToggleGradient(btn, isBlacklisted) CreateBorder(btn)
-        local txt = CreateButtonText(btn, "ðŸš« BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
+        local txt = CreateButtonText(btn, "🚫 BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
         btn.MouseButton1Click:Connect(function() _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName] local state = _G.Config.BlacklistedNPCs[npcName] ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1) end)
     end
     game:GetService("StarterGui"):SetCore("SendNotification", { Title="NPC SEARCH", Text="Found " .. count .. " NPC types in 1km!", Duration=3 })
@@ -1643,18 +1838,18 @@ tpSelBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
 CreateBorder(tpSelBtn)
-local tpSelTxt = CreateButtonText(tpSelBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelTxt = CreateButtonText(tpSelBtn, "🎯 ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelBtn)
-ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "ðŸŽ¯ ENABLE TP"}
+ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "🎯 ENABLE TP"}
 
 tpSelBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_Player = not _G.Config.TP_Player
     ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
-    tpSelTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
+    tpSelTxt.Text = "🎯 ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
     if _G.Config.TP_Player then
         _G.Config.TP_NPC = false
         local b = ToggleButtons["TP_NPC"]
-        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "🎯 ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipPlayer = {}
@@ -1670,7 +1865,7 @@ skipBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipBtn, false)
 CreateBorder(skipBtn)
-CreateButtonText(skipBtn, "â­ï¸ SKIP PLAYER", Enum.Font.GothamBold, 11)
+CreateButtonText(skipBtn, "⏭️ SKIP PLAYER", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipBtn)
 
 skipBtn.MouseButton1Click:Connect(function()
@@ -1753,7 +1948,7 @@ pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
+AddButton("TP Player", "🔄 REFRESH PLAYER LIST", function()
     for _, child in ipairs(PlayerListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -1766,7 +1961,7 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "🎯 Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
     
     autoBtn.MouseButton1Click:Connect(function()
@@ -1791,7 +1986,7 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
         
-        local txt = CreateButtonText(btn, "ðŸ‘¤ " .. p.Name, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "👤 " .. p.Name, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
         
@@ -1927,18 +2122,18 @@ RunService.RenderStepped:Connect(function()
         if FOVCircle then
             FOVCircle.Position = screenCenter
             FOVCircle.Radius = _G.Config.FOV_Radius
-            FOVCircle.Visible = not _G.Config.SilentAim_Nearest -- áº¨n FOV circle náº¿u Ä‘ang dÃ¹ng cháº¿ Ä‘á»™ 360 Ä‘á»™
+            FOVCircle.Visible = not _G.Config.SilentAim_Nearest -- Ẩn FOV circle nếu đang dùng chế độ 360 độ
         end
         
         SilentAimTarget = GetClosestTargetForAim()
         
         if SilentAimTarget then
-            local rgb = GetRGB() -- Láº¥y mÃ u Gradient RGB
+            local rgb = GetRGB() -- Lấy màu Gradient RGB
             if FOVCircle then FOVCircle.Color = rgb end
             if TracerLine then
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(SilentAimTarget.Position)
                 
-                -- Chá»‰ váº½ Tracer khi káº» Ä‘á»‹ch lá»t vÃ o trÆ°á»›c mÃ n hÃ¬nh (bá» condition Nearest)
+                -- Chỉ vẽ Tracer khi kẻ địch lọt vào trước màn hình (bỏ condition Nearest)
                 if targetOnScreen then
                     local startX, startY
                     if hrp then
@@ -1950,7 +2145,7 @@ RunService.RenderStepped:Connect(function()
                     end
                     TracerLine.From = Vector2.new(startX, startY)
                     TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
-                    TracerLine.Color = rgb -- Äá»“ng bá»™ Tracer vá»›i mÃ u ESP
+                    TracerLine.Color = rgb -- Đồng bộ Tracer với màu ESP
                     TracerLine.Visible = true
                 else
                     TracerLine.Visible = false
