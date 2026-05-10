@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 game:GetService("StarterGui"):SetCore("SendNotification",{
     Title="ARIS HUB V1.0 - ENGLISH",
-    Text="UPDATE: Silent Aim 360° & NPC Aim Added!ok",
+    Text="UPDATE: Silent Aim 360° & NPC Aim Added!",
     Duration=8
 })
 
@@ -280,6 +280,9 @@ local function GetClosestTargetForAim()
     local function CheckTarget(targetRoot, targetPlayer)
         if not targetRoot then return end
 
+        -- GIỚI HẠN 2.1KM
+        if myRoot and (myRoot.Position - targetRoot.Position).Magnitude > 2100 then return end
+
         if _G.Config.SilentAim_Nearest and myRoot then
             local dist3D = (myRoot.Position - targetRoot.Position).Magnitude
             if dist3D < ShortestDistance then
@@ -338,31 +341,38 @@ if not getgenv().Hook_Initialized_Aris then
 
         if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
             if method == "Raycast" or string.find(method, "Ray") then
-                local raw_trace = debug.traceback()
-                local trace = raw_trace and string.lower(raw_trace) or ""
                 
-                if string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "camera") then
-                    return OldNamecall(self, ...)
-                end
-
                 local origin
+                local originalDir
+                
                 if method == "Raycast" then
                     origin = args[1]
+                    originalDir = args[2]
                 elseif args[1] and typeof(args[1]) == "Ray" then
                     origin = args[1].Origin
+                    originalDir = args[1].Direction
                 end
 
-                if origin and typeof(origin) == "Vector3" then
+                -- BỘ LỌC ĐỘ DÀI TIA (MAGNITUDE BYPASS): 
+                -- Tia quét lướt (dash), nhẩy (geppo) siêu ngắn (<200) sẽ không bị Aim Bot làm gãy
+                if origin and originalDir then
+                    if originalDir.Magnitude < 200 then
+                        return OldNamecall(self, ...)
+                    end
+
                     local aimPos = SilentAimTarget.Position
+                    
                     if _G.Config.SilentAim_Prediction and SilentAimTarget:IsA("BasePart") then
                         aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.SilentAim_Prediction_Value)
                     end
                     
+                    local direction = (aimPos - origin).Unit * 2100
+                    
                     if method == "Raycast" then
-                        args[2] = (aimPos - origin).Unit * 1000
+                        args[2] = direction
                         return OldNamecall(self, unpack(args))
                     else
-                        args[1] = Ray.new(origin, (aimPos - origin).Unit * 1000)
+                        args[1] = Ray.new(origin, direction)
                         return OldNamecall(self, unpack(args))
                     end
                 end
@@ -381,8 +391,13 @@ if not getgenv().Hook_Initialized_Aris then
             local raw_trace = debug.traceback()
             local trace = raw_trace and string.lower(raw_trace) or ""
             
+            -- LỌC CÁC TỪ KHÓA LIÊN QUAN TỚI DI CHUYỂN / MOBILE / UI
             if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "popper") 
-               or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual") then
+               or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual")
+               or string.find(trace, "dash") or string.find(trace, "soru") or string.find(trace, "geppo")
+               or string.find(trace, "movement") or string.find(trace, "step") or string.find(trace, "body")
+               or string.find(trace, "touch") or string.find(trace, "mobile") or string.find(trace, "gui")
+               or string.find(trace, "button") or string.find(trace, "control") or string.find(trace, "ui") then
                 return OldIndex(self, index)
             end
 
@@ -392,6 +407,7 @@ if not getgenv().Hook_Initialized_Aris then
 
             if index == "Hit" or index == "hit" then
                 local aimPos = SilentAimTarget.Position
+                
                 if _G.Config.SilentAim_Prediction and SilentAimTarget:IsA("BasePart") then
                     aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.SilentAim_Prediction_Value)
                 end
@@ -1034,7 +1050,7 @@ FOVSliderBg.Position = UDim2.new(0, 0, 0, 5)
 FOVSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) 
 Instance.new("UICorner", FOVSliderBg).CornerRadius = UDim.new(0, 20)
 
-local maxFOV = 1000
+local maxFOV = 2100
 local minFOV = 10
 
 local FOVSliderFill = Instance.new("Frame", FOVSliderBg) 
@@ -1913,7 +1929,7 @@ RunService.RenderStepped:Connect(function()
                 
                 local targetPos, targetOnScreen = Camera:WorldToViewportPoint(aimPos)
                 
-                -- Chỉ hiện khi đích nằm trong màn hình
+                -- Hỗ trợ tracer màu đỏ và chỉ hiện trên màn hình
                 if targetOnScreen then
                     local startX, startY
                     if hrp then
@@ -1925,7 +1941,7 @@ RunService.RenderStepped:Connect(function()
                     end
                     TracerLine.From = Vector2.new(startX, startY)
                     TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
-                    TracerLine.Color = Color3.fromRGB(255, 0, 0) -- Màu đỏ tĩnh
+                    TracerLine.Color = Color3.fromRGB(255, 0, 0)
                     TracerLine.Visible = true
                 else
                     TracerLine.Visible = false
