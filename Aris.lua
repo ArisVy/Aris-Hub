@@ -203,7 +203,8 @@ _G.Config={
     SilentAim_FloatX = 10,
     SilentAim_FloatY = 15,
     SilentAim_Nearest = false,
-    SilentAim_NPC = false
+    SilentAim_NPC = false,
+	FastAttackDelay = 456
 }
 
 _G.WalkSpeed = 77
@@ -1479,7 +1480,7 @@ WSSliderBg.Position = UDim2.new(0, 0, 0, 48)
 WSSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 20)
 local WSSliderFill = Instance.new("Frame", WSSliderBg)
-WSSliderFill.Size = UDim2.new((_G.WalkSpeed - 16) / (250 - 16), 0, 1, 0)
+WSSliderFill.Size = UDim2.new((_G.WalkSpeed - 16) / (1000 - 16), 0, 1, 0)
 WSSliderFill.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(WSSliderFill, true)
@@ -1501,8 +1502,8 @@ end
 local m10 = createWSBtn("-10", 0) local m5 = createWSBtn("-5", btnW + gap) local p5 = createWSBtn("+5", (btnW + gap) * 2) local p10 = createWSBtn("+10", (btnW + gap) * 3)
 
 function UpdateWS(val)
-    _G.WalkSpeed = math.clamp(val, 16, 250)
-    local ratio = (_G.WalkSpeed - 16) / (250 - 16)
+    _G.WalkSpeed = math.clamp(val, 16, 1000)
+    local ratio = (_G.WalkSpeed - 16) / (1000 - 16)
     WSSliderFill.Size = UDim2.new(ratio, 0, 1, 0)
     WSValLabel.Text = "Speed: " .. math.floor(_G.WalkSpeed)
 end
@@ -1524,7 +1525,7 @@ WSSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.Use
 UserInputService.InputChanged:Connect(function(input)
     if draggingWS and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local relX = math.clamp((input.Position.X - WSSliderBg.AbsolutePosition.X) / WSSliderBg.AbsoluteSize.X, 0, 1)
-        UpdateWS(16 + relX * (250 - 16))
+        UpdateWS(16 + relX * (1000 - 16))
     end
 end)
 
@@ -1706,7 +1707,88 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateFOV(minFOV + relX * (maxFOV - minFOV))
     end
 end)
+-- ======== BẮT ĐẦU CODE GIAO DIỆN FAST ATTACK DELAY ========
+local FastDelayContainer = Instance.new("Frame", NullContent)
+FastDelayContainer.Size = UDim2.new(1, -16, 0, 80)
+FastDelayContainer.BackgroundTransparency = 1
 
+local FDSliderBg = Instance.new("Frame", FastDelayContainer)
+FDSliderBg.Size = UDim2.new(1, 0, 0, 25)
+FDSliderBg.Position = UDim2.new(0, 0, 0, 5)
+FDSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", FDSliderBg).CornerRadius = UDim.new(0, 20)
+
+local minFD, maxFD = 5, 1000
+
+local FDSliderFill = Instance.new("Frame", FDSliderBg)
+FDSliderFill.Size = UDim2.new((_G.Config.FastAttackDelay - minFD) / (maxFD - minFD), 0, 1, 0)
+FDSliderFill.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", FDSliderFill).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(FDSliderFill, true)
+
+local FDValLabel = Instance.new("TextLabel", FDSliderBg)
+FDValLabel.Size = UDim2.new(1, 0, 1, 0)
+FDValLabel.BackgroundTransparency = 1
+FDValLabel.Text = "Fast Attack Delay: " .. math.floor(_G.Config.FastAttackDelay) .. "ms"
+FDValLabel.Font = Enum.Font.GothamBold
+FDValLabel.TextSize = 12
+CreateTextGradient(FDValLabel)
+
+local FDBtnFrame = Instance.new("Frame", FastDelayContainer)
+FDBtnFrame.Size = UDim2.new(1, 0, 0, 32)
+FDBtnFrame.Position = UDim2.new(0, 0, 0, 38)
+FDBtnFrame.BackgroundTransparency = 1
+
+local fdBtnW = 0.15
+local fdGap = 0.02
+function createFDBtn(text, posScale)
+    local btn = Instance.new("TextButton", FDBtnFrame)
+    btn.Size = UDim2.new(fdBtnW, 0, 1, 0)
+    btn.Position = UDim2.new(posScale, 0, 0, 0)
+    btn.Text = ""
+    btn.BackgroundColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
+    ApplyToggleGradient(btn, false)
+    CreateBorder(btn)
+    CreateButtonText(btn, text, Enum.Font.GothamBold, 11)
+    ApplyButtonAnimation(btn)
+    return btn
+end
+
+local fdm100 = createFDBtn("-100", 0)
+local fdm10 = createFDBtn("-10", fdBtnW + fdGap)
+local fdm5 = createFDBtn("-5", (fdBtnW + fdGap) * 2)
+local fdp5 = createFDBtn("+5", (fdBtnW + fdGap) * 3)
+local fdp10 = createFDBtn("+10", (fdBtnW + fdGap) * 4)
+local fdp100 = createFDBtn("+100", (fdBtnW + fdGap) * 5)
+
+function UpdateFD(val)
+    _G.Config.FastAttackDelay = math.clamp(val, minFD, maxFD)
+    local ratio = (_G.Config.FastAttackDelay - minFD) / (maxFD - minFD)
+    FDSliderFill.Size = UDim2.new(ratio, 0, 1, 0)
+    FDValLabel.Text = "Fast Attack Delay: " .. math.floor(_G.Config.FastAttackDelay) .. "ms"
+end
+
+fdm100.MouseButton1Click:Connect(function() UpdateFD(_G.Config.FastAttackDelay - 100) end)
+fdm10.MouseButton1Click:Connect(function() UpdateFD(_G.Config.FastAttackDelay - 10) end)
+fdm5.MouseButton1Click:Connect(function() UpdateFD(_G.Config.FastAttackDelay - 5) end)
+fdp5.MouseButton1Click:Connect(function() UpdateFD(_G.Config.FastAttackDelay + 5) end)
+fdp10.MouseButton1Click:Connect(function() UpdateFD(_G.Config.FastAttackDelay + 10) end)
+fdp100.MouseButton1Click:Connect(function() UpdateFD(_G.Config.FastAttackDelay + 100) end)
+
+local draggingFD = false
+FDSliderBg.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingFD = true end
+end)
+FDSliderBg.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingFD = false end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if draggingFD and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local relX = math.clamp((input.Position.X - FDSliderBg.AbsolutePosition.X) / FDSliderBg.AbsoluteSize.X, 0, 1)
+        UpdateFD(minFD + relX * (maxFD - minFD))
+    end
+end)
 AddAdjust("Combat", "FLOAT POS X (%)", "SilentAim_FloatX", 5, 0, 100, UpdateSAFloatPosition)
 AddAdjust("Combat", "FLOAT POS Y (%)", "SilentAim_FloatY", 5, 0, 100, UpdateSAFloatPosition)
 
@@ -2399,7 +2481,8 @@ _G.M1BF = true
 if _G.M1BF then
     local p=game.Players.LocalPlayer
     task.spawn(function()
-        while _G.M1BF and task.wait() do
+      while _G.M1BF do
+            task.wait(_G.Config.FastAttackDelay / 1000)
             if not _G.Config.FastM1 then continue end
             local c=p.Character
             if c then
