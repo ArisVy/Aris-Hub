@@ -2684,7 +2684,8 @@ RunService.Heartbeat:Connect(function()
     local rootPos = root.Position
     local currentTime = tick()
 
-    if currentTime - lastAttack < 0.05 then return end
+   if not _G.Config.FastM1 then return end
+        if currentTime - lastAttack < (_G.Config.FastAttackDelay / 1000) then return end
     lastAttack = currentTime
 
     for _,target in pairs(enemies:GetChildren()) do
