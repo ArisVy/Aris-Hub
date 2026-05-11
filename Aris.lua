@@ -978,11 +978,17 @@ if not getgenv().Hook_Initialized_Aris then
                     origin = args[1].Origin
                 end
                 if origin and typeof(origin) == "Vector3" then
+						   local aimPos = SilentAimTarget.Position
+                    -- Tính toán Prediction (Đoán hướng)
+                    if _G.Config.Prediction_Enabled and SilentAimTarget:IsA("BasePart") then
+                        aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.Prediction)
+                    end
+
                     if method == "Raycast" then
-                        args[2] = (SilentAimTarget.Position - origin).Unit * 1000
+                        args[2] = (aimPos - origin).Unit * 1000
                         return OldNamecall(self, unpack(args))
                     else
-                        args[1] = Ray.new(origin, (SilentAimTarget.Position - origin).Unit * 1000)
+                        args[1] = Ray.new(origin, (aimPos - origin).Unit * 1000)
                         return OldNamecall(self, unpack(args))
                     end
                 end
@@ -1008,6 +1014,9 @@ if not getgenv().Hook_Initialized_Aris then
             end
             if index == "Hit" or index == "hit" then
                 local aimPos = SilentAimTarget.Position
+				if _G.Config.Prediction_Enabled and SilentAimTarget:IsA("BasePart") then
+                    aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.Prediction)
+                end
                 if tool.Name == "Dragon Trident" then
                     aimPos = aimPos - Vector3.new(0, 3, 0)
                 end
@@ -2454,21 +2463,103 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
     AddNotify({Title="LIST REFRESHED",Description="Loaded ",Duration=3})
 end)
 
-local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame) PredContainer.Size = UDim2.new(1, 0, 0, 115) PredContainer.BackgroundTransparency = 1
-local PredToggle = Instance.new("TextButton", PredContainer) PredToggle.Size = UDim2.new(1, -16, 0, 36) PredToggle.Text = "" PredToggle.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) CreateBorder(PredToggle) local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: OFF", Enum.Font.GothamBold, 14) ApplyButtonAnimation(PredToggle)
-local PredSliderBg = Instance.new("Frame", PredContainer) PredSliderBg.Size = UDim2.new(1, -16, 0, 25) PredSliderBg.Position = UDim2.new(0, 0, 0, 48) PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20) Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
-local PredSliderFill = Instance.new("Frame", PredSliderBg) PredSliderFill.Size = UDim2.new(_G.Config.Prediction / 10, 0, 1, 0) PredSliderFill.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", PredSliderFill).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(PredSliderFill, true)
-local PredValLabel = Instance.new("TextLabel", PredSliderBg) PredValLabel.Size = UDim2.new(1, 0, 1, 0) PredValLabel.BackgroundTransparency = 1 PredValLabel.Text = "Predict Time: " .. string.format("%.1f", _G.Config.Prediction) .. "s" PredValLabel.Font = Enum.Font.GothamBold PredValLabel.TextSize = 12 CreateTextGradient(PredValLabel)
-local PredBtnFrame = Instance.new("Frame", PredContainer) PredBtnFrame.Size = UDim2.new(1, -16, 0, 32) PredBtnFrame.Position = UDim2.new(0, 0, 0, 82) PredBtnFrame.BackgroundTransparency = 1
-function createPredBtn(text, posScale) local btn = Instance.new("TextButton", PredBtnFrame) btn.Size = UDim2.new(0.22, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, text, Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn) return btn end
-local pm1 = createPredBtn("-1", 0) local pm01 = createPredBtn("-0.1", 0.26) local pp01 = createPredBtn("+0.1", 0.52) local pp1 = createPredBtn("+1", 0.78)
-function UpdatePred(val) _G.Config.Prediction = math.clamp(val, 0, 10) local ratio = _G.Config.Prediction / 10 PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0) PredValLabel.Text = "Predict Time: " .. string.format("%.1f", _G.Config.Prediction) .. "s" end
-pm1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 1) end) pm01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.1) end) pp01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.1) end) pp1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 1) end)
-PredToggle.MouseButton1Click:Connect(function() _G.Config.Prediction_Enabled = not _G.Config.Prediction_Enabled PredToggleTxt.Text = "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF") ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled) end)
+-- ======== BẮT ĐẦU CODE GIAO DIỆN PREDICTION MỚI ========
+local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame)
+PredContainer.Size = UDim2.new(1, 0, 0, 115)
+PredContainer.BackgroundTransparency = 1
+
+local PredToggle = Instance.new("TextButton", PredContainer)
+PredToggle.Size = UDim2.new(1, -16, 0, 36)
+PredToggle.Text = ""
+PredToggle.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", PredToggle).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled)
+CreateBorder(PredToggle)
+local PredToggleTxt = CreateButtonText(PredToggle, "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF"), Enum.Font.GothamBold, 14)
+ApplyButtonAnimation(PredToggle)
+
+local PredSliderBg = Instance.new("Frame", PredContainer)
+PredSliderBg.Size = UDim2.new(1, -16, 0, 25)
+PredSliderBg.Position = UDim2.new(0, 0, 0, 48)
+PredSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", PredSliderBg).CornerRadius = UDim.new(0, 20)
+
+local PredSliderFill = Instance.new("Frame", PredSliderBg)
+PredSliderFill.Size = UDim2.new(_G.Config.Prediction / 10, 0, 1, 0)
+PredSliderFill.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", PredSliderFill).CornerRadius = UDim.new(0, 20)
+ApplyToggleGradient(PredSliderFill, true)
+
+local PredValLabel = Instance.new("TextLabel", PredSliderBg)
+PredValLabel.Size = UDim2.new(1, 0, 1, 0)
+PredValLabel.BackgroundTransparency = 1
+-- Định dạng %.2f để hiển thị đúng số thập phân như 0.25
+PredValLabel.Text = "Predict Time: " .. string.format("%.2f", _G.Config.Prediction) .. "s"
+PredValLabel.Font = Enum.Font.GothamBold
+PredValLabel.TextSize = 12
+CreateTextGradient(PredValLabel)
+
+local PredBtnFrame = Instance.new("Frame", PredContainer)
+PredBtnFrame.Size = UDim2.new(1, -16, 0, 32)
+PredBtnFrame.Position = UDim2.new(0, 0, 0, 82)
+PredBtnFrame.BackgroundTransparency = 1
+
+local predBtnW = 0.15
+local predGap = 0.02
+function createPredBtn(text, posScale)
+    local btn = Instance.new("TextButton", PredBtnFrame)
+    btn.Size = UDim2.new(predBtnW, 0, 1, 0)
+    btn.Position = UDim2.new(posScale, 0, 0, 0)
+    btn.Text = ""
+    btn.BackgroundColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
+    ApplyToggleGradient(btn, false)
+    CreateBorder(btn)
+    CreateButtonText(btn, text, Enum.Font.GothamBold, 11)
+    ApplyButtonAnimation(btn)
+    return btn
+end
+
+local pm1 = createPredBtn("-1", 0)
+local pm025 = createPredBtn("-0.25", predBtnW + predGap)
+local pm01 = createPredBtn("-0.1", (predBtnW + predGap) * 2)
+local pp01 = createPredBtn("+0.1", (predBtnW + predGap) * 3)
+local pp025 = createPredBtn("+0.25", (predBtnW + predGap) * 4)
+local pp1 = createPredBtn("+1", (predBtnW + predGap) * 5)
+
+function UpdatePred(val)
+    _G.Config.Prediction = math.clamp(val, 0, 10)
+    local ratio = _G.Config.Prediction / 10
+    PredSliderFill.Size = UDim2.new(ratio, 0, 1, 0)
+    PredValLabel.Text = "Predict Time: " .. string.format("%.2f", _G.Config.Prediction) .. "s"
+end
+
+pm1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 1) end)
+pm025.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.25) end)
+pm01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction - 0.1) end)
+pp01.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.1) end)
+pp025.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 0.25) end)
+pp1.MouseButton1Click:Connect(function() UpdatePred(_G.Config.Prediction + 1) end)
+
+PredToggle.MouseButton1Click:Connect(function()
+    _G.Config.Prediction_Enabled = not _G.Config.Prediction_Enabled
+    PredToggleTxt.Text = "PREDICTION COUNTER: " .. (_G.Config.Prediction_Enabled and "ON" or "OFF")
+    ApplyToggleGradient(PredToggle, _G.Config.Prediction_Enabled)
+end)
+
 local draggingPred = false
-PredSliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = true end end)
-PredSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end end)
-UserInputService.InputChanged:Connect(function(input) if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1) UpdatePred(relX * 10) end end)
+PredSliderBg.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = true end
+end)
+PredSliderBg.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingPred = false end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if draggingPred and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local relX = math.clamp((input.Position.X - PredSliderBg.AbsolutePosition.X) / PredSliderBg.AbsoluteSize.X, 0, 1)
+        UpdatePred(relX * 10)
+    end
+end)
 
 UserInputService.JumpRequest:Connect(function()
     if _G.Config.InfJump then
@@ -2968,7 +3059,7 @@ RunService.RenderStepped:Connect(function()
                     end
                     TracerLine.From = Vector2.new(startX, startY)
                     TracerLine.To = Vector2.new(targetPos.X, targetPos.Y)
-                    TracerLine.Color = rgb
+                    TracerLine.Color = Color3.fromRGB(255, 0, 0)
                     TracerLine.Visible = true
                 else
                     TracerLine.Visible = false
