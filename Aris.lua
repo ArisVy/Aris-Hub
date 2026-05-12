@@ -985,17 +985,25 @@ if not getgenv().Hook_Initialized_Aris then
         end
         return OldNamecall(self, ...)
     end))
+
     local OldIndex
     OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
+        -- FIX: Ép Mouse.Hit phải đi theo địch dù tâm đang chỉ đi đâu
         if _G.Config.SilentAim and SilentAimTarget and self == Mouse and not checkcaller() then
-            if index == "Hit" or index == "hit" then
+            if index == "Hit" or index == "hit" or index == "CFrame" then
                 local trace = debug.traceback():lower()
-                if not (trace:find("camera") or trace:find("playermodule")) then
+                -- Chỉ bỏ qua camera, còn lại skill phải theo địch hết
+                if not trace:find("camera") then
                     local vel = SilentAimTarget:IsA("BasePart") and SilentAimTarget.AssemblyLinearVelocity or Vector3.new(0,0,0)
                     local targetPos = SilentAimTarget.Position + (vel * 0.125)
-                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Dragon Trident") then
-                        targetPos = targetPos - Vector3.new(0, 3, 0)
+                    
+                    -- Fix bù trừ độ cao cho một số vũ khí
+                    local char = LocalPlayer.Character
+                    local tool = char and char:FindFirstChildOfClass("Tool")
+                    if tool and (tool.Name == "Dragon Trident" or tool.Name == "Soul Guitar") then
+                        targetPos = targetPos - Vector3.new(0, 2, 0)
                     end
+                    
                     return CFrame.new(targetPos)
                 end
             elseif index == "Target" or index == "target" then
@@ -1005,6 +1013,7 @@ if not getgenv().Hook_Initialized_Aris then
         return OldIndex(self, index)
     end))
 end
+
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
