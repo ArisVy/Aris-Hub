@@ -59,7 +59,8 @@ _NotiList.Padding = UDim.new(0, 5)
 function AddNotify(Setting)
     local Title = Setting.Title or ""
     local Description = Setting.Description or Setting.Desc or Setting.Content or ""
-    local Duration = Setting.Duration or 5
+    local Duration = 3
+
     local NotiFrame = Instance.new("Frame")
     local Noticontainer = Instance.new("Frame")
     local UICorner = Instance.new("UICorner")
@@ -69,23 +70,28 @@ function AddNotify(Setting)
     local CloseContainer = Instance.new("Frame")
     local CloseImage = Instance.new("ImageLabel")
     local CloseBtn = Instance.new("TextButton")
+
     NotiFrame.Name = "NotiFrame"
     NotiFrame.Parent = _NotiContainer
     NotiFrame.BackgroundTransparency = 1
     NotiFrame.Size = UDim2.new(1, 0, 0, 0)
     NotiFrame.AutomaticSize = Enum.AutomaticSize.Y
     NotiFrame.ClipsDescendants = true
+
     Noticontainer.Parent = NotiFrame
     Noticontainer.Position = UDim2.new(1, 0, 0, 0)
     Noticontainer.Size = UDim2.new(1, 0, 1, 6)
     Noticontainer.AutomaticSize = Enum.AutomaticSize.Y
     Noticontainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
     UICorner.CornerRadius = UDim.new(0, 4)
     UICorner.Parent = Noticontainer
+
     Topnoti.Parent = Noticontainer
     Topnoti.BackgroundTransparency = 1
     Topnoti.Position = UDim2.new(0, 0, 0, 5)
     Topnoti.Size = UDim2.new(1, 0, 0, 25)
+
     TextLabelNoti.Parent = Topnoti
     TextLabelNoti.BackgroundTransparency = 1
     TextLabelNoti.Position = UDim2.new(0, 8, 0, 0)
@@ -97,11 +103,13 @@ function AddNotify(Setting)
     TextLabelNoti.RichText = true
     TextLabelNoti.TextColor3 = Color3.fromRGB(255, 255, 255)
     TextLabelNoti.Text = "<font color=\"rgb(255,80,80)\">Aris Hub</font> " .. tostring(Title)
+
     CloseContainer.Parent = Topnoti
     CloseContainer.AnchorPoint = Vector2.new(1, 0.5)
     CloseContainer.BackgroundTransparency = 1
     CloseContainer.Position = UDim2.new(1, -4, 0.5, 0)
     CloseContainer.Size = UDim2.new(0, 22, 0, 22)
+
     CloseImage.Parent = CloseContainer
     CloseImage.BackgroundTransparency = 1
     CloseImage.Size = UDim2.new(1, 0, 1, 0)
@@ -109,12 +117,12 @@ function AddNotify(Setting)
     CloseImage.ImageRectOffset = Vector2.new(284, 4)
     CloseImage.ImageRectSize = Vector2.new(24, 24)
     CloseImage.ImageColor3 = Color3.fromRGB(200, 200, 200)
+
     CloseBtn.Parent = CloseContainer
     CloseBtn.BackgroundTransparency = 1
     CloseBtn.Size = UDim2.new(1, 0, 1, 0)
     CloseBtn.Text = ""
-    CloseBtn.TextSize = 14
-    CloseBtn.Font = Enum.Font.SourceSans
+
     TextLabelNoti2.Parent = Noticontainer
     TextLabelNoti2.BackgroundTransparency = 1
     TextLabelNoti2.Position = UDim2.new(0, 10, 0, 35)
@@ -127,20 +135,24 @@ function AddNotify(Setting)
     TextLabelNoti2.TextColor3 = Color3.fromRGB(200, 200, 200)
     TextLabelNoti2.AutomaticSize = Enum.AutomaticSize.Y
     TextLabelNoti2.TextWrapped = true
+
     local _closed = false
     local _TS = game:GetService("TweenService")
-    function remove()
+
+    local function remove()
         if _closed then return end
         _closed = true
-        _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(1, 0, 0, 0)}):Play()
-        task.wait(0.3)
-        if NotiFrame and NotiFrame.Parent then NotiFrame:Destroy() end
+        local tween = _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(1, 0, 0, 0)})
+        tween:Play()
+        tween.Completed:Connect(function()
+            if NotiFrame and NotiFrame.Parent then NotiFrame:Destroy() end
+        end)
     end
-    _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(0, 0, 0, 0)}):Play()
-    CloseBtn.MouseButton1Click:Connect(function() task.spawn(remove) end)
-    task.spawn(function() task.wait(Duration) remove() end)
-end
 
+    _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+    CloseBtn.MouseButton1Click:Connect(remove)
+    task.delay(Duration, remove)
+end
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -1031,7 +1043,14 @@ end
 
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
-function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
+
+local function ToggleDesync(state)
+    pcall(function()
+        if raknet and type(raknet.desync) == "function" then
+            raknet.desync(state)
+        end
+    end)
+end
 
 local NumericFlags = {
     {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"},
@@ -1063,15 +1082,28 @@ local NumericFlags = {
     {"MaxAcceptableUpdateDelay","1"}
 }
 
-function SetNormal(state) _G.DesyncNormal = state if not state then ToggleDesync(false) end end
-function SetFast(state) _G.DesyncFast = state if not state then ToggleDesync(false) end end
-function SetFixV2_Logic(state)
+local function SetNormal(state)
+    _G.DesyncNormal = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFast(state)
+    _G.DesyncFast = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFixV2_Logic(state)
     _G.DesyncFix = state
     ToggleDesync(state)
+    
     if state then
-        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+        for _, flagData in ipairs(NumericFlags) do
+            pcall(function() setfflag(flagData[1], flagData[2]) end)
+        end
     else
-        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
+        for _, flagData in ipairs(NumericFlags) do
+            pcall(function() setfflag(flagData[1], "") end)
+        end
     end
 end
 
@@ -3100,16 +3132,18 @@ RunService.Heartbeat:Connect(function(dt)
                     _G.IsFleeing = false
                     _G.IsReturning = true
                 end
-            elseif _G.IsReturning then
+			elseif _G.IsReturning then
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
 
-                hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
-
-                if hrp.Position.Y <= 150 then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
-                    _G.IsReturning = false
-                    if noclipConnection and not isFarming then toggleNoclip(false) end
+                if hrp.Position.Y > 200 then
+                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
+                else
+                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 150 * dt, 0)
+                    if hrp.Position.Y <= 50 then
+                        _G.IsReturning = false
+                        if noclipConnection and not isFarming then toggleNoclip(false) end
+                    end
                 end
             end
         end
@@ -3130,11 +3164,17 @@ RunService.Heartbeat:Connect(function(dt)
             if currentTween then currentTween:Cancel() end
             if not noclipConnection then toggleNoclip(true) end
 
-            myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
-            if myRoot.Position.Y <= 150 then
-                myRoot.CFrame = CFrame.new(myRoot.Position.X, 150, myRoot.Position.Z)
-                _G.IsForcedDropping = false
-                if noclipConnection and not isFarming then toggleNoclip(false) end
+            if myRoot.Position.Y > 200 then
+                -- NÃºt DROP cÅ©ng lao nhanh xuá»‘ng má»‘c 200
+                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
+            else
+                -- NÃºt DROP cháº¡m má»‘c 200 cÅ©ng háº¡ cÃ¡nh tá»« tá»«
+                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 150 * dt, 0)
+                
+                if myRoot.Position.Y <= 50 then
+                    _G.IsForcedDropping = false
+                    if noclipConnection and not isFarming then toggleNoclip(false) end
+                end
             end
         end
     end
