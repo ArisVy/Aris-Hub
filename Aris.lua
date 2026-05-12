@@ -2420,7 +2420,7 @@ if _G.M1BF then
                             local m=e:FindFirstChild("Humanoid")
                             if e~=c and h and m and m.Health>0 then
                                 local d=(h.Position-r.Position).Magnitude
-                                if d<=90 then
+                                if d<=5000 then
                                     t.LeftClickRemote:FireServer((h.Position-r.Position).Unit,1)
                                     break
                                 end
