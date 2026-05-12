@@ -127,7 +127,7 @@ function AddNotify(Setting)
     TextLabelNoti2.TextColor3 = Color3.fromRGB(200, 200, 200)
     TextLabelNoti2.AutomaticSize = Enum.AutomaticSize.Y
     TextLabelNoti2.TextWrapped = true
-CloseBtn.ZIndex = 10 -- Đẩy ZIndex lên để nút X bấm được
+CloseBtn.ZIndex = 10 -- Äáº©y ZIndex lÃªn Ä‘á»ƒ nÃºt X báº¥m Ä‘Æ°á»£c
     
     local _closed = false
     local _TS = game:GetService("TweenService")
@@ -136,7 +136,7 @@ CloseBtn.ZIndex = 10 -- Đẩy ZIndex lên để nút X bấm được
         if _closed then return end
         _closed = true
         _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(1, 0, 0, 0)}):Play()
-        task.delay(0.3, function() -- Dùng task.delay để không bị treo luồng executor
+        task.delay(0.3, function() -- DÃ¹ng task.delay Ä‘á»ƒ khÃ´ng bá»‹ treo luá»“ng executor
             if NotiFrame and NotiFrame.Parent then NotiFrame:Destroy() end
         end)
     end
@@ -781,7 +781,7 @@ RunService.RenderStepped:Connect(function()
                 local p = Players:GetPlayerFromCharacter(char)
                 if p then name = p.Name end
 
-                local icon = p and "ðŸ‘¤" or "ðŸ‘¹"
+                local icon = p and "Ã°Å¸â€˜Â¤" or "Ã°Å¸â€˜Â¹"
                 TargetStatsText.Text = string.format("%s %s | HP: %d/%d | Dist: %dm", icon, name, hp, maxHp, dist)
             end
         else
@@ -969,72 +969,25 @@ if not getgenv().Hook_Initialized_Aris then
     OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local args = {...}
         local method = getnamecallmethod()
-        
-        -- Chỉ can thiệp khi có mục tiêu và đang bật Silent Aim
-        if _G.Config.SilentAim and SilentAimTarget and SilentAimTarget:IsA("BasePart") and not checkcaller() then
+        if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
             if method == "Raycast" or string.find(method, "Ray") then
-                -- Kiểm tra Traceback để tránh can thiệp vào các hệ thống di chuyển/camera của game (Gây lỗi skill)
-                local trace = debug.traceback():lower()
-                if not (trace:find("visual") or trace:find("camera") or trace:find("effect") or trace:find("drop")) then
-                    local origin
-                    if method == "Raycast" then origin = args[1] 
-                    elseif args[1] and typeof(args[1]) == "Ray" then origin = args[1].Origin end
-
-                    if origin and typeof(origin) == "Vector3" then
-                        -- Tính toán Prediction 0.125s an toàn
-                        local targetPos = SilentAimTarget.Position + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
-                        local direction = (targetPos - origin).Unit * 1000
-
-                        if method == "Raycast" then
-                            args[2] = direction
-                            return OldNamecall(self, unpack(args))
-                        else
-                            args[1] = Ray.new(origin, direction)
-                            return OldNamecall(self, unpack(args))
-                        end
-                    end
+                local raw_trace = debug.traceback()
+                local trace = raw_trace and string.lower(raw_trace) or ""
+                if string.find(trace, "effect") or string.find(trace, "doublejump") or string.find(trace, "skyjump") or string.find(trace, "sky jump") or string.find(trace, "airjump") or string.find(trace, "air jump") or string.find(trace, "visual") or string.find(trace, "camera") or string.find(trace, "dodge") or string.find(trace, "jump") or string.find(trace, "geppo") then
+                    return OldNamecall(self, ...)
                 end
-            end
-        end
-        return OldNamecall(self, ...)
-    end))
-
-    local OldIndex
-    OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
-        if _G.Config.SilentAim and SilentAimTarget and SilentAimTarget:IsA("BasePart") and not checkcaller() and self == Mouse then
-            if index == "Hit" or index == "hit" then
-                local trace = debug.traceback():lower()
-                -- Lọc kỹ hơn các script không liên quan để tránh kẹt skill
-                if not (trace:find("camera") or trace:find("playermodule") or trace:find("visual")) then
-                    local targetPos = SilentAimTarget.Position + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
-                    
-                    -- Fix đặc biệt cho Dragon Trident hoặc các skill cần offset
-                    local char = LocalPlayer.Character
-                    local tool = char and char:FindFirstChildOfClass("Tool")
-                    if tool and tool.Name == "Dragon Trident" then
-                        targetPos = targetPos - Vector3.new(0, 3, 0)
-                    end
-                    
-    if not getgenv().Hook_Initialized_Aris then
-    getgenv().Hook_Initialized_Aris = true
-    local OldNamecall
-    OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-        local args = {...}
-        local method = getnamecallmethod()
-        
-        -- Chỉ chạy khi cần thiết để tránh nóng máy/freeze
-        if _G.Config.SilentAim and SilentAimTarget and not checkcaller() then
-            if method == "Raycast" and self == workspace then
-                local trace = debug.traceback():lower()
-                -- Bỏ qua các lệnh camera/hiệu ứng để tránh treo máy
-                if not (trace:find("camera") or trace:find("visual") or trace:find("effect")) then
-                    local origin = args[1]
-                    if typeof(origin) == "Vector3" then
-                        -- Prediction 0.125s an toàn
-                        local vel = SilentAimTarget:IsA("BasePart") and SilentAimTarget.AssemblyLinearVelocity or Vector3.new(0,0,0)
-                        local targetPos = SilentAimTarget.Position + (vel * 0.125)
-                        
-                        args[2] = (targetPos - origin).Unit * 1000
+                local origin
+                if method == "Raycast" then
+                    origin = args[1]
+                elseif args[1] and typeof(args[1]) == "Ray" then
+                    origin = args[1].Origin
+                end
+                if origin and typeof(origin) == "Vector3" then
+                    if method == "Raycast" then
+                        args[2] = (SilentAimTarget.Position - origin).Unit * 1000
+                        return OldNamecall(self, unpack(args))
+                    else
+                        args[1] = Ray.new(origin, (SilentAimTarget.Position - origin).Unit * 1000)
                         return OldNamecall(self, unpack(args))
                     end
                 end
@@ -1042,22 +995,28 @@ if not getgenv().Hook_Initialized_Aris then
         end
         return OldNamecall(self, ...)
     end))
-
     local OldIndex
     OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
-        if _G.Config.SilentAim and SilentAimTarget and self == Mouse and not checkcaller() then
+        if not _G.Config.SilentAim or not SilentAimTarget or checkcaller() or self ~= Mouse then
+            return OldIndex(self, index)
+        end
+        if index == "Hit" or index == "hit" or index == "Target" or index == "target" then
+            local raw_trace = debug.traceback()
+            local trace = raw_trace and string.lower(raw_trace) or ""
+            if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "doublejump") or string.find(trace, "skyjump") or string.find(trace, "sky jump") or string.find(trace, "airjump") or string.find(trace, "air jump") or string.find(trace, "visual") or string.find(trace, "popper") or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "dodge") or string.find(trace, "jump") or string.find(trace, "geppo") then
+                return OldIndex(self, index)
+            end
+            local char = LocalPlayer.Character
+            local tool = char and char:FindFirstChildOfClass("Tool")
+            if not tool then
+                return OldIndex(self, index)
+            end
             if index == "Hit" or index == "hit" then
-                local trace = debug.traceback():lower()
-                if not (trace:find("camera") or trace:find("playermodule")) then
-                    local vel = SilentAimTarget:IsA("BasePart") and SilentAimTarget.AssemblyLinearVelocity or Vector3.new(0,0,0)
-                    local targetPos = SilentAimTarget.Position + (vel * 0.125)
-                    
-                    -- Fix riêng cho Trident
-                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Dragon Trident") then
-                        targetPos = targetPos - Vector3.new(0, 3, 0)
-                    end
-                    return CFrame.new(targetPos)
+                local aimPos = SilentAimTarget.Position
+                if tool.Name == "Dragon Trident" then
+                    aimPos = aimPos - Vector3.new(0, 3, 0)
                 end
+                return CFrame.new(aimPos)
             elseif index == "Target" or index == "target" then
                 return SilentAimTarget
             end
@@ -1065,6 +1024,7 @@ if not getgenv().Hook_Initialized_Aris then
         return OldIndex(self, index)
     end))
 end
+
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
@@ -1666,7 +1626,7 @@ nullLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 end)
 
 AddGridToggle(nullGrid, "SILENT AIM", "SilentAim", RefreshSAFloatBtn)
-AddGridToggle(nullGrid, "360Â° AIMBOT", "SilentAim_Nearest")
+AddGridToggle(nullGrid, "360Ã‚Â° AIMBOT", "SilentAim_Nearest")
 AddGridToggle(nullGrid, "AIMBOT NPC", "SilentAim_NPC")
 AddGridToggle(nullGrid, "SA FLOAT", "SilentAim_ShowFloat", function(v) saFloatGui.Enabled = v end)
 AddGridToggle(nullGrid, "FAST ATTACK", "FastM1")
@@ -1756,7 +1716,7 @@ end)
 AddAdjust("Combat", "FLOAT POS X (%)", "SilentAim_FloatX", 5, 0, 100, UpdateSAFloatPosition)
 AddAdjust("Combat", "FLOAT POS Y (%)", "SilentAim_FloatY", 5, 0, 100, UpdateSAFloatPosition)
 -- [[ UI M1 DELAY ]] --
-    _G.Config.FastM1_Delay = 0 -- Mặc định là 0s (nhanh nhất)
+    _G.Config.FastM1_Delay = 0 -- Máº·c Ä‘á»‹nh lÃ  0s (nhanh nháº¥t)
     
     local M1DelayContainer = Instance.new("Frame", NullContent)
     M1DelayContainer.Size = UDim2.new(1, -16, 0, 80)
@@ -1769,7 +1729,7 @@ AddAdjust("Combat", "FLOAT POS Y (%)", "SilentAim_FloatY", 5, 0, 100, UpdateSAFl
     M1SliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     Instance.new("UICorner", M1SliderBg).CornerRadius = UDim.new(0, 20)
     
-    local maxM1 = 1.0 -- Tối đa 1 giây
+    local maxM1 = 1.0 -- Tá»‘i Ä‘a 1 giÃ¢y
     local minM1 = 0.0
     
     local M1SliderFill = Instance.new("Frame", M1SliderBg)
@@ -1854,7 +1814,7 @@ function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Desync_Fl
 
 local RefreshFloatBtn = function()
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
-        floatText.Text = "N/A âš ï¸" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
+        floatText.Text = "N/A Ã¢Å¡Â Ã¯Â¸Â" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
     end
     strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
     if desyncState then floatText.Text = "DeSync : ON" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : OFF" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
@@ -1879,7 +1839,7 @@ floatBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-AddToggle("Desync", "GHOST MODE (ðŸ‘»)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddToggle("Desync", "GHOST MODE (Ã°Å¸â€˜Â»)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
 AddToggle("Desync", "SHOW DESYNC FLOAT BTN", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
 AddAdjust("Desync", "POS X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
 AddAdjust("Desync", "POS Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
@@ -2113,18 +2073,18 @@ tpSelNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
 CreateBorder(tpSelNPCBtn)
-local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "Ã°Å¸Å½Â¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelNPCBtn)
-ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "ðŸŽ¯ ENABLE TP"}
+ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "Ã°Å¸Å½Â¯ ENABLE TP"}
 
 tpSelNPCBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_NPC = not _G.Config.TP_NPC
     ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
-    tpSelNPCTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
+    tpSelNPCTxt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
     if _G.Config.TP_NPC then
         _G.Config.TP_Player = false
         local b = ToggleButtons["TP_Player"]
-        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipNPC = {}
@@ -2140,7 +2100,7 @@ skipNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipNPCBtn, false)
 CreateBorder(skipNPCBtn)
-CreateButtonText(skipNPCBtn, "â­ï¸ SKIP NPC", Enum.Font.GothamBold, 11)
+CreateButtonText(skipNPCBtn, "Ã¢ÂÂ­Ã¯Â¸Â SKIP NPC", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipNPCBtn)
 
 skipNPCBtn.MouseButton1Click:Connect(function()
@@ -2219,7 +2179,7 @@ nListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     NPCListContainer.Size = UDim2.new(1, -16, 0, nListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
+AddButton("TP NPC", "Ã°Å¸â€â€ž REFRESH NPC LIST", function()
     for _, child in ipairs(NPCListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -2232,7 +2192,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetNPC == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "Ã°Å¸Å½Â¯ Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
 
     autoBtn.MouseButton1Click:Connect(function()
@@ -2261,7 +2221,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
 
-        local txt = CreateButtonText(btn, "ðŸ‘¹ " .. npcName, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "Ã°Å¸â€˜Â¹ " .. npcName, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
 
@@ -2286,7 +2246,7 @@ blLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
 blLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
 blLayout.SortOrder = Enum.SortOrder.LayoutOrder
 blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
-AddButton("TP NPC", "ðŸ”„ REFRESH BLACKLIST (1KM)", function()
+AddButton("TP NPC", "Ã°Å¸â€â€ž REFRESH BLACKLIST (1KM)", function()
     for _, child in ipairs(BlacklistContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end
     local foundNPCs = {} for npc, _ in pairs(CachedNPCs) do if npc and npc.Parent then local root = npc:FindFirstChild("HumanoidRootPart") if root and (root.Position - myRoot.Position).Magnitude <= 1000 then foundNPCs[npc.Name] = true end end end
@@ -2294,7 +2254,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH BLACKLIST (1KM)", function()
     for npcName, _ in pairs(foundNPCs) do
         count = count + 1 local btn = Instance.new("TextButton", BlacklistContainer) btn.Size = UDim2.new(1, 0, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
         local isBlacklisted = _G.Config.BlacklistedNPCs[npcName] or false ApplyToggleGradient(btn, isBlacklisted) CreateBorder(btn)
-        local txt = CreateButtonText(btn, "ðŸš« BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
+        local txt = CreateButtonText(btn, "Ã°Å¸Å¡Â« BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
         btn.MouseButton1Click:Connect(function() _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName] local state = _G.Config.BlacklistedNPCs[npcName] ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1) end)
     end
     AddNotify({Title="NPC SEARCH",Description="Found ",Duration=3})
@@ -2312,18 +2272,18 @@ tpSelBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
 CreateBorder(tpSelBtn)
-local tpSelTxt = CreateButtonText(tpSelBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelTxt = CreateButtonText(tpSelBtn, "Ã°Å¸Å½Â¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelBtn)
-ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "ðŸŽ¯ ENABLE TP"}
+ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "Ã°Å¸Å½Â¯ ENABLE TP"}
 
 tpSelBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_Player = not _G.Config.TP_Player
     ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
-    tpSelTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
+    tpSelTxt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
     if _G.Config.TP_Player then
         _G.Config.TP_NPC = false
         local b = ToggleButtons["TP_NPC"]
-        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipPlayer = {}
@@ -2339,7 +2299,7 @@ skipBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipBtn, false)
 CreateBorder(skipBtn)
-CreateButtonText(skipBtn, "â­ï¸ SKIP PLAYER", Enum.Font.GothamBold, 11)
+CreateButtonText(skipBtn, "Ã¢ÂÂ­Ã¯Â¸Â SKIP PLAYER", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipBtn)
 
 skipBtn.MouseButton1Click:Connect(function()
@@ -2422,7 +2382,7 @@ pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
+AddButton("TP Player", "Ã°Å¸â€â€ž REFRESH PLAYER LIST", function()
     for _, child in ipairs(PlayerListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -2435,7 +2395,7 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "Ã°Å¸Å½Â¯ Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
 
     autoBtn.MouseButton1Click:Connect(function()
@@ -2460,7 +2420,7 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
 
-        local txt = CreateButtonText(btn, "ðŸ‘¤ " .. p.Name, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "Ã°Å¸â€˜Â¤ " .. p.Name, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
 
