@@ -788,7 +788,7 @@ RunService.RenderStepped:Connect(function()
                 local p = Players:GetPlayerFromCharacter(char)
                 if p then name = p.Name end
 
-                local icon = p and "ðŸ‘¤" or "ðŸ‘¹"
+                local icon = p and "Ã°Å¸â€˜Â¤" or "Ã°Å¸â€˜Â¹"
                 TargetStatsText.Text = string.format("%s %s | HP: %d/%d | Dist: %dm", icon, name, hp, maxHp, dist)
             end
         else
@@ -991,7 +991,7 @@ if not getgenv().Hook_Initialized_Aris then
                 end
                 if origin and typeof(origin) == "Vector3" then
 						   local aimPos = SilentAimTarget.Position
-                    -- Tính toán Prediction (Đoán hướng)
+                    -- TÃ­nh toÃ¡n Prediction (ÄoÃ¡n hÆ°á»›ng)
                     if _G.Config.Prediction_Enabled and SilentAimTarget:IsA("BasePart") then
                         aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.Prediction)
                     end
@@ -1043,14 +1043,7 @@ end
 
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
-
-local function ToggleDesync(state)
-    pcall(function()
-        if raknet and type(raknet.desync) == "function" then
-            raknet.desync(state)
-        end
-    end)
-end
+function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
 
 local NumericFlags = {
     {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"},
@@ -1082,28 +1075,15 @@ local NumericFlags = {
     {"MaxAcceptableUpdateDelay","1"}
 }
 
-local function SetNormal(state)
-    _G.DesyncNormal = state
-    if not state then ToggleDesync(false) end
-end
-
-local function SetFast(state)
-    _G.DesyncFast = state
-    if not state then ToggleDesync(false) end
-end
-
-local function SetFixV2_Logic(state)
+function SetNormal(state) _G.DesyncNormal = state if not state then ToggleDesync(false) end end
+function SetFast(state) _G.DesyncFast = state if not state then ToggleDesync(false) end end
+function SetFixV2_Logic(state)
     _G.DesyncFix = state
     ToggleDesync(state)
-    
     if state then
-        for _, flagData in ipairs(NumericFlags) do
-            pcall(function() setfflag(flagData[1], flagData[2]) end)
-        end
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
     else
-        for _, flagData in ipairs(NumericFlags) do
-            pcall(function() setfflag(flagData[1], "") end)
-        end
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
     end
 end
 
@@ -1662,7 +1642,7 @@ nullLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 end)
 
 AddGridToggle(nullGrid, "SILENT AIM", "SilentAim", RefreshSAFloatBtn)
-AddGridToggle(nullGrid, "360Â° AIMBOT", "SilentAim_Nearest")
+AddGridToggle(nullGrid, "360Ã‚Â° AIMBOT", "SilentAim_Nearest")
 AddGridToggle(nullGrid, "AIMBOT NPC", "SilentAim_NPC")
 AddGridToggle(nullGrid, "SA FLOAT", "SilentAim_ShowFloat", function(v) saFloatGui.Enabled = v end)
 AddGridToggle(nullGrid, "FAST ATTACK", "FastM1")
@@ -1748,7 +1728,7 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateFOV(minFOV + relX * (maxFOV - minFOV))
     end
 end)
--- ======== BẮT ĐẦU CODE GIAO DIỆN FAST ATTACK DELAY ========
+-- ======== Báº®T Äáº¦U CODE GIAO DIá»†N FAST ATTACK DELAY ========
 local FastDelayContainer = Instance.new("Frame", NullContent)
 FastDelayContainer.Size = UDim2.new(1, -16, 0, 80)
 FastDelayContainer.BackgroundTransparency = 1
@@ -1872,7 +1852,7 @@ function UpdateFloatPosition() floatBtn.Position = UDim2.new(_G.Config.Desync_Fl
 
 local RefreshFloatBtn = function()
     if _G.Config.Desync_Mode == "Fix" and _G.Config.Desync_HideAuto then
-        floatText.Text = "N/A âš ï¸" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
+        floatText.Text = "N/A Ã¢Å¡Â Ã¯Â¸Â" btnGradient.Enabled = false textGradient.Enabled = false strokeGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) floatText.TextColor3 = Color3.fromRGB(200, 200, 200) floatStroke.Color = Color3.fromRGB(100, 100, 100) return
     end
     strokeGradient.Enabled = true floatStroke.Color = Color3.fromRGB(255, 255, 255)
     if desyncState then floatText.Text = "DeSync : ON" btnGradient.Enabled = true floatBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) textGradient.Enabled = false floatText.TextColor3 = Color3.fromRGB(0, 0, 0) else floatText.Text = "DeSync : OFF" btnGradient.Enabled = false floatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) textGradient.Enabled = true floatText.TextColor3 = Color3.fromRGB(255, 255, 255) end
@@ -1897,7 +1877,7 @@ floatBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-AddToggle("Desync", "GHOST MODE (ðŸ‘»)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
+AddToggle("Desync", "GHOST MODE (Ã°Å¸â€˜Â»)", "Desync_HideAuto", function() if RefreshFloatBtn then RefreshFloatBtn() end end)
 AddToggle("Desync", "SHOW DESYNC FLOAT BTN", "Desync_ShowFloat", function(v) floatGui.Enabled = v end)
 AddAdjust("Desync", "POS X (%)", "Desync_FloatX", 5, 0, 100, UpdateFloatPosition)
 AddAdjust("Desync", "POS Y (%)", "Desync_FloatY", 5, 0, 100, UpdateFloatPosition)
@@ -2131,18 +2111,18 @@ tpSelNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
 CreateBorder(tpSelNPCBtn)
-local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelNPCTxt = CreateButtonText(tpSelNPCBtn, "Ã°Å¸Å½Â¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelNPCBtn)
-ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "ðŸŽ¯ ENABLE TP"}
+ToggleButtons["TP_NPC"] = {Btn = tpSelNPCBtn, Txt = tpSelNPCTxt, Name = "Ã°Å¸Å½Â¯ ENABLE TP"}
 
 tpSelNPCBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_NPC = not _G.Config.TP_NPC
     ApplyToggleGradient(tpSelNPCBtn, _G.Config.TP_NPC)
-    tpSelNPCTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
+    tpSelNPCTxt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: " .. (_G.Config.TP_NPC and "ON" or "OFF")
     if _G.Config.TP_NPC then
         _G.Config.TP_Player = false
         local b = ToggleButtons["TP_Player"]
-        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipNPC = {}
@@ -2158,7 +2138,7 @@ skipNPCBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipNPCBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipNPCBtn, false)
 CreateBorder(skipNPCBtn)
-CreateButtonText(skipNPCBtn, "â­ï¸ SKIP NPC", Enum.Font.GothamBold, 11)
+CreateButtonText(skipNPCBtn, "Ã¢ÂÂ­Ã¯Â¸Â SKIP NPC", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipNPCBtn)
 
 skipNPCBtn.MouseButton1Click:Connect(function()
@@ -2237,7 +2217,7 @@ nListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     NPCListContainer.Size = UDim2.new(1, -16, 0, nListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
+AddButton("TP NPC", "Ã°Å¸â€â€ž REFRESH NPC LIST", function()
     for _, child in ipairs(NPCListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -2250,7 +2230,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetNPC == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "Ã°Å¸Å½Â¯ Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
 
     autoBtn.MouseButton1Click:Connect(function()
@@ -2279,7 +2259,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH NPC LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
 
-        local txt = CreateButtonText(btn, "ðŸ‘¹ " .. npcName, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "Ã°Å¸â€˜Â¹ " .. npcName, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
 
@@ -2304,7 +2284,7 @@ blLayout.CellSize = UDim2.new(0.48, 0, 0, 36)
 blLayout.CellPadding = UDim2.new(0.04, 0, 0, 8)
 blLayout.SortOrder = Enum.SortOrder.LayoutOrder
 blLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() BlacklistContainer.Size = UDim2.new(1, -16, 0, blLayout.AbsoluteContentSize.Y) end)
-AddButton("TP NPC", "ðŸ”„ REFRESH BLACKLIST (1KM)", function()
+AddButton("TP NPC", "Ã°Å¸â€â€ž REFRESH BLACKLIST (1KM)", function()
     for _, child in ipairs(BlacklistContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end
     local foundNPCs = {} for npc, _ in pairs(CachedNPCs) do if npc and npc.Parent then local root = npc:FindFirstChild("HumanoidRootPart") if root and (root.Position - myRoot.Position).Magnitude <= 1000 then foundNPCs[npc.Name] = true end end end
@@ -2312,7 +2292,7 @@ AddButton("TP NPC", "ðŸ”„ REFRESH BLACKLIST (1KM)", function()
     for npcName, _ in pairs(foundNPCs) do
         count = count + 1 local btn = Instance.new("TextButton", BlacklistContainer) btn.Size = UDim2.new(1, 0, 0, 36) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
         local isBlacklisted = _G.Config.BlacklistedNPCs[npcName] or false ApplyToggleGradient(btn, isBlacklisted) CreateBorder(btn)
-        local txt = CreateButtonText(btn, "ðŸš« BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
+        local txt = CreateButtonText(btn, "Ã°Å¸Å¡Â« BL: " .. npcName, Enum.Font.GothamBold, 11) if isBlacklisted then txt.TextColor3 = Color3.fromRGB(0,0,0) end ApplyButtonAnimation(btn)
         btn.MouseButton1Click:Connect(function() _G.Config.BlacklistedNPCs[npcName] = not _G.Config.BlacklistedNPCs[npcName] local state = _G.Config.BlacklistedNPCs[npcName] ApplyToggleGradient(btn, state) txt.TextColor3 = state and Color3.fromRGB(0,0,0) or Color3.new(1,1,1) end)
     end
     AddNotify({Title="NPC SEARCH",Description="Found ",Duration=3})
@@ -2330,18 +2310,18 @@ tpSelBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", tpSelBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
 CreateBorder(tpSelBtn)
-local tpSelTxt = CreateButtonText(tpSelBtn, "ðŸŽ¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
+local tpSelTxt = CreateButtonText(tpSelBtn, "Ã°Å¸Å½Â¯ ENABLE TP: OFF", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(tpSelBtn)
-ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "ðŸŽ¯ ENABLE TP"}
+ToggleButtons["TP_Player"] = {Btn = tpSelBtn, Txt = tpSelTxt, Name = "Ã°Å¸Å½Â¯ ENABLE TP"}
 
 tpSelBtn.MouseButton1Click:Connect(function()
     _G.Config.TP_Player = not _G.Config.TP_Player
     ApplyToggleGradient(tpSelBtn, _G.Config.TP_Player)
-    tpSelTxt.Text = "ðŸŽ¯ ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
+    tpSelTxt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: " .. (_G.Config.TP_Player and "ON" or "OFF")
     if _G.Config.TP_Player then
         _G.Config.TP_NPC = false
         local b = ToggleButtons["TP_NPC"]
-        if b then b.Txt.Text = "ðŸŽ¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
+        if b then b.Txt.Text = "Ã°Å¸Å½Â¯ ENABLE TP: OFF" ApplyToggleGradient(b.Btn, false) end
         doMagnetLoop()
     else
         TempSkipPlayer = {}
@@ -2357,7 +2337,7 @@ skipBtn.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", skipBtn).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(skipBtn, false)
 CreateBorder(skipBtn)
-CreateButtonText(skipBtn, "â­ï¸ SKIP PLAYER", Enum.Font.GothamBold, 11)
+CreateButtonText(skipBtn, "Ã¢ÂÂ­Ã¯Â¸Â SKIP PLAYER", Enum.Font.GothamBold, 11)
 ApplyButtonAnimation(skipBtn)
 
 skipBtn.MouseButton1Click:Connect(function()
@@ -2440,7 +2420,7 @@ pListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PlayerListContainer.Size = UDim2.new(1, -16, 0, pListLayout.AbsoluteContentSize.Y)
 end)
 
-AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
+AddButton("TP Player", "Ã°Å¸â€â€ž REFRESH PLAYER LIST", function()
     for _, child in ipairs(PlayerListContainer:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
@@ -2453,7 +2433,7 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 20)
     ApplyToggleGradient(autoBtn, _G.Config.SelectedTargetPlayer == nil)
     CreateBorder(autoBtn)
-    local autoTxt = CreateButtonText(autoBtn, "ðŸŽ¯ Auto", Enum.Font.GothamBold, 12)
+    local autoTxt = CreateButtonText(autoBtn, "Ã°Å¸Å½Â¯ Auto", Enum.Font.GothamBold, 12)
     ApplyButtonAnimation(autoBtn)
 
     autoBtn.MouseButton1Click:Connect(function()
@@ -2478,7 +2458,7 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
         ApplyToggleGradient(btn, isSelected)
         CreateBorder(btn)
 
-        local txt = CreateButtonText(btn, "ðŸ‘¤ " .. p.Name, Enum.Font.GothamBold, 11)
+        local txt = CreateButtonText(btn, "Ã°Å¸â€˜Â¤ " .. p.Name, Enum.Font.GothamBold, 11)
         if isSelected then txt.TextColor3 = Color3.fromRGB(0,0,0) end
         ApplyButtonAnimation(btn)
 
@@ -2495,7 +2475,7 @@ AddButton("TP Player", "ðŸ”„ REFRESH PLAYER LIST", function()
     AddNotify({Title="LIST REFRESHED",Description="Loaded ",Duration=3})
 end)
 
--- ======== BẮT ĐẦU CODE GIAO DIỆN PREDICTION MỚI ========
+-- ======== Báº®T Äáº¦U CODE GIAO DIá»†N PREDICTION Má»šI ========
 local PredContainer = Instance.new("Frame", ContentFrames["TP Player"].Frame)
 PredContainer.Size = UDim2.new(1, 0, 0, 115)
 PredContainer.BackgroundTransparency = 1
@@ -2525,7 +2505,7 @@ ApplyToggleGradient(PredSliderFill, true)
 local PredValLabel = Instance.new("TextLabel", PredSliderBg)
 PredValLabel.Size = UDim2.new(1, 0, 1, 0)
 PredValLabel.BackgroundTransparency = 1
--- Định dạng %.2f để hiển thị đúng số thập phân như 0.25
+-- Äá»‹nh dáº¡ng %.2f Ä‘á»ƒ hiá»ƒn thá»‹ Ä‘Ãºng sá»‘ tháº­p phÃ¢n nhÆ° 0.25
 PredValLabel.Text = "Predict Time: " .. string.format("%.2f", _G.Config.Prediction) .. "s"
 PredValLabel.Font = Enum.Font.GothamBold
 PredValLabel.TextSize = 12
@@ -3132,18 +3112,16 @@ RunService.Heartbeat:Connect(function(dt)
                     _G.IsFleeing = false
                     _G.IsReturning = true
                 end
-			elseif _G.IsReturning then
+            elseif _G.IsReturning then
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
 
-                if hrp.Position.Y > 200 then
-                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
-                else
-                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 150 * dt, 0)
-                    if hrp.Position.Y <= 50 then
-                        _G.IsReturning = false
-                        if noclipConnection and not isFarming then toggleNoclip(false) end
-                    end
+                hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
+
+                if hrp.Position.Y <= 150 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
+                    _G.IsReturning = false
+                    if noclipConnection and not isFarming then toggleNoclip(false) end
                 end
             end
         end
@@ -3164,17 +3142,11 @@ RunService.Heartbeat:Connect(function(dt)
             if currentTween then currentTween:Cancel() end
             if not noclipConnection then toggleNoclip(true) end
 
-            if myRoot.Position.Y > 200 then
-                -- Nút DROP cũng lao nhanh xuống mốc 200
-                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
-            else
-                -- Nút DROP chạm mốc 200 cũng hạ cánh từ từ
-                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 150 * dt, 0)
-                
-                if myRoot.Position.Y <= 50 then
-                    _G.IsForcedDropping = false
-                    if noclipConnection and not isFarming then toggleNoclip(false) end
-                end
+            myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
+            if myRoot.Position.Y <= 150 then
+                myRoot.CFrame = CFrame.new(myRoot.Position.X, 150, myRoot.Position.Z)
+                _G.IsForcedDropping = false
+                if noclipConnection and not isFarming then toggleNoclip(false) end
             end
         end
     end
