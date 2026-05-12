@@ -1015,6 +1015,47 @@ if not getgenv().Hook_Initialized_Aris then
                         targetPos = targetPos - Vector3.new(0, 3, 0)
                     end
                     
+    if not getgenv().Hook_Initialized_Aris then
+    getgenv().Hook_Initialized_Aris = true
+    local OldNamecall
+    OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+        
+        -- Chỉ chạy khi cần thiết để tránh nóng máy/freeze
+        if _G.Config.SilentAim and SilentAimTarget and not checkcaller() then
+            if method == "Raycast" and self == workspace then
+                local trace = debug.traceback():lower()
+                -- Bỏ qua các lệnh camera/hiệu ứng để tránh treo máy
+                if not (trace:find("camera") or trace:find("visual") or trace:find("effect")) then
+                    local origin = args[1]
+                    if typeof(origin) == "Vector3" then
+                        -- Prediction 0.125s an toàn
+                        local vel = SilentAimTarget:IsA("BasePart") and SilentAimTarget.AssemblyLinearVelocity or Vector3.new(0,0,0)
+                        local targetPos = SilentAimTarget.Position + (vel * 0.125)
+                        
+                        args[2] = (targetPos - origin).Unit * 1000
+                        return OldNamecall(self, unpack(args))
+                    end
+                end
+            end
+        end
+        return OldNamecall(self, ...)
+    end))
+
+    local OldIndex
+    OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
+        if _G.Config.SilentAim and SilentAimTarget and self == Mouse and not checkcaller() then
+            if index == "Hit" or index == "hit" then
+                local trace = debug.traceback():lower()
+                if not (trace:find("camera") or trace:find("playermodule")) then
+                    local vel = SilentAimTarget:IsA("BasePart") and SilentAimTarget.AssemblyLinearVelocity or Vector3.new(0,0,0)
+                    local targetPos = SilentAimTarget.Position + (vel * 0.125)
+                    
+                    -- Fix riêng cho Trident
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Dragon Trident") then
+                        targetPos = targetPos - Vector3.new(0, 3, 0)
+                    end
                     return CFrame.new(targetPos)
                 end
             elseif index == "Target" or index == "target" then
