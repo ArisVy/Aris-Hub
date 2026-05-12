@@ -143,10 +143,8 @@ CloseBtn.ZIndex = 10 -- Đẩy ZIndex lên để nút X bấm được
     
     _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(0, 0, 0, 0)}):Play()
     
-    CloseBtn.MouseButton1Click:Connect(remove)
-    task.delay(tonumber(Duration) or 3, remove) -- Ép kiểu số để đếm ngược 3s chuẩn xác
-endeBtn.MouseButton1Click:Connect(function() task.spawn(remove) end)
-    task.spawn(function() task.wait(Duration) remove() end)
+CloseBtn.MouseButton1Click:Connect(remove)
+    task.delay(tonumber(Duration) or 3, remove)
 end
 
 local Players = game:GetService("Players")
@@ -155,7 +153,7 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local CoreGui = game:GetService("CoreGui")
+local CoreGui = (gethui and gethui()) or LocalPlayer:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local Mouse = LocalPlayer:GetMouse()
 
