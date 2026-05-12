@@ -2620,7 +2620,7 @@ task.spawn(function()
             continue
         end
 
-        local targets=getTargets(root,80)
+        local targets=getTargets(root,1000)
         if #targets>0 then
             atk:FireServer()
             hit:FireServer(root,targets,nil,nil,tostring(os.clock()))
