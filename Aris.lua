@@ -1715,7 +1715,66 @@ end)
 
 AddAdjust("Combat", "FLOAT POS X (%)", "SilentAim_FloatX", 5, 0, 100, UpdateSAFloatPosition)
 AddAdjust("Combat", "FLOAT POS Y (%)", "SilentAim_FloatY", 5, 0, 100, UpdateSAFloatPosition)
-
+-- [[ UI M1 DELAY ]] --
+    _G.Config.FastM1_Delay = 0 -- Mặc định là 0s (nhanh nhất)
+    
+    local M1DelayContainer = Instance.new("Frame", NullContent)
+    M1DelayContainer.Size = UDim2.new(1, -16, 0, 80)
+    M1DelayContainer.BackgroundTransparency = 1
+    M1DelayContainer.LayoutOrder = 10
+    
+    local M1SliderBg = Instance.new("Frame", M1DelayContainer)
+    M1SliderBg.Size = UDim2.new(1, 0, 0, 25)
+    M1SliderBg.Position = UDim2.new(0, 0, 0, 5)
+    M1SliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Instance.new("UICorner", M1SliderBg).CornerRadius = UDim.new(0, 20)
+    
+    local maxM1 = 1.0 -- Tối đa 1 giây
+    local minM1 = 0.0
+    
+    local M1SliderFill = Instance.new("Frame", M1SliderBg)
+    M1SliderFill.Size = UDim2.new((_G.Config.FastM1_Delay - minM1) / (maxM1 - minM1), 0, 1, 0)
+    M1SliderFill.BackgroundColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", M1SliderFill).CornerRadius = UDim.new(0, 20)
+    ApplyToggleGradient(M1SliderFill, true)
+    
+    local M1ValLabel = Instance.new("TextLabel", M1SliderBg)
+    M1ValLabel.Size = UDim2.new(1, 0, 1, 0)
+    M1ValLabel.BackgroundTransparency = 1
+    M1ValLabel.Text = "M1 Delay: " .. string.format("%.2f", _G.Config.FastM1_Delay) .. "s"
+    M1ValLabel.Font = Enum.Font.GothamBold
+    M1ValLabel.TextSize = 12
+    CreateTextGradient(M1ValLabel)
+    
+    local M1BtnFrame = Instance.new("Frame", M1DelayContainer)
+    M1BtnFrame.Size = UDim2.new(1, 0, 0, 32)
+    M1BtnFrame.Position = UDim2.new(0, 0, 0, 38)
+    M1BtnFrame.BackgroundTransparency = 1
+    
+    local m1BtnW = 0.22
+    local m1Gap = 0.04
+    function createM1Btn(text, posScale)
+        local btn = Instance.new("TextButton", M1BtnFrame) btn.Size = UDim2.new(m1BtnW, 0, 1, 0) btn.Position = UDim2.new(posScale, 0, 0, 0) btn.Text = "" btn.BackgroundColor3 = Color3.new(1,1,1) Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20) ApplyToggleGradient(btn, false) CreateBorder(btn) CreateButtonText(btn, text, Enum.Font.GothamBold, 14) ApplyButtonAnimation(btn) return btn
+    end
+    
+    local mm10 = createM1Btn("0s", 0) local mm01 = createM1Btn("-0.05", m1BtnW + m1Gap) local mp01 = createM1Btn("+0.05", (m1BtnW + m1Gap) * 2) local mp10 = createM1Btn("+0.1", (m1BtnW + m1Gap) * 3)
+    
+    function UpdateM1Delay(val)
+        _G.Config.FastM1_Delay = math.clamp(val, minM1, maxM1)
+        local ratio = (_G.Config.FastM1_Delay - minM1) / (maxM1 - minM1)
+        M1SliderFill.Size = UDim2.new(ratio, 0, 1, 0)
+        M1ValLabel.Text = "M1 Delay: " .. string.format("%.2f", _G.Config.FastM1_Delay) .. "s"
+    end
+    
+    mm10.MouseButton1Click:Connect(function() UpdateM1Delay(0) end)
+    mm01.MouseButton1Click:Connect(function() UpdateM1Delay(_G.Config.FastM1_Delay - 0.05) end)
+    mp01.MouseButton1Click:Connect(function() UpdateM1Delay(_G.Config.FastM1_Delay + 0.05) end)
+    mp10.MouseButton1Click:Connect(function() UpdateM1Delay(_G.Config.FastM1_Delay + 0.1) end)
+    
+    local draggingM1 = false
+    M1SliderBg.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingM1 = true end end)
+    M1SliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingM1 = false end end)
+    UserInputService.InputChanged:Connect(function(input) if draggingM1 and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then local relX = math.clamp((input.Position.X - M1SliderBg.AbsolutePosition.X) / M1SliderBg.AbsoluteSize.X, 0, 1) UpdateM1Delay(minM1 + relX * (maxM1 - minM1)) end end)
 AddToggle("NPC","HITBOX NPC","Hitbox_NPC")
 AddAdjust("NPC","HITBOX SIZE NPC","HitboxSize_NPC",10)
 AddToggle("NPC","SHOW HITBOX BOX 3D","Hitbox_Box_NPC")
@@ -2404,14 +2463,18 @@ end)
 _G.M1BF = true
 if _G.M1BF then
     local p=game.Players.LocalPlayer
+    local lastAttack1 = 0
     task.spawn(function()
         while _G.M1BF and task.wait() do
             if not _G.Config.FastM1 then continue end
+            if tick() - lastAttack1 < (_G.Config.FastM1_Delay or 0) then continue end -- Add timer
+            
             local c=p.Character
             if c then
                 local t=c:FindFirstChildOfClass("Tool")
                 local r=c:FindFirstChild("HumanoidRootPart")
                 if t and t:FindFirstChild("LeftClickRemote") and r then
+                    local attacked = false
                     for _,f in ipairs({workspace.Enemies,workspace.Characters}) do
                         for _,e in f:GetChildren() do
                             local h=e:FindFirstChild("HumanoidRootPart")
@@ -2420,17 +2483,19 @@ if _G.M1BF then
                                 local d=(h.Position-r.Position).Magnitude
                                 if d<=5000 then
                                     t.LeftClickRemote:FireServer((h.Position-r.Position).Unit,1)
+                                    attacked = true
                                     break
                                 end
                             end
                         end
+                        if attacked then break end
                     end
+                    if attacked then lastAttack1 = tick() end
                 end
             end
         end
     end)
 end
-
 _G.FastV2 = true
 local RS = game:GetService("ReplicatedStorage")
 local P = Players.LocalPlayer
@@ -2526,42 +2591,45 @@ function play(tool)
 	track:Play(0.25,1,0.02)
 end
 
+local lastAttack2 = 0
 task.spawn(function()
-	while task.wait() do
-		if not _G.FastV2 or not _G.Config.FastM1 then
-			stopAnim()
-			continue
-		end
+    while task.wait() do
+        if not _G.FastV2 or not _G.Config.FastM1 then
+            stopAnim()
+            continue
+        end
+        if tick() - lastAttack2 < (_G.Config.FastM1_Delay or 0) then continue end -- Add timer
 
-		local char=P.Character
-		if not (char and humanoid and humanoid.Health>0) then
-			stopAnim()
-			continue
-		end
+        local char=P.Character
+        if not (char and humanoid and humanoid.Health>0) then
+            stopAnim()
+            continue
+        end
 
-		local root=char:FindFirstChild("HumanoidRootPart")
-		local tool=char:FindFirstChildOfClass("Tool")
-		if not (root and tool) then
-			stopAnim()
-			continue
-		end
+        local root=char:FindFirstChild("HumanoidRootPart")
+        local tool=char:FindFirstChildOfClass("Tool")
+        if not (root and tool) then
+            stopAnim()
+            continue
+        end
 
-		local weaponName=C:GetWeaponName(tool)
-		local data=WeaponData[weaponName] or WeaponData[string.lower(weaponName)]
-		if not data or data.Type=="Gun" or data.Type=="Blox Fruit" then
-			stopAnim()
-			continue
-		end
+        local weaponName=C:GetWeaponName(tool)
+        local data=WeaponData[weaponName] or WeaponData[string.lower(weaponName)]
+        if not data or data.Type=="Gun" or data.Type=="Blox Fruit" then
+            stopAnim()
+            continue
+        end
 
-		local targets=getTargets(root,80)
-		if #targets>0 then
-			atk:FireServer()
-			hit:FireServer(root,targets,nil,nil,tostring(os.clock()))
-			play(tool)
-		else
-			stopAnim()
-		end
-	end
+        local targets=getTargets(root,80)
+        if #targets>0 then
+            atk:FireServer()
+            hit:FireServer(root,targets,nil,nil,tostring(os.clock()))
+            play(tool)
+            lastAttack2 = tick()
+        else
+            stopAnim()
+        end
+    end
 end)
 _G.Aura = true
 
