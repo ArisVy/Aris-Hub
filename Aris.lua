@@ -1043,14 +1043,7 @@ end
 
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
-
-local function ToggleDesync(state)
-    pcall(function()
-        if raknet and type(raknet.desync) == "function" then
-            raknet.desync(state)
-        end
-    end)
-end
+function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
 
 local NumericFlags = {
     {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"},
@@ -1082,28 +1075,15 @@ local NumericFlags = {
     {"MaxAcceptableUpdateDelay","1"}
 }
 
-local function SetNormal(state)
-    _G.DesyncNormal = state
-    if not state then ToggleDesync(false) end
-end
-
-local function SetFast(state)
-    _G.DesyncFast = state
-    if not state then ToggleDesync(false) end
-end
-
-local function SetFixV2_Logic(state)
+function SetNormal(state) _G.DesyncNormal = state if not state then ToggleDesync(false) end end
+function SetFast(state) _G.DesyncFast = state if not state then ToggleDesync(false) end end
+function SetFixV2_Logic(state)
     _G.DesyncFix = state
     ToggleDesync(state)
-    
     if state then
-        for _, flagData in ipairs(NumericFlags) do
-            pcall(function() setfflag(flagData[1], flagData[2]) end)
-        end
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
     else
-        for _, flagData in ipairs(NumericFlags) do
-            pcall(function() setfflag(flagData[1], "") end)
-        end
+        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
     end
 end
 
@@ -3132,18 +3112,16 @@ RunService.Heartbeat:Connect(function(dt)
                     _G.IsFleeing = false
                     _G.IsReturning = true
                 end
-			elseif _G.IsReturning then
+            elseif _G.IsReturning then
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
 
-                if hrp.Position.Y > 200 then
-                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
-                else
-                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 150 * dt, 0)
-                    if hrp.Position.Y <= 50 then
-                        _G.IsReturning = false
-                        if noclipConnection and not isFarming then toggleNoclip(false) end
-                    end
+                hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
+
+                if hrp.Position.Y <= 150 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
+                    _G.IsReturning = false
+                    if noclipConnection and not isFarming then toggleNoclip(false) end
                 end
             end
         end
@@ -3164,17 +3142,11 @@ RunService.Heartbeat:Connect(function(dt)
             if currentTween then currentTween:Cancel() end
             if not noclipConnection then toggleNoclip(true) end
 
-            if myRoot.Position.Y > 200 then
-                -- NÃºt DROP cÅ©ng lao nhanh xuá»‘ng má»‘c 200
-                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
-            else
-                -- NÃºt DROP cháº¡m má»‘c 200 cÅ©ng háº¡ cÃ¡nh tá»« tá»«
-                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 150 * dt, 0)
-                
-                if myRoot.Position.Y <= 50 then
-                    _G.IsForcedDropping = false
-                    if noclipConnection and not isFarming then toggleNoclip(false) end
-                end
+            myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
+            if myRoot.Position.Y <= 150 then
+                myRoot.CFrame = CFrame.new(myRoot.Position.X, 150, myRoot.Position.Z)
+                _G.IsForcedDropping = false
+                if noclipConnection and not isFarming then toggleNoclip(false) end
             end
         end
     end
