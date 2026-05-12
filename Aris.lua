@@ -59,8 +59,7 @@ _NotiList.Padding = UDim.new(0, 5)
 function AddNotify(Setting)
     local Title = Setting.Title or ""
     local Description = Setting.Description or Setting.Desc or Setting.Content or ""
-    local Duration = 3
-
+    local Duration = Setting.Duration or 5
     local NotiFrame = Instance.new("Frame")
     local Noticontainer = Instance.new("Frame")
     local UICorner = Instance.new("UICorner")
@@ -70,28 +69,23 @@ function AddNotify(Setting)
     local CloseContainer = Instance.new("Frame")
     local CloseImage = Instance.new("ImageLabel")
     local CloseBtn = Instance.new("TextButton")
-
     NotiFrame.Name = "NotiFrame"
     NotiFrame.Parent = _NotiContainer
     NotiFrame.BackgroundTransparency = 1
     NotiFrame.Size = UDim2.new(1, 0, 0, 0)
     NotiFrame.AutomaticSize = Enum.AutomaticSize.Y
     NotiFrame.ClipsDescendants = true
-
     Noticontainer.Parent = NotiFrame
     Noticontainer.Position = UDim2.new(1, 0, 0, 0)
     Noticontainer.Size = UDim2.new(1, 0, 1, 6)
     Noticontainer.AutomaticSize = Enum.AutomaticSize.Y
     Noticontainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-
     UICorner.CornerRadius = UDim.new(0, 4)
     UICorner.Parent = Noticontainer
-
     Topnoti.Parent = Noticontainer
     Topnoti.BackgroundTransparency = 1
     Topnoti.Position = UDim2.new(0, 0, 0, 5)
     Topnoti.Size = UDim2.new(1, 0, 0, 25)
-
     TextLabelNoti.Parent = Topnoti
     TextLabelNoti.BackgroundTransparency = 1
     TextLabelNoti.Position = UDim2.new(0, 8, 0, 0)
@@ -103,13 +97,11 @@ function AddNotify(Setting)
     TextLabelNoti.RichText = true
     TextLabelNoti.TextColor3 = Color3.fromRGB(255, 255, 255)
     TextLabelNoti.Text = "<font color=\"rgb(255,80,80)\">Aris Hub</font> " .. tostring(Title)
-
     CloseContainer.Parent = Topnoti
     CloseContainer.AnchorPoint = Vector2.new(1, 0.5)
     CloseContainer.BackgroundTransparency = 1
     CloseContainer.Position = UDim2.new(1, -4, 0.5, 0)
     CloseContainer.Size = UDim2.new(0, 22, 0, 22)
-
     CloseImage.Parent = CloseContainer
     CloseImage.BackgroundTransparency = 1
     CloseImage.Size = UDim2.new(1, 0, 1, 0)
@@ -117,12 +109,12 @@ function AddNotify(Setting)
     CloseImage.ImageRectOffset = Vector2.new(284, 4)
     CloseImage.ImageRectSize = Vector2.new(24, 24)
     CloseImage.ImageColor3 = Color3.fromRGB(200, 200, 200)
-
     CloseBtn.Parent = CloseContainer
     CloseBtn.BackgroundTransparency = 1
     CloseBtn.Size = UDim2.new(1, 0, 1, 0)
     CloseBtn.Text = ""
-
+    CloseBtn.TextSize = 14
+    CloseBtn.Font = Enum.Font.SourceSans
     TextLabelNoti2.Parent = Noticontainer
     TextLabelNoti2.BackgroundTransparency = 1
     TextLabelNoti2.Position = UDim2.new(0, 10, 0, 35)
@@ -135,24 +127,20 @@ function AddNotify(Setting)
     TextLabelNoti2.TextColor3 = Color3.fromRGB(200, 200, 200)
     TextLabelNoti2.AutomaticSize = Enum.AutomaticSize.Y
     TextLabelNoti2.TextWrapped = true
-
     local _closed = false
     local _TS = game:GetService("TweenService")
-
-    local function remove()
+    function remove()
         if _closed then return end
         _closed = true
-        local tween = _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(1, 0, 0, 0)})
-        tween:Play()
-        tween.Completed:Connect(function()
-            if NotiFrame and NotiFrame.Parent then NotiFrame:Destroy() end
-        end)
+        _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(1, 0, 0, 0)}):Play()
+        task.wait(0.3)
+        if NotiFrame and NotiFrame.Parent then NotiFrame:Destroy() end
     end
-
     _TS:Create(Noticontainer, TweenInfo.new(0.25), {Position = UDim2.new(0, 0, 0, 0)}):Play()
-    CloseBtn.MouseButton1Click:Connect(remove)
-    task.delay(Duration, remove)
+    CloseBtn.MouseButton1Click:Connect(function() task.spawn(remove) end)
+    task.spawn(function() task.wait(Duration) remove() end)
 end
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -990,7 +978,12 @@ if not getgenv().Hook_Initialized_Aris then
                     origin = args[1].Origin
                 end
                 if origin and typeof(origin) == "Vector3" then
-			
+						   local aimPos = SilentAimTarget.Position
+                    -- TÃ­nh toÃ¡n Prediction (ÄoÃ¡n hÆ°á»›ng)
+                    if _G.Config.Prediction_Enabled and SilentAimTarget:IsA("BasePart") then
+                        aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.Prediction)
+                    end
+
                     if method == "Raycast" then
                         args[2] = (aimPos - origin).Unit * 1000
                         return OldNamecall(self, unpack(args))
@@ -1020,7 +1013,10 @@ if not getgenv().Hook_Initialized_Aris then
                 return OldIndex(self, index)
             end
             if index == "Hit" or index == "hit" then
-              
+                local aimPos = SilentAimTarget.Position
+				if _G.Config.Prediction_Enabled and SilentAimTarget:IsA("BasePart") then
+                    aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.Prediction)
+                end
                 if tool.Name == "Dragon Trident" then
                     aimPos = aimPos - Vector3.new(0, 3, 0)
                 end
@@ -2055,6 +2051,11 @@ function doMagnetLoop()
                     end
 
                     local targetPos = CFrame.new(currentTarget.Position + Vector3.new(0, _G.Config.TP_Height, 0))
+
+                    if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then
+                        local vel = currentTarget.AssemblyLinearVelocity
+                        targetPos = targetPos + (Vector3.new(vel.X, 0, vel.Z) * _G.Config.Prediction)
+                    end
 
                     local currentTargetPos = currentTarget.Position
                     local targetTeleported = lastTargetPos and (currentTargetPos - lastTargetPos).Magnitude > 80
