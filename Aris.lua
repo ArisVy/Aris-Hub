@@ -983,11 +983,17 @@ if not getgenv().Hook_Initialized_Aris then
                     origin = args[1].Origin
                 end
                 if origin and typeof(origin) == "Vector3" then
+                    -- [ PREDICTION 0.125s CHO RAYCAST ] --
+                    local aimPos = SilentAimTarget.Position
+                    if SilentAimTarget:IsA("BasePart") then
+                        aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * 0.125) 
+                    end
+
                     if method == "Raycast" then
-                        args[2] = (SilentAimTarget.Position - origin).Unit * 1000
+                        args[2] = (aimPos - origin).Unit * 1000
                         return OldNamecall(self, unpack(args))
                     else
-                        args[1] = Ray.new(origin, (SilentAimTarget.Position - origin).Unit * 1000)
+                        args[1] = Ray.new(origin, (aimPos - origin).Unit * 1000)
                         return OldNamecall(self, unpack(args))
                     end
                 end
@@ -1012,7 +1018,12 @@ if not getgenv().Hook_Initialized_Aris then
                 return OldIndex(self, index)
             end
             if index == "Hit" or index == "hit" then
+                -- [ PREDICTION 0.125s CHO MOUSE.HIT ] --
                 local aimPos = SilentAimTarget.Position
+                if SilentAimTarget:IsA("BasePart") then
+                    aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
+                end
+
                 if tool.Name == "Dragon Trident" then
                     aimPos = aimPos - Vector3.new(0, 3, 0)
                 end
