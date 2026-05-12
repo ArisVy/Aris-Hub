@@ -969,65 +969,54 @@ if not getgenv().Hook_Initialized_Aris then
     OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local args = {...}
         local method = getnamecallmethod()
-        if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
+        
+        -- Chỉ can thiệp khi có mục tiêu và đang bật Silent Aim
+        if _G.Config.SilentAim and SilentAimTarget and SilentAimTarget:IsA("BasePart") and not checkcaller() then
             if method == "Raycast" or string.find(method, "Ray") then
-                local raw_trace = debug.traceback()
-                local trace = raw_trace and string.lower(raw_trace) or ""
-                if string.find(trace, "effect") or string.find(trace, "doublejump") or string.find(trace, "skyjump") or string.find(trace, "sky jump") or string.find(trace, "airjump") or string.find(trace, "air jump") or string.find(trace, "visual") or string.find(trace, "camera") or string.find(trace, "dodge") or string.find(trace, "jump") or string.find(trace, "geppo") then
-                    return OldNamecall(self, ...)
-                end
-                local origin
-                if method == "Raycast" then
-                    origin = args[1]
-                elseif args[1] and typeof(args[1]) == "Ray" then
-                    origin = args[1].Origin
-                end
-                if origin and typeof(origin) == "Vector3" then
-                    -- [ PREDICTION 0.125s CHO RAYCAST ] --
-                    local aimPos = SilentAimTarget.Position
-                    if SilentAimTarget:IsA("BasePart") then
-                        aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * 0.125) 
-                    end
+                -- Kiểm tra Traceback để tránh can thiệp vào các hệ thống di chuyển/camera của game (Gây lỗi skill)
+                local trace = debug.traceback():lower()
+                if not (trace:find("visual") or trace:find("camera") or trace:find("effect") or trace:find("drop")) then
+                    local origin
+                    if method == "Raycast" then origin = args[1] 
+                    elseif args[1] and typeof(args[1]) == "Ray" then origin = args[1].Origin end
 
-                    if method == "Raycast" then
-                        args[2] = (aimPos - origin).Unit * 1000
-                        return OldNamecall(self, unpack(args))
-                    else
-                        args[1] = Ray.new(origin, (aimPos - origin).Unit * 1000)
-                        return OldNamecall(self, unpack(args))
+                    if origin and typeof(origin) == "Vector3" then
+                        -- Tính toán Prediction 0.125s an toàn
+                        local targetPos = SilentAimTarget.Position + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
+                        local direction = (targetPos - origin).Unit * 1000
+
+                        if method == "Raycast" then
+                            args[2] = direction
+                            return OldNamecall(self, unpack(args))
+                        else
+                            args[1] = Ray.new(origin, direction)
+                            return OldNamecall(self, unpack(args))
+                        end
                     end
                 end
             end
         end
         return OldNamecall(self, ...)
     end))
+
     local OldIndex
     OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
-        if not _G.Config.SilentAim or not SilentAimTarget or checkcaller() or self ~= Mouse then
-            return OldIndex(self, index)
-        end
-        if index == "Hit" or index == "hit" or index == "Target" or index == "target" then
-            local raw_trace = debug.traceback()
-            local trace = raw_trace and string.lower(raw_trace) or ""
-            if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "doublejump") or string.find(trace, "skyjump") or string.find(trace, "sky jump") or string.find(trace, "airjump") or string.find(trace, "air jump") or string.find(trace, "visual") or string.find(trace, "popper") or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "dodge") or string.find(trace, "jump") or string.find(trace, "geppo") then
-                return OldIndex(self, index)
-            end
-            local char = LocalPlayer.Character
-            local tool = char and char:FindFirstChildOfClass("Tool")
-            if not tool then
-                return OldIndex(self, index)
-            end
+        if _G.Config.SilentAim and SilentAimTarget and SilentAimTarget:IsA("BasePart") and not checkcaller() and self == Mouse then
             if index == "Hit" or index == "hit" then
-                -- [ PREDICTION 0.125s CHO MOUSE.HIT ] --
-                local aimPos = SilentAimTarget.Position
-                if SilentAimTarget:IsA("BasePart") then
-                    aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
+                local trace = debug.traceback():lower()
+                -- Lọc kỹ hơn các script không liên quan để tránh kẹt skill
+                if not (trace:find("camera") or trace:find("playermodule") or trace:find("visual")) then
+                    local targetPos = SilentAimTarget.Position + (SilentAimTarget.AssemblyLinearVelocity * 0.125)
+                    
+                    -- Fix đặc biệt cho Dragon Trident hoặc các skill cần offset
+                    local char = LocalPlayer.Character
+                    local tool = char and char:FindFirstChildOfClass("Tool")
+                    if tool and tool.Name == "Dragon Trident" then
+                        targetPos = targetPos - Vector3.new(0, 3, 0)
+                    end
+                    
+                    return CFrame.new(targetPos)
                 end
-
-                if tool.Name == "Dragon Trident" then
-                    aimPos = aimPos - Vector3.new(0, 3, 0)
-                end
-                return CFrame.new(aimPos)
             elseif index == "Target" or index == "target" then
                 return SilentAimTarget
             end
@@ -1035,7 +1024,6 @@ if not getgenv().Hook_Initialized_Aris then
         return OldIndex(self, index)
     end))
 end
-
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
