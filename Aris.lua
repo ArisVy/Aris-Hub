@@ -969,25 +969,15 @@ if not getgenv().Hook_Initialized_Aris then
     OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local args = {...}
         local method = getnamecallmethod()
-        if _G.Config.SilentAim and SilentAimTarget and self == workspace and not checkcaller() then
-            if method == "Raycast" or string.find(method, "Ray") then
-                local raw_trace = debug.traceback()
-                local trace = raw_trace and string.lower(raw_trace) or ""
-                if string.find(trace, "effect") or string.find(trace, "doublejump") or string.find(trace, "skyjump") or string.find(trace, "sky jump") or string.find(trace, "airjump") or string.find(trace, "air jump") or string.find(trace, "visual") or string.find(trace, "camera") or string.find(trace, "dodge") or string.find(trace, "jump") or string.find(trace, "geppo") then
-                    return OldNamecall(self, ...)
-                end
-                local origin
-                if method == "Raycast" then
-                    origin = args[1]
-                elseif args[1] and typeof(args[1]) == "Ray" then
-                    origin = args[1].Origin
-                end
-                if origin and typeof(origin) == "Vector3" then
-                    if method == "Raycast" then
-                        args[2] = (SilentAimTarget.Position - origin).Unit * 1000
-                        return OldNamecall(self, unpack(args))
-                    else
-                        args[1] = Ray.new(origin, (SilentAimTarget.Position - origin).Unit * 1000)
+        if _G.Config.SilentAim and SilentAimTarget and not checkcaller() then
+            if method == "Raycast" and self == workspace then
+                local trace = debug.traceback():lower()
+                if not (trace:find("camera") or trace:find("visual") or trace:find("effect")) then
+                    local origin = args[1]
+                    if typeof(origin) == "Vector3" then
+                        local vel = SilentAimTarget:IsA("BasePart") and SilentAimTarget.AssemblyLinearVelocity or Vector3.new(0,0,0)
+                        local targetPos = SilentAimTarget.Position + (vel * 0.125)
+                        args[2] = (targetPos - origin).Unit * 1000
                         return OldNamecall(self, unpack(args))
                     end
                 end
@@ -997,26 +987,17 @@ if not getgenv().Hook_Initialized_Aris then
     end))
     local OldIndex
     OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, index)
-        if not _G.Config.SilentAim or not SilentAimTarget or checkcaller() or self ~= Mouse then
-            return OldIndex(self, index)
-        end
-        if index == "Hit" or index == "hit" or index == "Target" or index == "target" then
-            local raw_trace = debug.traceback()
-            local trace = raw_trace and string.lower(raw_trace) or ""
-            if string.find(trace, "combatframework") or string.find(trace, "camera") or string.find(trace, "doublejump") or string.find(trace, "skyjump") or string.find(trace, "sky jump") or string.find(trace, "airjump") or string.find(trace, "air jump") or string.find(trace, "visual") or string.find(trace, "popper") or string.find(trace, "playermodule") or string.find(trace, "effect") or string.find(trace, "visual") or string.find(trace, "dodge") or string.find(trace, "jump") or string.find(trace, "geppo") then
-                return OldIndex(self, index)
-            end
-            local char = LocalPlayer.Character
-            local tool = char and char:FindFirstChildOfClass("Tool")
-            if not tool then
-                return OldIndex(self, index)
-            end
+        if _G.Config.SilentAim and SilentAimTarget and self == Mouse and not checkcaller() then
             if index == "Hit" or index == "hit" then
-                local aimPos = SilentAimTarget.Position
-                if tool.Name == "Dragon Trident" then
-                    aimPos = aimPos - Vector3.new(0, 3, 0)
+                local trace = debug.traceback():lower()
+                if not (trace:find("camera") or trace:find("playermodule")) then
+                    local vel = SilentAimTarget:IsA("BasePart") and SilentAimTarget.AssemblyLinearVelocity or Vector3.new(0,0,0)
+                    local targetPos = SilentAimTarget.Position + (vel * 0.125)
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Dragon Trident") then
+                        targetPos = targetPos - Vector3.new(0, 3, 0)
+                    end
+                    return CFrame.new(targetPos)
                 end
-                return CFrame.new(aimPos)
             elseif index == "Target" or index == "target" then
                 return SilentAimTarget
             end
@@ -1024,7 +1005,6 @@ if not getgenv().Hook_Initialized_Aris then
         return OldIndex(self, index)
     end))
 end
-
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
 function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
