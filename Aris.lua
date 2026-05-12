@@ -3132,16 +3132,18 @@ RunService.Heartbeat:Connect(function(dt)
                     _G.IsFleeing = false
                     _G.IsReturning = true
                 end
-            elseif _G.IsReturning then
+			elseif _G.IsReturning then
                 if currentTween then currentTween:Cancel() end
                 if not noclipConnection then toggleNoclip(true) end
 
-                hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
-
-                if hrp.Position.Y <= 150 then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, 150, hrp.Position.Z)
-                    _G.IsReturning = false
-                    if noclipConnection and not isFarming then toggleNoclip(false) end
+                if hrp.Position.Y > 200 then
+                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 30000 * dt, 0)
+                else
+                    hrp.CFrame = hrp.CFrame - Vector3.new(0, 150 * dt, 0)
+                    if hrp.Position.Y <= 50 then
+                        _G.IsReturning = false
+                        if noclipConnection and not isFarming then toggleNoclip(false) end
+                    end
                 end
             end
         end
@@ -3162,11 +3164,17 @@ RunService.Heartbeat:Connect(function(dt)
             if currentTween then currentTween:Cancel() end
             if not noclipConnection then toggleNoclip(true) end
 
-            myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
-            if myRoot.Position.Y <= 150 then
-                myRoot.CFrame = CFrame.new(myRoot.Position.X, 150, myRoot.Position.Z)
-                _G.IsForcedDropping = false
-                if noclipConnection and not isFarming then toggleNoclip(false) end
+            if myRoot.Position.Y > 200 then
+                -- Nút DROP cũng lao nhanh xuống mốc 200
+                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 50000 * dt, 0)
+            else
+                -- Nút DROP chạm mốc 200 cũng hạ cánh từ từ
+                myRoot.CFrame = myRoot.CFrame - Vector3.new(0, 150 * dt, 0)
+                
+                if myRoot.Position.Y <= 50 then
+                    _G.IsForcedDropping = false
+                    if noclipConnection and not isFarming then toggleNoclip(false) end
+                end
             end
         end
     end
