@@ -1043,7 +1043,14 @@ end
 
 local desyncState = false
 local replicatesignal = getgenv().replicatesignal or function(...) return ... end
-function ToggleDesync(state) pcall(function() if raknet and type(raknet.desync) == "function" then raknet.desync(state) end end) end
+
+local function ToggleDesync(state)
+    pcall(function()
+        if raknet and type(raknet.desync) == "function" then
+            raknet.desync(state)
+        end
+    end)
+end
 
 local NumericFlags = {
     {"GameNetPVHeaderRotationalVelocityZeroCutoffExponent","-5000"},
@@ -1075,15 +1082,28 @@ local NumericFlags = {
     {"MaxAcceptableUpdateDelay","1"}
 }
 
-function SetNormal(state) _G.DesyncNormal = state if not state then ToggleDesync(false) end end
-function SetFast(state) _G.DesyncFast = state if not state then ToggleDesync(false) end end
-function SetFixV2_Logic(state)
+local function SetNormal(state)
+    _G.DesyncNormal = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFast(state)
+    _G.DesyncFast = state
+    if not state then ToggleDesync(false) end
+end
+
+local function SetFixV2_Logic(state)
     _G.DesyncFix = state
     ToggleDesync(state)
+    
     if state then
-        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], flagData[2]) end) end
+        for _, flagData in ipairs(NumericFlags) do
+            pcall(function() setfflag(flagData[1], flagData[2]) end)
+        end
     else
-        for _, flagData in ipairs(NumericFlags) do pcall(function() setfflag(flagData[1], "") end) end
+        for _, flagData in ipairs(NumericFlags) do
+            pcall(function() setfflag(flagData[1], "") end)
+        end
     end
 end
 
