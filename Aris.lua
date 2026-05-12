@@ -990,12 +990,7 @@ if not getgenv().Hook_Initialized_Aris then
                     origin = args[1].Origin
                 end
                 if origin and typeof(origin) == "Vector3" then
-						   local aimPos = SilentAimTarget.Position
-                    -- TÃ­nh toÃ¡n Prediction (ÄoÃ¡n hÆ°á»›ng)
-                    if _G.Config.Prediction_Enabled and SilentAimTarget:IsA("BasePart") then
-                        aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.Prediction)
-                    end
-
+			
                     if method == "Raycast" then
                         args[2] = (aimPos - origin).Unit * 1000
                         return OldNamecall(self, unpack(args))
@@ -1025,10 +1020,7 @@ if not getgenv().Hook_Initialized_Aris then
                 return OldIndex(self, index)
             end
             if index == "Hit" or index == "hit" then
-                local aimPos = SilentAimTarget.Position
-				if _G.Config.Prediction_Enabled and SilentAimTarget:IsA("BasePart") then
-                    aimPos = aimPos + (SilentAimTarget.AssemblyLinearVelocity * _G.Config.Prediction)
-                end
+              
                 if tool.Name == "Dragon Trident" then
                     aimPos = aimPos - Vector3.new(0, 3, 0)
                 end
@@ -2063,11 +2055,6 @@ function doMagnetLoop()
                     end
 
                     local targetPos = CFrame.new(currentTarget.Position + Vector3.new(0, _G.Config.TP_Height, 0))
-
-                    if _G.Config.Prediction_Enabled and currentTarget:IsA("BasePart") then
-                        local vel = currentTarget.AssemblyLinearVelocity
-                        targetPos = targetPos + (Vector3.new(vel.X, 0, vel.Z) * _G.Config.Prediction)
-                    end
 
                     local currentTargetPos = currentTarget.Position
                     local targetTeleported = lastTargetPos and (currentTargetPos - lastTargetPos).Magnitude > 80
