@@ -11,7 +11,7 @@ if CoreGui:FindFirstChild("DemonologyHUB") then
 end
 
 -- [ BIẾN TOÀN CỤC ] --
-_G.WalkSpeed = 16
+_G.WalkSpeed = 10
 _G.WalkSpeedEnabled = false
 _G.MenuOpen = true 
 
@@ -194,7 +194,7 @@ WSSliderBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Instance.new("UICorner", WSSliderBg).CornerRadius = UDim.new(0, 20)
 
 local WSSliderFill = Instance.new("Frame", WSSliderBg)
-WSSliderFill.Size = UDim2.new((_G.WalkSpeed - 16) / (1000 - 16), 0, 1, 0)
+WSSliderFill.Size = UDim2.new((_G.WalkSpeed - 5) / (1000 - 5), 0, 1, 0)
 WSSliderFill.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", WSSliderFill).CornerRadius = UDim.new(0, 20)
 ApplyToggleGradient(WSSliderFill, true)
@@ -217,8 +217,8 @@ end
 local m10 = createWSBtn("-10", 0) local m5 = createWSBtn("-5", 0.26) local p5 = createWSBtn("+5", 0.52) local p10 = createWSBtn("+10", 0.78)
 
 local function UpdateWS(val)
-    _G.WalkSpeed = math.clamp(val, 16, 1000)
-    WSSliderFill.Size = UDim2.new((_G.WalkSpeed - 16) / (1000 - 16), 0, 1, 0)
+    _G.WalkSpeed = math.clamp(val, 5, 1000)
+    WSSliderFill.Size = UDim2.new((_G.WalkSpeed - 5) / (1000 - 5), 0, 1, 0)
     WSValLabel.Text = "Speed: " .. math.floor(_G.WalkSpeed)
 end
 m10.MouseButton1Click:Connect(function() UpdateWS(_G.WalkSpeed - 10) end)
@@ -238,7 +238,7 @@ WSSliderBg.InputEnded:Connect(function(input) if input.UserInputType == Enum.Use
 UserInputService.InputChanged:Connect(function(input)
     if draggingWS and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local relX = math.clamp((input.Position.X - WSSliderBg.AbsolutePosition.X) / WSSliderBg.AbsoluteSize.X, 0, 1)
-        UpdateWS(16 + relX * (1000 - 16))
+        UpdateWS(5 + relX * (1000 - 5))
     end
 end)
 
@@ -366,7 +366,7 @@ renderConn = RunService.Heartbeat:Connect(function()
     end
     if LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16 end
+        if hum then hum.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 10 end
     end
     pcall(function()
         local shift = tick() * 0.15
