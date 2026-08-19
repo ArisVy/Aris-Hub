@@ -1,4 +1,4 @@
-#### Open source , tụi bây lấy thì cứ lấy t lười quá
+---Open source , tụi bây lấy thì cứ lấy t lười quá
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
