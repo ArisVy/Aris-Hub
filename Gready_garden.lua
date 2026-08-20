@@ -1,6 +1,6 @@
 --[[
-    ARIS HUB | Lightning Alert
-    Simplified Info Version (Compact)
+    ARIS HUB | Info Panel (Standalone)
+    Menu riêng lẻ - không bị script chính triệt
 ]]
 
 -- ==========================================
@@ -10,20 +10,20 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local UI_Container = pcall(function() return CoreGui.RobloxGui end) and CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
-if UI_Container:FindFirstChild("BananaNotification") then UI_Container.BananaNotification:Destroy() end
-if UI_Container:FindFirstChild("ArisLiquidGlass_PRO") then UI_Container.ArisLiquidGlass_PRO:Destroy() end
+-- Chỉ xoá phiên bản cũ của chính nó (không đụng script chính)
+if UI_Container:FindFirstChild("ArisInfoNotification") then UI_Container.ArisInfoNotification:Destroy() end
+if UI_Container:FindFirstChild("ArisInfoPanel_Standalone") then UI_Container.ArisInfoPanel_Standalone:Destroy() end
 
 -- ==========================================
--- 2. NOTIFICATION SYSTEM (minimal)
+-- 2. NOTIFICATION SYSTEM (riêng)
 -- ==========================================
 local _NotiGui = Instance.new("ScreenGui")
 _NotiGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-_NotiGui.Name = "BananaNotification"
+_NotiGui.Name = "ArisInfoNotification"          -- tên riêng
 _NotiGui.Parent = UI_Container
 
 local _NotiContainer = Instance.new("Frame")
@@ -32,7 +32,7 @@ _NotiContainer.Parent = _NotiGui
 _NotiContainer.AnchorPoint = Vector2.new(1, 1)
 _NotiContainer.BackgroundTransparency = 1
 _NotiContainer.Position = UDim2.new(1, -5, 1, -5)
-_NotiContainer.Size = UDim2.new(0, 350, 1, -10)
+_NotiContainer.Size = UDim2.new(0, 320, 1, -10)
 
 local _NotiList = Instance.new("UIListLayout")
 _NotiList.Parent = _NotiContainer
@@ -80,7 +80,7 @@ function AddNotify(Setting)
     TextLabelNoti.Position = UDim2.new(0, 8, 0, 0)
     TextLabelNoti.Size = UDim2.new(1, -35, 1, 0)
     TextLabelNoti.Font = Enum.Font.GothamBold
-    TextLabelNoti.TextSize = 14
+    TextLabelNoti.TextSize = 13
     TextLabelNoti.TextXAlignment = Enum.TextXAlignment.Left
     TextLabelNoti.RichText = true
     TextLabelNoti.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -90,7 +90,7 @@ function AddNotify(Setting)
     CloseContainer.AnchorPoint = Vector2.new(1, 0.5)
     CloseContainer.BackgroundTransparency = 1
     CloseContainer.Position = UDim2.new(1, -4, 0.5, 0)
-    CloseContainer.Size = UDim2.new(0, 22, 0, 22)
+    CloseContainer.Size = UDim2.new(0, 20, 0, 20)
 
     CloseImage.Parent = CloseContainer
     CloseImage.BackgroundTransparency = 1
@@ -107,11 +107,11 @@ function AddNotify(Setting)
     
     TextLabelNoti2.Parent = Noticontainer
     TextLabelNoti2.BackgroundTransparency = 1
-    TextLabelNoti2.Position = UDim2.new(0, 10, 0, 35)
+    TextLabelNoti2.Position = UDim2.new(0, 10, 0, 32)
     TextLabelNoti2.Size = UDim2.new(1, -15, 0, 0)
     TextLabelNoti2.Font = Enum.Font.GothamMedium
     TextLabelNoti2.Text = tostring(Description)
-    TextLabelNoti2.TextSize = 13
+    TextLabelNoti2.TextSize = 12
     TextLabelNoti2.TextXAlignment = Enum.TextXAlignment.Left
     TextLabelNoti2.TextColor3 = Color3.fromRGB(200, 200, 200)
     TextLabelNoti2.AutomaticSize = Enum.AutomaticSize.Y
@@ -130,19 +130,19 @@ function AddNotify(Setting)
 end
 
 -- ==========================================
--- 3. CONFIG + SCREENGUI + SOUND + UTILS
+-- 3. SCREENGUI RIÊNG + UTILS
 -- ==========================================
-_G.Config = { MenuOpen = false }
+_G.ArisInfoConfig = { MenuOpen = false }
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ArisLiquidGlass_PRO"
+ScreenGui.Name = "ArisInfoPanel_Standalone"     -- tên riêng hoàn toàn
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 99999
+ScreenGui.DisplayOrder = 999999                 -- cao hơn script chính
 ScreenGui.Parent = UI_Container
 
 local SoundFolder = Instance.new("Folder", ScreenGui)
-SoundFolder.Name = "ArisSFX"
+SoundFolder.Name = "ArisInfoSFX"
 local PressSound = Instance.new("Sound", SoundFolder) PressSound.SoundId = "rbxassetid://68950866" PressSound.Volume = 0.5 
 local ReleaseSound = Instance.new("Sound", SoundFolder) ReleaseSound.SoundId = "rbxassetid://12221967" ReleaseSound.Volume = 0.6
 local ToggleSound = Instance.new("Sound", SoundFolder) ToggleSound.SoundId = "rbxassetid://4612382104" ToggleSound.Volume = 0.4
@@ -186,13 +186,13 @@ end
 -- 4. FLOATING BUTTON + MAIN FRAME (COMPACT)
 -- ==========================================
 local FloatingBtn = Instance.new("ImageButton", ScreenGui)
-FloatingBtn.Size = UDim2.new(0, 48, 0, 48)
-FloatingBtn.Position = UDim2.new(0, 20, 0.5, -24)
+FloatingBtn.Size = UDim2.new(0, 46, 0, 46)
+FloatingBtn.Position = UDim2.new(0, 18, 0.5, -23)
 FloatingBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) 
 FloatingBtn.BackgroundTransparency = 0.75 
 FloatingBtn.Image = "rbxassetid://125329301331069"
 FloatingBtn.ClipsDescendants = true
-Instance.new("UICorner", FloatingBtn).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", FloatingBtn).CornerRadius = UDim.new(0, 11)
 
 local FloatStroke = Instance.new("UIStroke", FloatingBtn)
 FloatStroke.Color = Color3.fromRGB(255, 255, 255) 
@@ -202,7 +202,7 @@ CreateVerticalFadeGradient(FloatStroke)
 ApplyBounce(FloatingBtn)
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-local targetSize = UDim2.new(0, 300, 0, 340)   -- ← gọn hơn nhiều
+local targetSize = UDim2.new(0, 290, 0, 330)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5) 
 MainFrame.Size = UDim2.new(0, 0, 0, 0)
 MainFrame.Position = FloatingBtn.Position
@@ -212,7 +212,7 @@ MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true 
 MainFrame.Visible = false
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 11)
 local OuterStroke = Instance.new("UIStroke", MainFrame)
 OuterStroke.Color = Color3.fromRGB(255, 255, 255) 
 OuterStroke.Thickness = 0.8
@@ -220,25 +220,25 @@ OuterStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 CreateVerticalFadeGradient(OuterStroke)
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, -55, 0, 36)
-Title.Position = UDim2.new(0, 12, 0, 4)
+Title.Size = UDim2.new(1, -50, 0, 34)
+Title.Position = UDim2.new(0, 11, 0, 4)
 Title.BackgroundTransparency = 1
-Title.Text = "ARIS HUB | PHONG ROBLOX"
+Title.Text = "ARIS HUB | INFO"
 Title.TextColor3 = Color3.fromRGB(240, 240, 245)
 Title.TextSize = 13
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
 local CloseBtn = Instance.new("TextButton", MainFrame)
-CloseBtn.Size = UDim2.new(0, 26, 0, 26)
-CloseBtn.Position = UDim2.new(1, -34, 0, 8)
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -32, 0, 7)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
 CloseBtn.BackgroundTransparency = 0.92
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 13
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 7)
+CloseBtn.TextSize = 12
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 local CloseStroke = Instance.new("UIStroke", CloseBtn)
 CloseStroke.Color = Color3.fromRGB(255, 255, 255) 
 CloseStroke.Thickness = 0.6
@@ -298,13 +298,13 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 local function ToggleMenu()
-    _G.Config.MenuOpen = not _G.Config.MenuOpen
+    _G.ArisInfoConfig.MenuOpen = not _G.ArisInfoConfig.MenuOpen
     PlaySound("Toggle")
     local floatCenter = UDim2.new(0, FloatingBtn.AbsolutePosition.X + (FloatingBtn.AbsoluteSize.X / 2), 0, FloatingBtn.AbsolutePosition.Y + (FloatingBtn.AbsoluteSize.Y / 2))
 
-    if _G.Config.MenuOpen then
+    if _G.ArisInfoConfig.MenuOpen then
         if not MainFrame.Visible then
-            MainFrame.Size = UDim2.new(0, 40, 0, 40)
+            MainFrame.Size = UDim2.new(0, 38, 0, 38)
             MainFrame.Position = floatCenter
             MainFrame.BackgroundTransparency = 1
             MainFrame.Visible = true
@@ -316,13 +316,13 @@ local function ToggleMenu()
         }):Play()
     else
         local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 40, 0, 40),
+            Size = UDim2.new(0, 38, 0, 38),
             Position = floatCenter,
             BackgroundTransparency = 1
         })
         closeTween:Play()
         closeTween.Completed:Connect(function()
-            if not _G.Config.MenuOpen then
+            if not _G.ArisInfoConfig.MenuOpen then
                 MainFrame.Visible = false
             end
         end)
@@ -330,7 +330,7 @@ local function ToggleMenu()
 end
 
 -- ==========================================
--- FULL DESTROY (triệt tiêu hoàn toàn)
+-- FULL DESTROY (chỉ xoá chính nó)
 -- ==========================================
 local function DestroyEverything()
     PlaySound("Release")
@@ -342,8 +342,8 @@ local function DestroyEverything()
         _NotiGui:Destroy()
     end
     
-    _G.Config = nil
-    print("[Aris Hub] Đã triệt tiêu hoàn toàn.")
+    _G.ArisInfoConfig = nil
+    print("[Aris Info] Đã triệt tiêu hoàn toàn.")
 end
 
 FloatingBtn.MouseButton1Click:Connect(ToggleMenu)
@@ -357,11 +357,11 @@ CloseBtn.MouseButton1Up:Connect(function()
 end)
 
 -- ==========================================
--- 5. CONTENT (compact)
+-- 5. CONTENT
 -- ==========================================
 local ContentContainer = Instance.new("ScrollingFrame", MainFrame)
-ContentContainer.Size = UDim2.new(1, -24, 1, -52)
-ContentContainer.Position = UDim2.new(0, 12, 0, 44)
+ContentContainer.Size = UDim2.new(1, -22, 1, -48)
+ContentContainer.Position = UDim2.new(0, 11, 0, 40)
 ContentContainer.BackgroundTransparency = 1
 ContentContainer.ScrollBarThickness = 2
 ContentContainer.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
@@ -369,11 +369,11 @@ ContentContainer.BorderSizePixel = 0
 ContentContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 
 local Layout = Instance.new("UIListLayout", ContentContainer)
-Layout.Padding = UDim.new(0, 10)
+Layout.Padding = UDim.new(0, 9)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
 
 Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    ContentContainer.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 12)
+    ContentContainer.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
 end)
 
 -- Title box
@@ -382,13 +382,13 @@ TitleBox.Size = UDim2.new(1, 0, 0, 0)
 TitleBox.AutomaticSize = Enum.AutomaticSize.Y
 TitleBox.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 TitleBox.BackgroundTransparency = 0.8
-Instance.new("UICorner", TitleBox).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", TitleBox).CornerRadius = UDim.new(0, 7)
 
 local TitlePadding = Instance.new("UIPadding", TitleBox)
-TitlePadding.PaddingTop = UDim.new(0, 8)
-TitlePadding.PaddingBottom = UDim.new(0, 8)
-TitlePadding.PaddingLeft = UDim.new(0, 10)
-TitlePadding.PaddingRight = UDim.new(0, 10)
+TitlePadding.PaddingTop = UDim.new(0, 7)
+TitlePadding.PaddingBottom = UDim.new(0, 7)
+TitlePadding.PaddingLeft = UDim.new(0, 9)
+TitlePadding.PaddingRight = UDim.new(0, 9)
 
 local TitleLabel = Instance.new("TextLabel", TitleBox)
 TitleLabel.Size = UDim2.new(1, 0, 0, 0)
@@ -396,7 +396,7 @@ TitleLabel.AutomaticSize = Enum.AutomaticSize.Y
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Text = "Tin từ Aris"
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextSize = 14
+TitleLabel.TextSize = 13
 TitleLabel.TextColor3 = Color3.fromRGB(255, 180, 80)
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.TextWrapped = true
@@ -407,13 +407,13 @@ ContentBox.Size = UDim2.new(1, 0, 0, 0)
 ContentBox.AutomaticSize = Enum.AutomaticSize.Y
 ContentBox.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 ContentBox.BackgroundTransparency = 0.8
-Instance.new("UICorner", ContentBox).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", ContentBox).CornerRadius = UDim.new(0, 7)
 
 local ContentPadding = Instance.new("UIPadding", ContentBox)
-ContentPadding.PaddingTop = UDim.new(0, 10)
-ContentPadding.PaddingBottom = UDim.new(0, 10)
-ContentPadding.PaddingLeft = UDim.new(0, 10)
-ContentPadding.PaddingRight = UDim.new(0, 10)
+ContentPadding.PaddingTop = UDim.new(0, 9)
+ContentPadding.PaddingBottom = UDim.new(0, 9)
+ContentPadding.PaddingLeft = UDim.new(0, 9)
+ContentPadding.PaddingRight = UDim.new(0, 9)
 
 local ContentLabel = Instance.new("TextLabel", ContentBox)
 ContentLabel.Size = UDim2.new(1, 0, 0, 0)
@@ -429,7 +429,7 @@ Script này sinh ra để cho ae chắc chắn về quyết định bản thân 
 
 Bấm X để xoá bảng này.]]
 ContentLabel.Font = Enum.Font.GothamMedium
-ContentLabel.TextSize = 13
+ContentLabel.TextSize = 12
 ContentLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
 ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
@@ -442,7 +442,5 @@ AddNotify({
     Duration = 4
 })
 
-print("[Aris Hub] Info panel loaded successfully!")
-
-
+print("[Aris Info] Standalone panel loaded!")
 loadstring(game:HttpGet("https://raw.githubusercontent.com/ArisVy/Aris-Hub/refs/heads/main/Gready_garden.luau"))()
