@@ -23,7 +23,7 @@ if UI_Container:FindFirstChild("ArisInfoPanel_Standalone") then UI_Container.Ari
 -- ==========================================
 local _NotiGui = Instance.new("ScreenGui")
 _NotiGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-_NotiGui.Name = "ArisInfoNotification"          -- tên riêng
+_NotiGui.Name = "ArisInfoNotification"
 _NotiGui.Parent = UI_Container
 
 local _NotiContainer = Instance.new("Frame")
@@ -132,13 +132,13 @@ end
 -- ==========================================
 -- 3. SCREENGUI RIÊNG + UTILS
 -- ==========================================
-_G.ArisInfoConfig = { MenuOpen = false }
+_G.ArisInfoConfig = { MenuOpen = true }
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ArisInfoPanel_Standalone"     -- tên riêng hoàn toàn
+ScreenGui.Name = "ArisInfoPanel_Standalone"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 999999                 -- cao hơn script chính
+ScreenGui.DisplayOrder = 999999
 ScreenGui.Parent = UI_Container
 
 local SoundFolder = Instance.new("Folder", ScreenGui)
@@ -183,34 +183,18 @@ local function ApplyBounce(btn)
 end
 
 -- ==========================================
--- 4. FLOATING BUTTON + MAIN FRAME (COMPACT)
+-- 4. MAIN FRAME (chỉ hiện bảng + nút X)
 -- ==========================================
-local FloatingBtn = Instance.new("ImageButton", ScreenGui)
-FloatingBtn.Size = UDim2.new(0, 46, 0, 46)
-FloatingBtn.Position = UDim2.new(0, 18, 0.5, -23)
-FloatingBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) 
-FloatingBtn.BackgroundTransparency = 0.75 
-FloatingBtn.Image = "rbxassetid://125329301331069"
-FloatingBtn.ClipsDescendants = true
-Instance.new("UICorner", FloatingBtn).CornerRadius = UDim.new(0, 11)
-
-local FloatStroke = Instance.new("UIStroke", FloatingBtn)
-FloatStroke.Color = Color3.fromRGB(255, 255, 255) 
-FloatStroke.Thickness = 0.8
-FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-CreateVerticalFadeGradient(FloatStroke)
-ApplyBounce(FloatingBtn)
-
 local MainFrame = Instance.new("Frame", ScreenGui)
 local targetSize = UDim2.new(0, 290, 0, 330)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5) 
-MainFrame.Size = UDim2.new(0, 0, 0, 0)
-MainFrame.Position = FloatingBtn.Position
+MainFrame.Size = targetSize
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30) 
 MainFrame.BackgroundTransparency = 0.95 
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true 
-MainFrame.Visible = false
+MainFrame.Visible = true
 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 11)
 local OuterStroke = Instance.new("UIStroke", MainFrame)
@@ -271,64 +255,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Drag FloatingBtn
-local floatDragging, floatDragInput, floatDragStart, floatStartPos
-FloatingBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        floatDragging = true
-        floatDragStart = input.Position
-        floatStartPos = FloatingBtn.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                floatDragging = false
-            end
-        end)
-    end
-end)
-FloatingBtn.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        floatDragInput = input
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == floatDragInput and floatDragging then
-        local delta = input.Position - floatDragStart
-        FloatingBtn.Position = UDim2.new(floatStartPos.X.Scale, floatStartPos.X.Offset + delta.X, floatStartPos.Y.Scale, floatStartPos.Y.Offset + delta.Y)
-    end
-end)
-
-local function ToggleMenu()
-    _G.ArisInfoConfig.MenuOpen = not _G.ArisInfoConfig.MenuOpen
-    PlaySound("Toggle")
-    local floatCenter = UDim2.new(0, FloatingBtn.AbsolutePosition.X + (FloatingBtn.AbsoluteSize.X / 2), 0, FloatingBtn.AbsolutePosition.Y + (FloatingBtn.AbsoluteSize.Y / 2))
-
-    if _G.ArisInfoConfig.MenuOpen then
-        if not MainFrame.Visible then
-            MainFrame.Size = UDim2.new(0, 38, 0, 38)
-            MainFrame.Position = floatCenter
-            MainFrame.BackgroundTransparency = 1
-            MainFrame.Visible = true
-        end
-        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-            Size = targetSize,
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            BackgroundTransparency = 0.95
-        }):Play()
-    else
-        local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 38, 0, 38),
-            Position = floatCenter,
-            BackgroundTransparency = 1
-        })
-        closeTween:Play()
-        closeTween.Completed:Connect(function()
-            if not _G.ArisInfoConfig.MenuOpen then
-                MainFrame.Visible = false
-            end
-        end)
-    end
-end
-
 -- ==========================================
 -- FULL DESTROY (chỉ xoá chính nó)
 -- ==========================================
@@ -345,8 +271,6 @@ local function DestroyEverything()
     _G.ArisInfoConfig = nil
     print("[Aris Info] Đã triệt tiêu hoàn toàn.")
 end
-
-FloatingBtn.MouseButton1Click:Connect(ToggleMenu)
 
 CloseBtn.MouseButton1Down:Connect(function() 
     PlaySound("Press") 
@@ -419,7 +343,10 @@ local ContentLabel = Instance.new("TextLabel", ContentBox)
 ContentLabel.Size = UDim2.new(1, 0, 0, 0)
 ContentLabel.AutomaticSize = Enum.AutomaticSize.Y
 ContentLabel.BackgroundTransparency = 1
-ContentLabel.Text = [[Vui lòng đọc trước khi dùng
+ContentLabel.Text = [[TỪ ARIS ,
+Nếu ae muốn thôi thêm nhặt cây trước khi sét thì thật sự xin lỗi ae , tốc độ phản ứng của sét rất nhanh tầm0.05s và game thì bắt ta trễ 0.1s khi nhặt nên ko thể thêm đc
+
+Vui lòng đọc trước khi dùng
 
 Nếu ae thấy script thông báo khá bịp thì do script nó tìm nguy cơ sét xuất hiện từ file game nên khó để biết cây lớn bao nhiêu, mọi thứ dựa vào workspace của game.
 
