@@ -1,0 +1,589 @@
+--[[
+    ARIS UI HUB - Clean Version
+    Converted from Aris Hub → Aris UI Library
+    Added: Infinite Energy + Infinite Soru
+    Author: Converted for user request
+]]
+
+-- ==================== LOAD ARIS UI LIBRARY ====================
+local ArisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/ArisVy/Aris-Hub/refs/heads/main/Aris_UILibrary.lua"))()
+
+-- ==================== SERVICES ====================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- ==================== CONFIG ====================
+_G.Config = {
+    -- ESP
+    ESP_Name = true,
+    ESP_Health = true,
+    ESP_Distance = true,
+    ESP_Chams = false,
+    ESP_Box = false,
+    TeamCheck = true,
+
+    -- Hitbox
+    Hitbox = false,
+    HitboxSize = 25,
+
+    -- Silent Aim
+    SilentAim = false,
+    FOV_Radius = 250,
+    Prediction = 0.12,
+    Prediction_Enabled = true,
+
+    -- Misc
+    InfJump = false,
+    WalkOnWater = false,
+    NoClip = false,
+    FastAttack = false,
+
+    -- Infinite
+    InfEnergy = false,
+    InfSoru = false,
+}
+
+-- ==================== NOTIFY ====================
+local function Notify(title, desc, duration)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title or "Aris Hub",
+            Text = desc or "",
+            Duration = duration or 4
+        })
+    end)
+end
+
+-- ==================== WINDOW ====================
+local Window = ArisUI:CreateWindow({
+    Title = "ARIS HUB | CLEAN",
+    SaveName = "ArisCleanConfig.json"
+})
+
+-- ==================== TABS ====================
+local TabMain   = Window:CreateTab("Main", nil)
+local TabPVP    = Window:CreateTab("PVP", nil)
+local TabESP    = Window:CreateTab("ESP", nil)
+local TabMisc   = Window:CreateTab("Misc", nil)
+local TabInfo   = Window:CreateTab("Info", nil)
+
+-- ==================== MAIN TAB ====================
+TabMain:CreateParagraph("Welcome", "Aris Hub converted to Aris UI Library + Inf Energy & Inf Soru")
+
+TabMain:CreateToggle("Infinite Energy", "InfEnergy", false, "Keep Energy always full", function(state)
+    _G.Config.InfEnergy = state
+    if state then
+        Notify("Infinite Energy", "Enabled", 3)
+    else
+        Notify("Infinite Energy", "Disabled", 3)
+    end
+end)
+
+TabMain:CreateToggle("Infinite Soru", "InfSoru", false, "No cooldown on Soru", function(state)
+    _G.Config.InfSoru = state
+    if state then
+        Notify("Infinite Soru", "Enabled", 3)
+    else
+        Notify("Infinite Soru", "Disabled", 3)
+    end
+end)
+
+TabMain:CreateToggle("Fast Attack", "FastAttack", false, "Faster M1 attacks", function(state)
+    _G.Config.FastAttack = state
+end)
+
+TabMain:CreateToggle("Infinite Jump", "InfJump", false, "Jump unlimited times", function(state)
+    _G.Config.InfJump = state
+end)
+
+TabMain:CreateToggle("Walk On Water", "WalkOnWater", false, "Walk on water surface", function(state)
+    _G.Config.WalkOnWater = state
+end)
+
+TabMain:CreateToggle("No Clip", "NoClip", false, "Walk through walls", function(state)
+    _G.Config.NoClip = state
+end)
+
+-- ==================== PVP TAB ====================
+TabPVP:CreateParagraph("Silent Aim & Hitbox", "Core PVP features from Aris Hub")
+
+TabPVP:CreateToggle("Silent Aim", "SilentAim", false, "Auto aim at nearest enemy", function(state)
+    _G.Config.SilentAim = state
+end)
+
+TabPVP:CreateSlider("FOV Radius", "FOV_Radius", 50, 800, 250, "Silent Aim FOV size", function(val)
+    _G.Config.FOV_Radius = val
+end)
+
+TabPVP:CreateToggle("Prediction", "Prediction_Enabled", true, "Predict enemy movement", function(state)
+    _G.Config.Prediction_Enabled = state
+end)
+
+TabPVP:CreateSlider("Prediction Time", "Prediction", 0, 0.5, 0.12, "Prediction strength (seconds)", function(val)
+    _G.Config.Prediction = val
+end)
+
+TabPVP:CreateToggle("Hitbox Expander", "Hitbox", false, "Expand enemy hitbox", function(state)
+    _G.Config.Hitbox = state
+end)
+
+TabPVP:CreateSlider("Hitbox Size", "HitboxSize", 5, 80, 25, "Size of expanded hitbox", function(val)
+    _G.Config.HitboxSize = val
+end)
+
+TabPVP:CreateToggle("Team Check", "TeamCheck", true, "Ignore teammates", function(state)
+    _G.Config.TeamCheck = state
+end)
+
+-- ==================== ESP TAB ====================
+TabESP:CreateParagraph("ESP Settings", "Visual aids for players")
+
+TabESP:CreateToggle("ESP Name", "ESP_Name", true, "Show player names", function(state)
+    _G.Config.ESP_Name = state
+end)
+
+TabESP:CreateToggle("ESP Health", "ESP_Health", true, "Show health", function(state)
+    _G.Config.ESP_Health = state
+end)
+
+TabESP:CreateToggle("ESP Distance", "ESP_Distance", true, "Show distance", function(state)
+    _G.Config.ESP_Distance = state
+end)
+
+TabESP:CreateToggle("ESP Chams", "ESP_Chams", false, "Highlight players", function(state)
+    _G.Config.ESP_Chams = state
+end)
+
+TabESP:CreateToggle("ESP Box", "ESP_Box", false, "Show 2D box", function(state)
+    _G.Config.ESP_Box = state
+end)
+
+-- ==================== MISC TAB ====================
+TabMisc:CreateParagraph("Utilities", "Extra helpers")
+
+TabMisc:CreateToggle("Auto Haki", "AutoHaki", true, "Auto enable Buso Haki", function(state)
+    _G.Config.AutoHaki = state
+end)
+
+TabMisc:CreateButton("FPS Boost", function()
+    pcall(function()
+        local lighting = game:GetService("Lighting")
+        lighting.GlobalShadows = false
+        lighting.FogEnd = 9e9
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.Plastic
+                v.Reflectance = 0
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Lifetime = NumberRange.new(0)
+            end
+        end
+        Notify("FPS Boost", "Applied successfully", 3)
+    end)
+end)
+
+TabMisc:CreateButton("Rejoin Server", function()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+end)
+
+TabMisc:CreateButton("Server Hop", function()
+    local PlaceID = game.PlaceId
+    local AllIDs = {}
+    local foundAnything = ""
+    local actualHour = os.date("!*t").hour
+    local function TPReturner()
+        local Site
+        if foundAnything == "" then
+            Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100'))
+        else
+            Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100&cursor=' .. foundAnything))
+        end
+        if Site.nextPageCursor and Site.nextPageCursor ~= "null" and Site.nextPageCursor ~= nil then
+            foundAnything = Site.nextPageCursor
+        end
+        for _, v in pairs(Site.data) do
+            local Possible = true
+            local ID = tostring(v.id)
+            if tonumber(v.maxPlayers) > tonumber(v.playing) then
+                for _, Existing in pairs(AllIDs) do
+                    if ID == tostring(Existing) then
+                        Possible = false
+                    end
+                end
+                if Possible then
+                    table.insert(AllIDs, ID)
+                    task.wait()
+                    pcall(function()
+                        game:GetService("TeleportService"):TeleportToPlaceInstance(PlaceID, ID, LocalPlayer)
+                    end)
+                    task.wait(4)
+                end
+            end
+        end
+    end
+    TPReturner()
+end)
+
+-- ==================== INFO TAB ====================
+TabInfo:CreateParagraph("Player Info", "Your current stats")
+
+local RaceLabel = TabInfo:CreateParagraph("Race", "Loading...")
+local LevelLabel = TabInfo:CreateParagraph("Level", "Loading...")
+local BountyLabel = TabInfo:CreateParagraph("Bounty/Honor", "Loading...")
+
+task.spawn(function()
+    while task.wait(1) do
+        pcall(function()
+            local data = LocalPlayer:FindFirstChild("Data")
+            if data then
+                RaceLabel:Set("Race: " .. (data.Race and data.Race.Value or "???"))
+                LevelLabel:Set("Level: " .. (data.Level and data.Level.Value or "???"))
+            end
+            local ls = LocalPlayer:FindFirstChild("leaderstats")
+            if ls and ls:FindFirstChild("Bounty/Honor") then
+                BountyLabel:Set("Bounty/Honor: " .. ls["Bounty/Honor"].Value)
+            end
+        end)
+    end
+end)
+
+-- ==================== LOGIC SECTION ====================
+
+-- ========== INFINITE ENERGY ==========
+task.spawn(function()
+    while task.wait(0.08) do
+        if _G.Config.InfEnergy then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("Energy") then
+                    char.Energy.Value = char.Energy.MaxValue
+                end
+            end)
+        end
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    if _G.Config.InfEnergy then
+        task.wait(0.8)
+        pcall(function()
+            if char:FindFirstChild("Energy") then
+                char.Energy.Value = char.Energy.MaxValue
+            end
+        end)
+    end
+end)
+
+-- ========== INFINITE SORU ==========
+task.spawn(function()
+    while task.wait(0.15) do
+        if _G.Config.InfSoru then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local soru = char:FindFirstChild("Soru")
+                if not soru then return end
+
+                for _, v in next, getgc() do
+                    if typeof(v) == "function" and getfenv(v).script == soru then
+                        for i2, v2 in next, getupvalues(v) do
+                            if typeof(v2) == "table" and v2.LastUse then
+                                v2.LastUse = 0
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ========== INF JUMP ==========
+UserInputService.JumpRequest:Connect(function()
+    if _G.Config.InfJump then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- ========== WALK ON WATER ==========
+task.spawn(function()
+    while task.wait(0.3) do
+        pcall(function()
+            local water = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("WaterBase-Plane")
+            if water then
+                if _G.Config.WalkOnWater then
+                    water.Size = Vector3.new(1000, 112, 1000)
+                else
+                    water.Size = Vector3.new(1000, 80, 1000)
+                end
+            end
+        end)
+    end
+end)
+
+-- ========== NO CLIP ==========
+RunService.Stepped:Connect(function()
+    if _G.Config.NoClip and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- ========== AUTO HAKI ==========
+task.spawn(function()
+    while task.wait(1) do
+        if _G.Config.AutoHaki then
+            pcall(function()
+                if not LocalPlayer.Character:FindFirstChild("HasBuso") then
+                    ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
+                end
+            end)
+        end
+    end
+end)
+
+-- ========== HITBOX ==========
+RunService.Heartbeat:Connect(function()
+    if not _G.Config.Hitbox then return end
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p == LocalPlayer then continue end
+        if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then continue end
+
+        local char = p.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+        if hrp and hum and hum.Health > 0 then
+            hrp.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+            hrp.Transparency = 0.65
+            hrp.CanCollide = false
+            hrp.Material = Enum.Material.Neon
+        end
+    end
+end)
+
+-- ========== SIMPLE ESP (Name + Health + Distance) ==========
+local ESP_Folder = Instance.new("Folder")
+ESP_Folder.Name = "ArisESP"
+ESP_Folder.Parent = game.CoreGui
+
+local function ClearESP(name)
+    local old = ESP_Folder:FindFirstChild(name)
+    if old then old:Destroy() end
+end
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    ClearESP(player.Name)
+
+    local bill = Instance.new("BillboardGui")
+    bill.Name = player.Name
+    bill.Size = UDim2.new(0, 200, 0, 50)
+    bill.StudsOffset = Vector3.new(0, 3, 0)
+    bill.AlwaysOnTop = true
+    bill.Parent = ESP_Folder
+
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 13
+    text.TextStrokeTransparency = 0.4
+    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    text.Parent = bill
+
+    return bill, text
+end
+
+RunService.RenderStepped:Connect(function()
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p == LocalPlayer then continue end
+        if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then
+            ClearESP(p.Name)
+            continue
+        end
+
+        local char = p.Character
+        local head = char and char:FindFirstChild("Head")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+        if not (head and hum and hrp and hum.Health > 0) then
+            ClearESP(p.Name)
+            continue
+        end
+
+        local bill = ESP_Folder:FindFirstChild(p.Name)
+        local text
+        if not bill then
+            bill, text = CreateESP(p)
+        else
+            text = bill:FindFirstChildOfClass("TextLabel")
+        end
+
+        if bill and text then
+            bill.Adornee = head
+            local lines = {}
+            if _G.Config.ESP_Name then table.insert(lines, p.Name) end
+            if _G.Config.ESP_Health then table.insert(lines, "HP: " .. math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth)) end
+            if _G.Config.ESP_Distance and myRoot then
+                local dist = math.floor((hrp.Position - myRoot.Position).Magnitude)
+                table.insert(lines, dist .. "m")
+            end
+            text.Text = table.concat(lines, "\n")
+            bill.Enabled = (#lines > 0)
+        end
+
+        -- Chams
+        local hl = char:FindFirstChild("ArisChams")
+        if _G.Config.ESP_Chams then
+            if not hl then
+                hl = Instance.new("Highlight")
+                hl.Name = "ArisChams"
+                hl.FillTransparency = 0.5
+                hl.OutlineTransparency = 0
+                hl.Parent = char
+            end
+            hl.FillColor = Color3.fromRGB(0, 200, 255)
+            hl.OutlineColor = Color3.fromRGB(255, 50, 150)
+            hl.Enabled = true
+        else
+            if hl then hl:Destroy() end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+    ClearESP(p.Name)
+end)
+
+-- ========== SILENT AIM (Simple Version) ==========
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5
+FOVCircle.NumSides = 64
+FOVCircle.Filled = false
+FOVCircle.Transparency = 0.8
+FOVCircle.Color = Color3.fromRGB(0, 230, 255)
+FOVCircle.Visible = false
+
+local function GetClosestTarget()
+    local closest = nil
+    local shortest = math.huge
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p == LocalPlayer then continue end
+        if _G.Config.TeamCheck and p.Team == LocalPlayer.Team then continue end
+
+        local char = p.Character
+        local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head"))
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+        if hrp and hum and hum.Health > 0 then
+            local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            if onScreen then
+                local dist = (center - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                if dist <= _G.Config.FOV_Radius and dist < shortest then
+                    shortest = dist
+                    closest = hrp
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local SilentTarget = nil
+
+RunService.RenderStepped:Connect(function()
+    if _G.Config.SilentAim then
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        FOVCircle.Radius = _G.Config.FOV_Radius
+        FOVCircle.Visible = true
+        SilentTarget = GetClosestTarget()
+    else
+        FOVCircle.Visible = false
+        SilentTarget = nil
+    end
+end)
+
+-- Simple Mouse.Hit / Target hook for Silent Aim
+if not getgenv().ArisSilentHooked then
+    getgenv().ArisSilentHooked = true
+    local mt = getrawmetatable(game)
+    local oldIndex = mt.__index
+    setreadonly(mt, false)
+
+    mt.__index = newcclosure(function(self, key)
+        if _G.Config.SilentAim and SilentTarget and self == LocalPlayer:GetMouse() then
+            if key == "Hit" or key == "hit" then
+                local pos = SilentTarget.Position
+                if _G.Config.Prediction_Enabled and SilentTarget:IsA("BasePart") then
+                    local vel = SilentTarget.AssemblyLinearVelocity
+                    pos = pos + Vector3.new(vel.X, 0, vel.Z) * _G.Config.Prediction
+                end
+                return CFrame.new(pos)
+            elseif key == "Target" or key == "target" then
+                return SilentTarget
+            end
+        end
+        return oldIndex(self, key)
+    end)
+
+    setreadonly(mt, true)
+end
+
+-- ========== FAST ATTACK (Basic) ==========
+task.spawn(function()
+    while task.wait(0.05) do
+        if _G.Config.FastAttack then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool and tool:FindFirstChild("LeftClickRemote") then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        for _, folder in pairs({workspace.Enemies, workspace.Characters}) do
+                            for _, enemy in pairs(folder:GetChildren()) do
+                                local eRoot = enemy:FindFirstChild("HumanoidRootPart")
+                                local eHum = enemy:FindFirstChild("Humanoid")
+                                if eRoot and eHum and eHum.Health > 0 and enemy ~= char then
+                                    local dist = (eRoot.Position - root.Position).Magnitude
+                                    if dist <= 60 then
+                                        tool.LeftClickRemote:FireServer((eRoot.Position - root.Position).Unit, 1)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ==================== FINAL NOTIFY ====================
+Notify("ARIS HUB CLEAN", "Loaded successfully!\nInf Energy + Inf Soru ready", 6)
+
+print("[Aris Hub Clean] Loaded with Infinite Energy & Infinite Soru")
